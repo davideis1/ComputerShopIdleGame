@@ -15,8 +15,8 @@ python3 -m http.server 8000   # then open http://localhost:8000
 - Three customer segments (budget / mainstream / enthusiast) weigh performance against price.
 - Marketing, checkout, stock and workshop upgrades per era; timeline events (Y2K, dot-com bust, crypto craze, chip shortage…).
 - **Saving**: localStorage autosave (+ backup), export/import codes, reset.
-- **Offline progress**: the same simulation is run in bulk on return (capped at 4h, upgradeable; the calendar moves at ¼ speed while away) with a "welcome back" report.
+- **Offline progress**: the same simulation is run in bulk on return (capped at 4h, upgradeable; the calendar moves at 1/20 speed while away) with a "welcome back" report.
 
 ## Dev
-`node tools/sim.js [minutes]` runs the engine headless with a simple bot for balance checks.
+`node tools/sim.js [minutes]` runs the engine headless with a simple bot for balance checks; `node tools/custom-check.js` compares custom rigs against the best prebuilts per year.
 All brand/product names are parodies and not affiliated with any real company.

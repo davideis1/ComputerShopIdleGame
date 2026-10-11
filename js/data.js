@@ -7,7 +7,7 @@
     START_YEAR: 1993,
     END_CAL: 33.8, // calendar stops at "today" (Oct 2026)
     YEAR_SECONDS: 300, // real seconds per in-game year while playing
-    OFFLINE_CAL_RATE: 0.25, // calendar speed while the shop is closed
+    OFFLINE_CAL_RATE: 0.05, // calendar speed while the shop is closed
     G: 1.28, // yearly tech improvement factor
     SALE_WINDOW: 6, // years a prebuilt can be re-ordered from distributors
     PART_WINDOW: 6, // years a part stays orderable
@@ -29,12 +29,12 @@
 
   /* ---------- Parts ---------- */
   CS.SLOTS = [
-    { id: 'case', name: 'Case & PSU', icon: '🧱', w: 0.05, base: 90, grow: 1.025 },
-    { id: 'cpu', name: 'Processor', icon: '🧠', w: 0.3, base: 280, grow: 1.032 },
-    { id: 'ram', name: 'Memory', icon: '📏', w: 0.15, base: 150, grow: 1.018 },
+    { id: 'case', name: 'Case & PSU', icon: '🧱', w: 0.05, base: 90, grow: 1.02 },
+    { id: 'cpu', name: 'Processor', icon: '🧠', w: 0.3, base: 280, grow: 1.025 },
+    { id: 'ram', name: 'Memory', icon: '📏', w: 0.15, base: 150, grow: 1.015 },
     { id: 'storage', name: 'Storage', icon: '💾', w: 0.15, base: 170, grow: 1.0 },
-    { id: 'gpu', name: 'Graphics', icon: '🎮', w: 0.25, base: 110, grow: 1.075 },
-    { id: 'os', name: 'Software', icon: '🪟', w: 0.1, base: 80, grow: 1.02 },
+    { id: 'gpu', name: 'Graphics', icon: '🎮', w: 0.25, base: 110, grow: 1.055 },
+    { id: 'os', name: 'Software', icon: '🪟', w: 0.1, base: 80, grow: 1.015 },
   ];
 
   // [slot, year, 'budget|standard|premium']
@@ -116,7 +116,7 @@
   const TIERS = [
     { label: 'Budget', q: 0.7 },
     { label: 'Standard', q: 1.0 },
-    { label: 'Premium', q: 1.45 },
+    { label: 'Premium', q: 1.6 },
   ];
 
   CS.PARTS = [];
@@ -187,6 +187,32 @@
     ['env_dgx', 'Envidia', 'DGX Sparkle AI Box', 2025, 2999, 0.25, 1.6, '🤖'],
     ['rayzer_b18', 'Rayzer', 'Blayde 18 Pro', 2025, 3299, 0.24, 1.5, '🐍'],
     ['ample_studio', 'Ample', 'Mac Studio Ultra Max', 2025, 3999, 0.28, 1.8, '📦'],
+    ['dall_8250', 'Dall', 'Dimension 8250', 2002, 1799, 0.18, 1.15, '🖥️'],
+    ['gate_700', 'Gatewhey', '700XL Cowhide Edition', 2002, 1499, 0.14, 1.0, '🖥️'],
+    ['hp_a350', 'Hewlitt-Pickard', 'Pavillion a350n', 2003, 999, 0.12, 0.95, '🖥️'],
+    ['ample_g5', 'Ample', 'iMack G5', 2004, 1299, 0.22, 1.1, '🖥️'],
+    ['dall_3000', 'Dall', 'Dimension 3000', 2004, 599, 0.09, 0.8, '🖥️'],
+    ['gate_fx', 'Gatewhey', 'FX 7000 Gamer', 2005, 2199, 0.2, 1.3, '🖥️'],
+    ['compac_sr', 'Compac', 'Presario SR1000', 2005, 699, 0.09, 0.85, '🖥️'],
+    ['ample_imac_al', 'Ample', 'iMack Aluminum', 2007, 1199, 0.22, 1.1, '🖥️'],
+    ['dall_insp', 'Dall', 'Inspirion 1525', 2007, 749, 0.1, 0.85, '💻'],
+    ['dall_studio', 'Dall', 'Studio XPS 435', 2009, 1499, 0.16, 1.2, '🖥️'],
+    ['alien_alx', 'Alienwear', 'Area-51 ALX', 2010, 2799, 0.25, 1.5, '👽'],
+    ['hp_envy', 'Hewlitt-Pickard', 'Envy 14', 2010, 1199, 0.15, 1.0, '💻'],
+    ['ample_ret', 'Ample', 'MacBuck Pro Retinal', 2012, 2199, 0.24, 1.4, '💻'],
+    ['acre_ultra', 'Acre', 'Aspyre S7 Ultrabook', 2012, 1199, 0.12, 0.9, '💻'],
+    ['ample_imp', 'Ample', 'iMack Pro', 2017, 4999, 0.3, 1.9, '🖥️'],
+    ['dall_g5', 'Dall', 'G5 Gaming', 2018, 1099, 0.14, 1.0, '🎮'],
+    ['leno_tp', 'Lenovoh', 'ThinkPed X1', 2018, 1599, 0.17, 1.1, '💻'],
+    ['acre_pred', 'Acre', 'Predador Helios', 2018, 1499, 0.16, 1.2, '🎮'],
+    ['ample_m2', 'Ample', 'MacBuck Pro M2', 2022, 1999, 0.24, 1.6, '💻'],
+    ['rayzer_b15', 'Rayzer', 'Blayde 15', 2022, 2499, 0.23, 1.4, '🐍'],
+    ['hp_omen', 'Hewlitt-Pickard', 'Omen 40L', 2022, 1899, 0.17, 1.3, '🎮'],
+    ['ample_m4', 'Ample', 'MacBuck Pro M4', 2024, 1599, 0.24, 1.5, '💻'],
+    ['leno_go', 'Lenovoh', 'Legion Go Handheld', 2024, 699, 0.1, 0.8, '🕹️'],
+    ['alien_r16', 'Alienwear', 'Aurora R16', 2024, 2499, 0.24, 1.5, '👽'],
+    ['ample_neo', 'Ample', 'MacBuck Neo', 2026, 699, 0.2, 1.0, '💻'],
+    ['ms_lap8', 'Microsaft', 'Surfaced Laptop 8', 2026, 1299, 0.16, 1.2, '💻'],
   ];
   CS.PRODUCTS = PRE.map(([id, brand, name, year, price, m, q, icon]) => ({ id, brand, name, year, price, m, q, icon }));
   CS.PRODUCT_BY_ID = {};
@@ -196,38 +222,41 @@
      kind: effect key; per: effect per level; up: upkeep $/s per level (inflation scaled) */
   CS.UPGRADES = [
     // Shop
-    { id: 'shelf', grp: 'Shop', name: 'Shop Floor Expansion', icon: '🏬', desc: '+8 units of shelf space', year: 1993, base: 500, grow: 1.5, max: 30, kind: 'cap', per: 8 },
-    { id: 'supplier', grp: 'Shop', name: 'Distributor Account', icon: '🤝', desc: '-1.5% wholesale & parts cost', year: 1993, base: 1800, grow: 1.5, max: 20, kind: 'disc', per: 0.015 },
+    { id: 'shelf', grp: 'Shop', name: 'Shop Floor Expansion', icon: '🏬', desc: '+8 units of shelf space', year: 1993, base: 500, grow: 1.35, max: 30, kind: 'cap', per: 8 },
+    { id: 'depot', grp: 'Shop', name: 'Back-Room Depot', icon: '🏚️', desc: '+40 units of shelf space', year: 1999, base: 20000, grow: 1.35, max: 40, kind: 'cap', per: 40 },
+    { id: 'dc', grp: 'Shop', name: 'Distribution Centre', icon: '🏢', desc: '+250 units of shelf space', year: 2008, base: 400000, grow: 1.35, max: 40, kind: 'cap', per: 250 },
+    { id: 'mega', grp: 'Shop', name: 'Automated Mega-Warehouse', icon: '🏗️', desc: '+1,500 units of shelf space', year: 2018, base: 8e6, grow: 1.35, max: 40, kind: 'cap', per: 1500 },
+    { id: 'supplier', grp: 'Shop', name: 'Distributor Account', icon: '🤝', desc: '-1% wholesale & parts cost', year: 1993, base: 1800, grow: 1.5, max: 10, kind: 'disc', per: 0.01 },
     { id: 'loyalty', grp: 'Shop', name: 'Loyalty Punch Cards', icon: '🎟️', desc: '+3% customers', year: 1994, base: 1200, grow: 1.6, max: 25, kind: 'loyal', per: 0.03 },
     { id: 'night', grp: 'Shop', name: 'Night Lock-Up & Cameras', icon: '🔒', desc: '+2h of offline earnings', year: 1993, base: 4000, grow: 3.2, max: 8, kind: 'night', per: 2 },
     // Marketing
-    { id: 'ads_news', grp: 'Marketing', name: 'Classified Ads', icon: '📰', desc: '+0.03 customers/s', year: 1993, base: 250, grow: 1.28, max: 60, kind: 'lambda', per: 0.03 },
-    { id: 'ads_tv', grp: 'Marketing', name: 'Late-Night Infomercials', icon: '📺', desc: '+0.07 customers/s', year: 1994, base: 1800, grow: 1.3, max: 60, kind: 'lambda', per: 0.07 },
-    { id: 'ads_web', grp: 'Marketing', name: 'Geocities Web Page', icon: '🌐', desc: '+0.15 customers/s', year: 1996, base: 8000, grow: 1.3, max: 60, kind: 'lambda', per: 0.15 },
-    { id: 'ads_ecom', grp: 'Marketing', name: 'E-Commerce Checkout', icon: '🛒', desc: '+0.35 customers/s', year: 1999, base: 40000, grow: 1.3, max: 60, kind: 'lambda', per: 0.35 },
-    { id: 'ads_seo', grp: 'Marketing', name: 'Search Engine Optimization', icon: '🔎', desc: '+0.9 customers/s', year: 2003, base: 220000, grow: 1.3, max: 60, kind: 'lambda', per: 0.9 },
-    { id: 'ads_social', grp: 'Marketing', name: 'Social Media Presence', icon: '👍', desc: '+2.2 customers/s', year: 2009, base: 1.2e6, grow: 1.3, max: 60, kind: 'lambda', per: 2.2 },
-    { id: 'ads_influ', grp: 'Marketing', name: 'Influencer Sponsorships', icon: '🤳', desc: '+5.5 customers/s', year: 2015, base: 7e6, grow: 1.3, max: 60, kind: 'lambda', per: 5.5 },
-    { id: 'ads_ai', grp: 'Marketing', name: 'AI Sales Chatbot', icon: '🤖', desc: '+14 customers/s', year: 2023, base: 4e7, grow: 1.3, max: 60, kind: 'lambda', per: 14 },
+    { id: 'ads_news', grp: 'Marketing', name: 'Classified Ads', icon: '📰', desc: '+0.03 customers/s', year: 1993, base: 250, grow: 1.22, max: 60, kind: 'lambda', per: 0.03 },
+    { id: 'ads_tv', grp: 'Marketing', name: 'Late-Night Infomercials', icon: '📺', desc: '+0.07 customers/s', year: 1994, base: 2000, grow: 1.22, max: 60, kind: 'lambda', per: 0.07 },
+    { id: 'ads_web', grp: 'Marketing', name: 'Geocities Web Page', icon: '🌐', desc: '+0.15 customers/s', year: 1996, base: 8000, grow: 1.22, max: 60, kind: 'lambda', per: 0.15 },
+    { id: 'ads_ecom', grp: 'Marketing', name: 'E-Commerce Checkout', icon: '🛒', desc: '+0.35 customers/s', year: 1999, base: 25000, grow: 1.22, max: 60, kind: 'lambda', per: 0.35 },
+    { id: 'ads_seo', grp: 'Marketing', name: 'Search Engine Optimization', icon: '🔎', desc: '+0.9 customers/s', year: 2003, base: 80000, grow: 1.22, max: 60, kind: 'lambda', per: 0.9 },
+    { id: 'ads_social', grp: 'Marketing', name: 'Social Media Presence', icon: '👍', desc: '+2.2 customers/s', year: 2009, base: 350000, grow: 1.22, max: 60, kind: 'lambda', per: 2.2 },
+    { id: 'ads_influ', grp: 'Marketing', name: 'Influencer Sponsorships', icon: '🤳', desc: '+5.5 customers/s', year: 2015, base: 1.6e6, grow: 1.22, max: 60, kind: 'lambda', per: 5.5 },
+    { id: 'ads_ai', grp: 'Marketing', name: 'AI Sales Chatbot', icon: '🤖', desc: '+14 customers/s', year: 2023, base: 8.0e6, grow: 1.22, max: 60, kind: 'lambda', per: 14 },
     // Checkout
     { id: 'sales', grp: 'Checkout', name: 'Sales Associate', icon: '🧑‍💼', desc: 'Serves +0.12 customers/s (paid wage)', year: 1993, base: 600, grow: 1.38, max: 80, kind: 'serve', per: 0.12, up: 0.35 },
     { id: 'training', grp: 'Checkout', name: 'Sales Training Seminar', icon: '🎓', desc: '+10% checkout speed', year: 1994, base: 2500, grow: 1.7, max: 20, kind: 'serveMult', per: 0.1 },
-    { id: 'barcode', grp: 'Checkout', name: 'Barcode Scanners', icon: '🏷️', desc: 'Serves +0.4 customers/s', year: 1994, base: 3000, grow: 1.4, max: 50, kind: 'serve', per: 0.4 },
-    { id: 'pos', grp: 'Checkout', name: 'POS Terminals', icon: '🧾', desc: 'Serves +1.2 customers/s', year: 1999, base: 25000, grow: 1.4, max: 50, kind: 'serve', per: 1.2 },
-    { id: 'selfcheck', grp: 'Checkout', name: 'Self-Checkout Kiosks', icon: '🖲️', desc: 'Serves +4 customers/s', year: 2007, base: 300000, grow: 1.4, max: 50, kind: 'serve', per: 4 },
-    { id: 'tap', grp: 'Checkout', name: 'Tap-to-Pay Everywhere', icon: '📲', desc: 'Serves +14 customers/s', year: 2014, base: 3e6, grow: 1.4, max: 50, kind: 'serve', per: 14 },
-    { id: 'autocheck', grp: 'Checkout', name: 'Just-Walk-Out Cameras', icon: '📷', desc: 'Serves +50 customers/s', year: 2022, base: 3e7, grow: 1.4, max: 50, kind: 'serve', per: 50 },
+    { id: 'barcode', grp: 'Checkout', name: 'Barcode Scanners', icon: '🏷️', desc: 'Serves +0.4 customers/s', year: 1994, base: 2500, grow: 1.22, max: 50, kind: 'serve', per: 0.4 },
+    { id: 'pos', grp: 'Checkout', name: 'POS Terminals', icon: '🧾', desc: 'Serves +1.2 customers/s', year: 1999, base: 22000, grow: 1.22, max: 50, kind: 'serve', per: 1.2 },
+    { id: 'selfcheck', grp: 'Checkout', name: 'Self-Checkout Kiosks', icon: '🖲️', desc: 'Serves +4 customers/s', year: 2007, base: 90000, grow: 1.22, max: 50, kind: 'serve', per: 4 },
+    { id: 'tap', grp: 'Checkout', name: 'Tap-to-Pay Everywhere', icon: '📲', desc: 'Serves +14 customers/s', year: 2014, base: 370000, grow: 1.22, max: 50, kind: 'serve', per: 14 },
+    { id: 'autocheck', grp: 'Checkout', name: 'Just-Walk-Out Cameras', icon: '📷', desc: 'Serves +50 customers/s', year: 2022, base: 1.6e6, grow: 1.22, max: 50, kind: 'serve', per: 50 },
     // Stock handling
-    { id: 'clerk', grp: 'Stock', name: 'Stock Clerk (auto-restock)', icon: '📦', desc: 'Restocks +0.3 units/s toward your targets', year: 1993, base: 450, grow: 1.7, max: 40, kind: 'restock', per: 0.3, up: 0.5 },
-    { id: 'warehouse', grp: 'Stock', name: 'Warehouse Forklift Crew', icon: '🚜', desc: 'Restocks +2 units/s', year: 2000, base: 60000, grow: 1.5, max: 40, kind: 'restock', per: 2, up: 2 },
-    { id: 'robot', grp: 'Stock', name: 'Robotic Fulfilment', icon: '🦾', desc: 'Restocks +12 units/s', year: 2015, base: 4e6, grow: 1.5, max: 40, kind: 'restock', per: 12, up: 10 },
+    { id: 'clerk', grp: 'Stock', name: 'Stock Clerk (auto-restock)', icon: '📦', desc: 'Restocks +0.3 units/s toward your targets', year: 1993, base: 450, grow: 1.5, max: 40, kind: 'restock', per: 0.3, up: 0.5 },
+    { id: 'warehouse', grp: 'Stock', name: 'Warehouse Forklift Crew', icon: '🚜', desc: 'Restocks +2 units/s', year: 2000, base: 38000, grow: 1.3, max: 40, kind: 'restock', per: 2, up: 2 },
+    { id: 'robot', grp: 'Stock', name: 'Robotic Fulfilment', icon: '🦾', desc: 'Restocks +12 units/s', year: 2015, base: 330000, grow: 1.3, max: 40, kind: 'restock', per: 12, up: 10 },
     // Workshop
     { id: 'workshop', grp: 'Workshop', name: 'Build Workshop', icon: '🛠️', desc: 'Unlocks custom PC building. Buy parts, design blueprints, sell your own machines.', year: 1996, base: 12000, grow: 1, max: 1, kind: 'workshop', per: 1 },
-    { id: 'techs', grp: 'Workshop', name: 'Build Technician', icon: '👷', desc: 'Builds 1 PC per 40s (paid wage)', year: 1996, base: 1500, grow: 1.45, max: 80, kind: 'build', per: 0.025, up: 0.8, req: 'workshop' },
+    { id: 'techs', grp: 'Workshop', name: 'Build Technician', icon: '👷', desc: 'Builds 1 PC per 40s (paid wage)', year: 1996, base: 1200, grow: 1.35, max: 80, kind: 'build', per: 0.025, up: 0.8, req: 'workshop' },
     { id: 'tools', grp: 'Workshop', name: 'Anti-Static Mats & Better Tools', icon: '🧰', desc: '+12% build speed', year: 1996, base: 3500, grow: 1.6, max: 25, kind: 'buildMult', per: 0.12, req: 'workshop' },
     { id: 'bench', grp: 'Workshop', name: 'Design Bench', icon: '📐', desc: '+1 blueprint slot', year: 1996, base: 6000, grow: 2.2, max: 12, kind: 'bench', per: 1, req: 'workshop' },
-    { id: 'cnc', grp: 'Workshop', name: 'Assembly Line', icon: '🏭', desc: 'Builds +0.4 PCs/s', year: 2005, base: 400000, grow: 1.5, max: 40, kind: 'build', per: 0.4, up: 6, req: 'workshop' },
-    { id: 'roboline', grp: 'Workshop', name: 'Robotic Build Cells', icon: '🤖', desc: 'Builds +3 PCs/s', year: 2018, base: 2.5e7, grow: 1.5, max: 40, kind: 'build', per: 3, up: 40, req: 'workshop' },
+    { id: 'cnc', grp: 'Workshop', name: 'Assembly Line', icon: '🏭', desc: 'Builds +0.4 PCs/s', year: 2005, base: 12000, grow: 1.3, max: 40, kind: 'build', per: 0.4, up: 6, req: 'workshop' },
+    { id: 'roboline', grp: 'Workshop', name: 'Robotic Build Cells', icon: '🤖', desc: 'Builds +3 PCs/s', year: 2018, base: 100000, grow: 1.3, max: 40, kind: 'build', per: 3, up: 40, req: 'workshop' },
   ];
   CS.UP_BY_ID = {};
   CS.UPGRADES.forEach((u) => (CS.UP_BY_ID[u.id] = u));

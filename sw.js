@@ -1,5 +1,5 @@
 /* Cache-first offline shell so the game also opens without a connection. */
-const CACHE = 'csig-v1';
+const CACHE = 'csig-v2';
 const FILES = ['./', 'index.html', 'style.css', 'js/data.js', 'js/engine.js', 'js/ui.js', 'manifest.json', 'icon.svg'];
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));
