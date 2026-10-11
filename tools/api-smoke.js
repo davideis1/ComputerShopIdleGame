@@ -12,7 +12,7 @@ async function req(path, opts = {}) {
 }
 const csrfOf = (html) => (html.match(/name="csrf" value="([0-9a-f]+)"/) || [])[1];
 const form = (o) => ({ method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(o).toString() });
-const state = (cash, cal) => JSON.stringify({ cash, cal, stats: { sold: 3, built: 1, play: 99 }, up: {}, name: 'Test </script><b>Shop', ach: { a: 1, b: 1 } });
+const state = (cash, cal, meta) => JSON.stringify({ meta, cash, cal, stats: { sold: 3, built: 1, play: 99 }, up: {}, name: 'Test </script><b>Shop', ach: { a: 1, b: 1 } });
 
 (async () => {
   const user = 'smoke' + Math.floor(Math.random() * 1e6);
@@ -46,24 +46,31 @@ const state = (cash, cal) => JSON.stringify({ cash, cal, stats: { sold: 3, built
   let j = await r.json(); ok(j.ok && j.rev === 1, 'first save creates rev 1');
   r = await post('/api/save.php', { state: state(200, 0.5), rev: 1 });
   j = await r.json(); ok(j.ok && j.rev === 2, 'second save bumps rev');
-  r = await post('/api/save.php', { state: state(300, 0.6), rev: 1 });
-  ok(r.status === 409, 'stale rev is a conflict');
-  r = await post('/api/save.php', { state: state(300, 0.6), rev: 1, force: true });
+  r = await post('/api/save.php', { state: state(300, 0.6), rev: 1, tab: 'otherTab' });
+  ok(r.status === 409, 'stale rev from a different tab is a conflict');
+  r = await post('/api/save.php', { state: state(300, 0.6), rev: 1, force: true, tab: 'tabA' });
   j = await r.json(); ok(j.ok && j.rev === 3, 'force overwrites');
-  r = await post('/api/save.php', { state: state(-5, 0), rev: 3 });
+  r = await post('/api/save.php', { state: state(310, 0.6), rev: 2, tab: 'tabA' });
+  j = await r.json(); ok(j.ok && j.rev === 4, 'stale rev from the SAME tab (reload race) is accepted');
+  r = await post('/api/save.php', { state: state(-5, 0), rev: 4 });
   ok(r.status === 422, 'negative cash rejected');
-  r = await post('/api/save.php', { state: state(5, 99), rev: 3 });
+  r = await post('/api/save.php', { state: state(5, 99), rev: 4 });
   ok(r.status === 422, 'calendar beyond today rejected');
-  r = await post('/api/save.php', { state: 'not json', rev: 3 });
+  r = await post('/api/save.php', { state: state(5, 1, { tokens: -3 }), rev: 4 });
+  ok(r.status === 422, 'negative Franchise Tokens rejected');
+  r = await post('/api/save.php', { state: state(5, 1, { tokens: 7, earned: 12, resets: 2, tup: { t_income: 3 } }), rev: 4 });
+  j = await r.json(); ok(j.ok, 'save with Franchise Token meta accepted');
+  r = await post('/api/save.php', { state: state(300, 0.6), rev: j.rev, force: true });
+  r = await post('/api/save.php', { state: 'not json', rev: 4 });
   ok(r.status === 422, 'garbage state rejected');
-  r = await post('/api/save.php', { state: 'x'.repeat(450000), rev: 3 });
+  r = await post('/api/save.php', { state: 'x'.repeat(450000), rev: 4 });
   ok(r.status === 400 || r.status === 413, 'oversized state rejected');
   r = await req('/api/save.php');
   ok(r.status === 405, 'GET not allowed');
 
   // load via page, script-tag injection safe
   html = await (await req('/index.php')).text();
-  ok(/"rev":3/.test(html) && /"cash":300/.test(html), 'page boots with saved state');
+  ok(/"rev":6/.test(html) && /"cash":300/.test(html), 'page boots with saved state');
   ok(!/<\/script><b>/.test(html), 'user text cannot break out of the boot script');
 
   // settings

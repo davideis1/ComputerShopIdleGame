@@ -5,8 +5,8 @@ require('../js/engine.js');
 const CS = globalThis.CS;
 const E = CS.E;
 
-const mins = +process.argv[2] || 170;
-const s = E.newState();
+const mins = +process.argv[2] || 250;
+let s = E.newState();
 
 function bestParts(d, tiers) {
   const parts = {};
@@ -94,7 +94,7 @@ for (let t = 0; t < mins * 60; t++) {
     lastY = y;
     const d = E.derive(s);
     console.log(
-      `${(t / 60).toFixed(0).padStart(4)}m  ${y}  cash $${fmt(s.cash).padStart(8)}  rev/s ${fmt(s.rate.rev).padStart(7)}  upkeep/s ${fmt(d.upkeep).padStart(6)}  λ ${d.lambda.toFixed(2)} serve ${d.serve.toFixed(2)} restock ${d.restock.toFixed(1)} cap ${d.cap}  sold ${fmt(s.stats.sold)} built ${fmt(s.stats.built)}  stock ${E.totalStock(s)}`
+      `${(t / 60).toFixed(0).padStart(4)}m  ${y}  cash $${fmt(s.cash).padStart(8)}  rev/s ${fmt(s.rate.rev).padStart(7)}  upkeep/s ${fmt(d.upkeep).padStart(6)}  λ ${d.lambda.toFixed(2)} serve ${d.serve.toFixed(2)} restock ${d.restock.toFixed(1)} cap ${d.cap}  sold ${fmt(s.stats.sold)} built ${fmt(s.stats.built)}  stock ${E.totalStock(s)}  runRev ${fmt(s.stats.revenue)} tokens ${E.pendingTokens(s)}`
     );
   }
 }
@@ -116,4 +116,27 @@ console.log('600s online -> cash', fmt(b.cash), '(sim ms', Date.now() - t1 + ')'
   const items = E.getItems(s, d).filter((i) => i.target > 0 || i.stock > 0);
   console.log('year', d.y.toFixed(1), 'items with targets:');
   items.forEach((i) => console.log(' ', i.key.padEnd(18), 'price', fmt(i.price).padStart(7), 'cost', fmt(i.cost).padStart(7), 'rel', i.rel.toFixed(2), 'tgt', i.target, 'stock', i.stock));
+}
+
+// Optional: node tools/sim.js 250 3  -> play several franchises, spending tokens greedily
+const runs = +process.argv[3] || 1;
+const PRIORITY = ['t_income', 't_profit', 't_cash', 't_kit', 't_cap', 't_supply', 't_token', 't_night', 't_build'];
+for (let run = 2; run <= runs; run++) {
+  const p = E.prestige(s);
+  s = p.state;
+  let bought = 0;
+  for (let guard = 0; guard < 500; guard++) {
+    // cheapest affordable among the priority list, weighted by priority order
+    const pick = PRIORITY.map((id) => CS.TUP_BY_ID[id]).filter((u) => E.tl(s, u.id) < u.max && E.tokenCost(s, u) <= s.meta.tokens)[0];
+    if (!pick) break;
+    E.buyTokenUp(s, pick.id); bought++;
+  }
+  const marks = {};
+  for (let t = 0; t < mins * 60; t++) {
+    if (t % 5 === 0) bot();
+    E.step(s, 1, 1);
+    const y = Math.floor(E.yearOf(s));
+    if ([2000, 2010, 2020].includes(y) && !marks[y]) marks[y] = fmt(s.stats.revenue) + ' @' + (t / 60).toFixed(0) + 'm';
+  }
+  console.log(`run ${run}: +${p.gain} tokens, bought ${bought} upgrades (${JSON.stringify(s.meta.tup)}), revenue marks ${JSON.stringify(marks)}, end revenue ${fmt(s.stats.revenue)}, pending ${E.pendingTokens(s)}`);
 }

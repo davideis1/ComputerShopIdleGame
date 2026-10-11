@@ -6,13 +6,15 @@
   CS.C = {
     START_YEAR: 1993,
     END_CAL: 33.8, // calendar stops at "today" (Oct 2026)
-    YEAR_SECONDS: 300, // real seconds per in-game year while playing
+    YEAR_SECONDS: 420, // real seconds per in-game year while playing (~4 hours from 1993 to today)
     OFFLINE_CAL_RATE: 0.05, // calendar speed while the shop is closed
     G: 1.28, // yearly tech improvement factor
     SALE_WINDOW: 6, // years a prebuilt can be re-ordered from distributors
     PART_WINDOW: 6, // years a part stays orderable
     START_CASH: 5000,
     SAVE_KEY: 'csig-save-v1',
+    TOKEN_R0: 2e8, // run revenue at which Franchise Tokens start to accrue
+    TOKEN_K: 4, // tokens = floor(K * sqrt(revenue / R0) - (K - 1)), so the first token arrives at R0
     VERSION: 1,
   };
 
@@ -260,6 +262,21 @@
   ];
   CS.UP_BY_ID = {};
   CS.UPGRADES.forEach((u) => (CS.UP_BY_ID[u.id] = u));
+
+  /* ---------- Franchise HQ (permanent upgrades bought with Franchise Tokens) ---------- */
+  CS.TOKEN_UPGRADES = [
+    { id: 't_income', name: 'Brand Legacy', icon: '🏆', desc: '+10% customers, every run', base: 1, grow: 1.55, max: 40, per: 0.1 },
+    { id: 't_profit', name: 'Premium Margins', icon: '💎', desc: '+3% revenue on every sale', base: 2, grow: 1.6, max: 30, per: 0.03 },
+    { id: 't_cash', name: "Founder's Fund", icon: '💰', desc: '+$7,500 starting cash', base: 1, grow: 1.5, max: 10, per: 7500 },
+    { id: 't_kit', name: 'Starter Kit', icon: '🧰', desc: 'Start with a Stock Clerk, ads, shelves and a sales associate (+1 level each, ads +2)', base: 2, grow: 2.0, max: 5, per: 1 },
+    { id: 't_supply', name: 'Bulk Deals', icon: '📦', desc: '-1% wholesale & parts cost', base: 3, grow: 1.6, max: 15, per: 0.01 },
+    { id: 't_cap', name: 'Mega Shelves', icon: '🏬', desc: '+10% shelf space', base: 2, grow: 1.6, max: 15, per: 0.1 },
+    { id: 't_build', name: 'Master Builder', icon: '🔧', desc: '+5% custom PC quality', base: 3, grow: 1.7, max: 12, per: 0.05 },
+    { id: 't_night', name: 'Night Shift Franchise', icon: '🌙', desc: '+2h of offline earnings', base: 3, grow: 2.0, max: 6, per: 2 },
+    { id: 't_token', name: 'Franchise Consultant', icon: '🎫', desc: '+8% Franchise Tokens when you reset', base: 5, grow: 1.8, max: 20, per: 0.08 },
+  ];
+  CS.TUP_BY_ID = {};
+  CS.TOKEN_UPGRADES.forEach((u) => (CS.TUP_BY_ID[u.id] = u));
 
   /* ---------- Events (calendar-driven, so they work offline) ---------- */
   CS.EVENTS = [

@@ -6,12 +6,14 @@ if (PHP_SAPI !== 'cli') {
     exit('Run this from the command line.');
 }
 require __DIR__ . '/../inc/bootstrap.php';
-$sql = file_get_contents(__DIR__ . '/../sql/schema.sql');
-$sql = preg_replace('/--[^\n]*/', '', $sql);          // strip comments
+$files = array_merge([__DIR__ . '/../sql/schema.sql'], glob(__DIR__ . '/../sql/upgrade_*.sql'));
 $pdo = db();
 $n = 0;
-foreach (array_filter(array_map('trim', explode(';', $sql))) as $stmt) {
-    $pdo->exec($stmt);
-    $n++;
+foreach ($files as $file) {
+    $sql = preg_replace('/--[^\n]*/', '', file_get_contents($file)); // strip comments
+    foreach (array_filter(array_map('trim', explode(';', $sql))) as $stmt) {
+        $pdo->exec($stmt);
+        $n++;
+    }
 }
 echo "Done: $n statements applied to database '" . cfg('db_name') . "'.\n";
