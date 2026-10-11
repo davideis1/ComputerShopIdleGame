@@ -1,0 +1,65 @@
+# Deploys to IONOS over SFTP on every push to Main.
+# Secrets (repo Settings -> Secrets and variables -> Actions): SFTP_SERVER, SFTP_USERNAME, SFTP_PASSWORD
+# Variables (same page, Variables tab): SITE_URL (e.g. https://computershopidlegame.davideis.com), PHP_BIN (e.g. /usr/bin/php8.4-cli)
+# inc/config.php lives ONLY on the server and is never uploaded or overwritten.
+name: Deploy to production
+
+on:
+  push:
+    branches: [Main]
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Smoke-test the game logic
+        run: node tools/sim.js 5 > /dev/null
+
+      - name: Stage files
+        run: |
+          mkdir build
+          rsync -a --exclude='.git' --exclude='.github' --exclude='node_modules' \
+            --exclude='inc/config.php' --exclude='tools/*.js' --exclude='build' ./ build/
+          echo "v${{ github.run_number }} (${GITHUB_SHA::7})" > build/version.txt
+
+      # Relative remote_path (the SFTP session already lands in the webspace root).
+      - name: Sync to webspace
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.4
+        with:
+          server: ${{ secrets.SFTP_SERVER }}
+          username: ${{ secrets.SFTP_USERNAME }}
+          password: ${{ secrets.SFTP_PASSWORD }}
+          port: 22
+          local_path: ./build/*
+          remote_path: computershopidlegame
+
+      # Idempotent (CREATE TABLE IF NOT EXISTS); needs inc/config.php on the server first.
+      - name: Create/upgrade tables
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SFTP_SERVER }}
+          username: ${{ secrets.SFTP_USERNAME }}
+          password: ${{ secrets.SFTP_PASSWORD }}
+          port: 22
+          script: |
+            cd computershopidlegame
+            ${{ vars.PHP_BIN }} tools/install.php
+
+      - name: Post-deploy checks
+        run: |
+          set -e
+          base="${{ vars.SITE_URL }}"
+          code() { curl -s -o /dev/null -w '%{http_code}' "$1"; }
+          [ "$(code $base/login.php)" = 200 ] || { echo "login.php not 200"; exit 1; }
+          [ "$(code $base/js/engine.js)" = 200 ] || { echo "static asset not 200"; exit 1; }
+          for p in inc/bootstrap.php inc/config.php sql/schema.sql tools/install.php; do
+            c=$(code $base/$p)
+            [ "$c" = 403 ] || [ "$c" = 404 ] || { echo "$p exposed ($c)"; exit 1; }
+          done
+          echo "ok"

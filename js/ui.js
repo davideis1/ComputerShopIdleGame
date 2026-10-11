@@ -34,27 +34,84 @@
     if (el._d !== v) { el.disabled = v; el._d = v; }
   }
 
-  /* ---------- persistence ---------- */
-  let S, noSave = false;
-  const BAK = C.SAVE_KEY + '-bak';
-  let saveCount = 0;
-  function save() {
-    if (noSave || !S) return;
-    S.saved = Date.now();
-    try {
-      const str = E.serialize(S);
-      localStorage.setItem(C.SAVE_KEY, str);
-      if (++saveCount % 8 === 1) localStorage.setItem(BAK, str);
-    } catch (e) { /* storage blocked or full: keep playing */ }
+  /* ---------- persistence ----------
+     The account's server save is the source of truth (see api/save.php). localStorage keeps a
+     per-user backup so a dropped connection or crash never loses progress. */
+  const BOOT = window.CSIG;
+  const settings = BOOT.settings; // {theme, showTicker, showWalkers}, stored in user_settings
+  const LOCAL_KEY = C.SAVE_KEY + '-u' + BOOT.user.id;
+  let S, noSave = false, rev = BOOT.rev || 0, saving = false, conflict = false, forceNext = false;
+  let sync = { state: 'ok', at: Date.now() };
+  const api = (name) => BOOT.base + '/api/' + name + '.php';
+  function post(name, body) {
+    return fetch(api(name), {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': BOOT.csrf },
+      body: JSON.stringify(body),
+    }).then((r) => r.json().catch(() => ({ ok: false, error: 'bad_response' })).then((j) => { j.status = r.status; return j; }));
   }
-  function load() {
-    for (const k of [C.SAVE_KEY, BAK]) {
-      try {
-        const str = localStorage.getItem(k);
-        if (str) return E.deserialize(str);
-      } catch (e) { /* try backup */ }
-    }
-    return null;
+  function readLocal() {
+    try {
+      const str = localStorage.getItem(LOCAL_KEY);
+      return str ? E.deserialize(str) : null;
+    } catch (e) { return null; }
+  }
+  function legacyLocal() { // saves from before accounts existed
+    try {
+      const str = localStorage.getItem(C.SAVE_KEY);
+      return str ? E.deserialize(str) : null;
+    } catch (e) { return null; }
+  }
+  function clearLocal(legacyToo) {
+    try {
+      localStorage.removeItem(LOCAL_KEY);
+      if (legacyToo) { localStorage.removeItem(C.SAVE_KEY); localStorage.removeItem(C.SAVE_KEY + '-bak'); }
+    } catch (e) { /* ignore */ }
+  }
+  function save(force) {
+    if (noSave || !S || conflict) return Promise.resolve();
+    S.saved = Date.now();
+    const str = E.serialize(S);
+    try { localStorage.setItem(LOCAL_KEY, str); } catch (e) { /* storage blocked */ }
+    if (saving) return Promise.resolve();
+    saving = true;
+    return post('save', { state: str, rev, force: force === true || forceNext })
+      .then((j) => {
+        if (j.ok) { rev = j.rev; forceNext = false; sync = { state: 'ok', at: Date.now() }; clearLocal(true); try { localStorage.setItem(LOCAL_KEY, str); } catch (e) { /* ignore */ } }
+        else if (j.status === 409) onConflict();
+        else if (j.status === 401 || j.status === 403) onSessionLost();
+        else sync.state = 'error';
+      })
+      .catch(() => { sync.state = 'error'; })
+      .then(() => { saving = false; });
+  }
+  function beaconSave() { // last-gasp save while the page is closing
+    if (noSave || !S || conflict || saving) return;
+    S.saved = Date.now();
+    const str = E.serialize(S);
+    try { localStorage.setItem(LOCAL_KEY, str); } catch (e) { /* ignore */ }
+    try { navigator.sendBeacon(api('save'), new Blob([JSON.stringify({ state: str, rev, csrf: BOOT.csrf })], { type: 'text/plain' })); } catch (e) { /* ignore */ }
+  }
+  function onConflict() {
+    conflict = true;
+    modal('Shop open somewhere else', '<p>This shop was saved from another tab or device since you loaded it. Reload to continue from the latest save, or overwrite it with the progress in this tab.</p>', [
+      { label: 'Reload latest', cls: 'primary', fn: () => { noSave = true; location.reload(); return false; } },
+      { label: 'Overwrite with this tab', fn: () => { conflict = false; save(true); } },
+    ]);
+  }
+  let sessionWarned = false;
+  function onSessionLost() {
+    sync.state = 'error';
+    if (sessionWarned) return;
+    sessionWarned = true;
+    modal('You were logged out', '<p>Your login expired, so progress is only being kept on this device. Log in again in a new tab — this tab will keep playing, and newer progress is offered back when you reload.</p>', [
+      { label: 'Log in', cls: 'primary', fn: () => { window.open(BOOT.base + '/login.php', '_blank'); } },
+      { label: 'Close' },
+    ]);
+  }
+  function saveSettings(patch) {
+    Object.assign(settings, patch);
+    post('settings', patch).then((j) => { if (!j.ok && (j.status === 401 || j.status === 403)) onSessionLost(); }).catch(() => {});
   }
   const encode = (str) => btoa(unescape(encodeURIComponent(str)));
   function decode(txt) {
@@ -166,7 +223,7 @@
   }
   function spawnWalker(buy) {
     const st = $('#street');
-    if (!st || tab !== 'shop' || st.children.length > 6) return;
+    if (!st || tab !== 'shop' || !settings.showWalkers || st.children.length > 6) return;
     const w = document.createElement('span');
     w.className = 'walker' + (buy ? ' buy' : '');
     w.textContent = ['🧑', '👩', '👨', '🧓', '👧', '🧑‍🎓', '🧑‍💼'][Math.floor(Math.random() * 7)];
@@ -508,9 +565,17 @@
         <div class="field"><label><span>Shop name</span></label><input type="text" id="nameIn" maxlength="30"></div>
         <div class="field"><label><span>Visual theme</span></label>
           <select id="themeSel"><option value="auto">Automatic (follows the era)</option><option value="win95">Windoze 95 (1993–99)</option><option value="xp">Bliss (2000–08)</option><option value="flat">Flat (2009–16)</option><option value="rgb">RGB (2017+)</option></select></div>
+        <label class="check"><input type="checkbox" id="optTicker"> Show the news ticker</label>
+        <label class="check"><input type="checkbox" id="optWalkers"> Animate customers walking past</label>
+      </div></div>
+      <div class="panel"><div class="title">Account</div><div class="pbody">
+        <div>Signed in as <b>${esc(BOOT.user.name)}</b></div>
+        <small id="syncInfo"></small>
+        <form method="post" action="${esc(BOOT.base)}/logout.php" id="logoutForm"><input type="hidden" name="csrf" value="${esc(BOOT.csrf)}"></form>
+        <div class="menu-btns"><a class="btnlink" href="${esc(BOOT.base)}/account.php">🔑 Password &amp; account</a><button data-act="logout">🚪 Log out</button></div>
       </div></div>
       <div class="panel"><div class="title">Save Data</div><div class="pbody">
-        <small id="saveInfo">The game saves automatically every few seconds and when you leave the page. While you are away the shop keeps trading (up to your offline limit).</small>
+        <small id="saveInfo">The game saves to your account every 15 seconds and when you leave the page. While you are away the shop keeps trading (up to your offline limit).</small>
         <div class="menu-btns">
           <button data-act="save">💾 Save now</button><button data-act="export">📤 Export</button><button data-act="import">📥 Import</button><button data-act="reset" class="danger">🗑️ Reset</button>
         </div></div></div>
@@ -518,11 +583,16 @@
       <div class="panel"><div class="title"><span>Trophies</span><span id="achCount"></span></div><div class="pbody" id="achBody"></div></div>
       <div class="panel"><div class="title">About</div><div class="pbody"><small>Idle computer shop, 1993 → today. Every brand and product name is a made-up parody; this game is not affiliated with or endorsed by any real company. Offline progress is capped by your shop's Night Lock-Up, and the calendar crawls at 1/20 speed while you are away.</small></div></div>`;
     $('#nameIn').addEventListener('input', (e) => { S.name = e.target.value.slice(0, 30) || 'Mega Byte Computers'; });
-    $('#themeSel').addEventListener('change', (e) => { S.settings.theme = e.target.value; applyTheme(true); });
+    $('#themeSel').addEventListener('change', (e) => { saveSettings({ theme: e.target.value }); applyTheme(true); });
+    $('#optTicker').addEventListener('change', (e) => saveSettings({ showTicker: e.target.checked }));
+    $('#optWalkers').addEventListener('change', (e) => saveSettings({ showWalkers: e.target.checked }));
   }
   function renderMenu(d) {
     if (document.activeElement !== $('#nameIn')) $('#nameIn').value = S.name;
-    $('#themeSel').value = S.settings.theme;
+    $('#themeSel').value = settings.theme;
+    $('#optTicker').checked = settings.showTicker;
+    $('#optWalkers').checked = settings.showWalkers;
+    setText($('#syncInfo'), sync.state === 'ok' ? '☁️ Saved to your account at ' + new Date(sync.at).toLocaleTimeString() : '⚠️ Cannot reach the server. Progress is kept on this device and will sync when the connection is back.');
     const st = S.stats;
     setHtml($('#statsBody'), `<table class="rep">
       <tr><td>Calendar</td><td>${E.dateStr(d.y)}</td></tr>
@@ -542,7 +612,7 @@
   let curTheme = '';
   function applyTheme(force) {
     const era = E.eraAt(E.yearOf(S));
-    const th = S.settings.theme === 'auto' ? era.theme : S.settings.theme;
+    const th = settings.theme === 'auto' ? era.theme : settings.theme;
     if (th !== curTheme || force) {
       curTheme = th;
       document.body.dataset.theme = th;
@@ -553,6 +623,7 @@
   let eraShown = '';
   function renderHeader(d) {
     setText($('#shopName'), S.name);
+    $('#ticker').hidden = !settings.showTicker;
     setText($('#date'), E.dateStr(d.y));
     setText($('#cash'), money(S.cash));
     setText($('#income'), money(S.rate.rev * 60));
@@ -656,7 +727,8 @@
         break;
       }
       case 'bpDel': if (!E.deleteBp(S, t.dataset.id)) toast('Sell the remaining stock first.'); break;
-      case 'save': save(); toast('💾 Saved!'); break;
+      case 'save': save().then(() => toast(sync.state === 'ok' ? '☁️ Saved to your account' : '⚠️ Saved on this device only; server unreachable')); break;
+      case 'logout': save().then(() => $('#logoutForm').submit()); break;
       case 'export': exportSave(); break;
       case 'import': importSave(); break;
       case 'reset': resetGame(); break;
@@ -691,10 +763,10 @@
           try {
             const s = E.deserialize(decode($('#impTxt').value));
             noSave = true;
-            localStorage.setItem(C.SAVE_KEY, E.serialize(s));
-            location.reload();
+            post('save', { state: E.serialize(s), rev, force: true }).then((j) => {
+              if (j.ok) { clearLocal(true); location.reload(); } else { noSave = false; toast('❌ The server rejected that save (' + esc(j.error || j.status) + ').'); }
+            }).catch(() => { noSave = false; toast('❌ Could not reach the server.'); });
           } catch (err) {
-            noSave = false;
             toast('❌ That save code is not valid.');
             return false;
           }
@@ -705,7 +777,7 @@
   }
   function resetGame() {
     modal('Reset game?', '<p>This permanently deletes your shop and starts over in 1993. Export your save first if you might want it back.</p>', [
-      { label: 'Delete everything', cls: 'danger', fn: () => { noSave = true; try { localStorage.removeItem(C.SAVE_KEY); localStorage.removeItem(BAK); } catch (e) { /* ignore */ } location.reload(); } },
+      { label: 'Delete everything', cls: 'danger', fn: () => { noSave = true; post('reset', {}).then((j) => { if (j.ok) { clearLocal(true); location.reload(); } else { noSave = false; toast('❌ Could not reset (' + esc(j.error || j.status) + ').'); } }).catch(() => { noSave = false; toast('❌ Could not reach the server.'); }); return false; } },
       { label: 'Cancel' },
     ]);
   }
@@ -764,28 +836,52 @@
   }
 
   /* ---------- init ---------- */
+  function chooseState() {
+    // Returns {state, elapsed}. Server clock decides offline time; a newer local backup (failed sync) can win.
+    const server = BOOT.state ? E.migrate(BOOT.state) : null;
+    const local = readLocal();
+    const legacy = server ? null : legacyLocal();
+    if (server && local && local.saved > server.saved + 2000) {
+      return new Promise((resolve) => {
+        modal('Newer progress found', '<p>This device holds a newer copy of your shop (' + new Date(local.saved).toLocaleString() + ') than your account (' + new Date(server.saved).toLocaleString() + '), probably from a dropped connection. Which should be used?</p>', [
+          { label: 'Use newer (this device)', cls: 'primary', fn: () => resolve({ state: local, elapsed: (Date.now() - local.saved) / 1000, force: true }) },
+          { label: 'Use account copy', fn: () => { clearLocal(false); resolve({ state: server, elapsed: BOOT.elapsed }); } },
+        ]);
+      });
+    }
+    if (server) return Promise.resolve({ state: server, elapsed: BOOT.elapsed });
+    const seed = legacy || local;
+    if (seed) {
+      toast('📥 Imported the shop saved in this browser into your account.', 5000);
+      return Promise.resolve({ state: seed, elapsed: (Date.now() - seed.saved) / 1000, force: true });
+    }
+    return Promise.resolve({ state: E.newState(), elapsed: 0 });
+  }
+
   function init() {
-    S = load() || E.newState();
-    announceNew(true); // silently mark what already exists
-    buildShop(); buildCatalog(); buildWorkshop(); buildUpgrades(); buildMenu();
-    applyTheme(true);
-    const elapsed = Math.max(0, (Date.now() - S.saved) / 1000);
-    eraShown = E.eraAt(E.yearOf(S)).name;
-    last = Date.now();
-    if (elapsed > 10) goOffline(elapsed);
-    nextHeadline();
-    $('#tickerText').addEventListener('animationiteration', nextHeadline);
-    switchTab('shop');
-    setInterval(tick, 250);
-    setInterval(save, 10000);
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) save();
-      else tick();
+    chooseState().then((c) => {
+      S = c.state;
+      announceNew(true); // silently mark what already exists
+      buildShop(); buildCatalog(); buildWorkshop(); buildUpgrades(); buildMenu();
+      applyTheme(true);
+      eraShown = E.eraAt(E.yearOf(S)).name;
+      last = Date.now();
+      forceNext = c.force === true;
+      if (c.elapsed > 10) goOffline(c.elapsed);
+      else save();
+      nextHeadline();
+      $('#tickerText').addEventListener('animationiteration', nextHeadline);
+      switchTab('shop');
+      setInterval(tick, 250);
+      setInterval(save, 15000);
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) save();
+        else tick();
+      });
+      window.addEventListener('pagehide', beaconSave);
+      if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register(BOOT.base + '/sw.js').catch(() => {});
+      window.CS_DEBUG = { get state() { return S; }, save, E };
     });
-    window.addEventListener('pagehide', save);
-    window.addEventListener('beforeunload', save);
-    if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
-    window.CS_DEBUG = { get state() { return S; }, save, E };
   }
   init();
 })();
