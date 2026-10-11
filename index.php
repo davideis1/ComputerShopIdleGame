@@ -76,6 +76,7 @@ $v = static function (string $f): string { return (string) @filemtime(__DIR__ . 
 
 <script>window.CSIG = <?= $bootJson ?>;</script>
 <script src="js/data.js?v=<?= $v('js/data.js') ?>"></script>
+<script src="js/addons.js?v=<?= $v('js/addons.js') ?>"></script>
 <script src="js/engine.js?v=<?= $v('js/engine.js') ?>"></script>
 <script src="js/ui.js?v=<?= $v('js/ui.js') ?>"></script>
 </body>

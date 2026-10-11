@@ -1,6 +1,7 @@
 /* Headless balance check:  node tools/sim.js [minutes]
    A simple bot plays the economy so we can see how cash/income progress by year. */
 require('../js/data.js');
+require('../js/addons.js');
 require('../js/engine.js');
 const CS = globalThis.CS;
 const E = CS.E;
@@ -38,6 +39,15 @@ function bot() {
   const sellRate = Math.min(d.lambda, d.serve) * 0.7;
   const per = Math.max(2, Math.ceil((sellRate * 40) / 4));
   pre.forEach((i, idx) => E.setTarget(s, i.key, idx < 4 ? per : 0));
+  // add-ons: open aisles when affordable, stock the two best items per group
+  [['aisle_acc', 2e3], ['aisle_games', 4e3]].forEach(([id, min]) => {
+    if (!s.up[id] && s.cash > min + (pre[0] ? pre[0].cost * 2 : 1000) && d.y >= 1994) E.buyUp(s, id);
+  });
+  const addons = E.getItems(s, d).filter((i) => (i.kind === 'game' || i.kind === 'acc') && i.buyable);
+  CS.GROUPS.forEach((grp) => {
+    const gi = addons.filter((i) => i.group === grp.id).sort((a, b) => (b.price - b.cost) * Math.pow(b.rel, 1) * b.capF - (a.price - a.cost) * Math.pow(a.rel, 1) * a.capF);
+    gi.forEach((i, idx) => E.setTarget(s, i.key, idx < 2 ? Math.max(i.pack * 2, Math.ceil(sellRate * 30 * grp.A)) : 0));
+  });
   if (d.workshop) {
     const fresh = s.bps.filter((b) => E.bpInfo(b, d).avail && d.y - Math.max(...Object.values(b.parts).map((id) => CS.PART_BY_ID[id].year)) < 2.5);
     if (fresh.length < 2 && s.bps.length >= d.benchSlots) {
@@ -98,6 +108,7 @@ for (let t = 0; t < mins * 60; t++) {
     );
   }
 }
+console.log('add-on revenue share', (100 * s.stats.addonRevenue / s.stats.revenue).toFixed(1) + '%', 'games', fmt(s.stats.soldGames), 'acc', fmt(s.stats.soldAcc), 'pcRel', s.pcRel.toFixed(2));
 console.log('revenue split', Object.entries(split).map(([k, v]) => k + ' ' + fmt(v)).join(', '));
 console.log('sim ms', Date.now() - t0);
 

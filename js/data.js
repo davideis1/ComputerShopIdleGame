@@ -231,6 +231,10 @@
     { id: 'supplier', grp: 'Shop', name: 'Distributor Account', icon: '🤝', desc: '-1% wholesale & parts cost', year: 1993, base: 1800, grow: 1.5, max: 10, kind: 'disc', per: 0.01 },
     { id: 'loyalty', grp: 'Shop', name: 'Loyalty Punch Cards', icon: '🎟️', desc: '+3% customers', year: 1994, base: 1200, grow: 1.6, max: 25, kind: 'loyal', per: 0.03 },
     { id: 'night', grp: 'Shop', name: 'Night Lock-Up & Cameras', icon: '🔒', desc: '+2h of offline earnings', year: 1993, base: 4000, grow: 3.2, max: 8, kind: 'night', per: 2 },
+    // Product lines
+    { id: 'aisle_acc', grp: 'Shop', name: 'Accessories Wall', icon: '🖱️', desc: 'Sell keyboards, mice, monitors, modems and more alongside your PCs. PC buyers are twice as likely to add on.', year: 1993, base: 1500, grow: 1, max: 1, kind: 'aisle_acc', per: 1, verb: 'Open' },
+    { id: 'aisle_games', grp: 'Shop', name: 'Software Aisle', icon: '💿', desc: 'Sell PC games. Demanding new releases only sell if the PCs you sell can run them.', year: 1993, base: 3000, grow: 1, max: 1, kind: 'aisle_game', per: 1, verb: 'Open' },
+    { id: 'upsell', grp: 'Shop', name: 'Upsell Training', icon: '🗣️', desc: '"Would you like a mouse pad with that?" +10% game & accessory sales', year: 1993, base: 2000, grow: 1.45, max: 25, kind: 'attach', per: 0.1 },
     // Marketing
     { id: 'ads_news', grp: 'Marketing', name: 'Classified Ads', icon: '📰', desc: '+0.03 customers/s', year: 1993, base: 250, grow: 1.22, max: 60, kind: 'lambda', per: 0.03 },
     { id: 'ads_tv', grp: 'Marketing', name: 'Late-Night Infomercials', icon: '📺', desc: '+0.07 customers/s', year: 1994, base: 2000, grow: 1.22, max: 60, kind: 'lambda', per: 0.07 },
@@ -343,6 +347,8 @@
     { id: 'a_b1', name: 'Home Brew', desc: 'Build your first PC', ok: (s) => s.stats.built >= 1 },
     { id: 'a_b100', name: 'Screwdriver Wizard', desc: 'Build 100 PCs', ok: (s) => s.stats.built >= 100 },
     { id: 'a_b3', name: 'Product Line', desc: 'Have 3 blueprints at once', ok: (s) => s.bps.length >= 3 },
+    { id: 'a_game100', name: 'Game Night', desc: 'Sell 100 PC games', ok: (s) => (s.stats.soldGames || 0) >= 100 },
+    { id: 'a_acc100', name: 'Accessorised', desc: 'Sell 100 accessories', ok: (s) => (s.stats.soldAcc || 0) >= 100 },
     { id: 'a_hustle', name: 'Door-to-Door', desc: 'Hustle 100 times', ok: (s) => s.stats.hustles >= 100 },
   ];
 })(typeof window !== 'undefined' ? window : globalThis);

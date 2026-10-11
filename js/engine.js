@@ -16,6 +16,7 @@
     { id: 'enth', share: 0.15, a: 2.0, b: 0.8, c0: 2.3 },
   ];
   const CUSTOM_BONUS = 1.4;
+  const ADDON_SCALE = 0.6; // overall add-on attach tuning
   const K = 0.8; // how easily customers are convinced to buy
 
   /* ---------- state ---------- */
@@ -43,9 +44,11 @@
       rAcc: 0,
       bAcc: 0,
       hustleCd: 0,
-      stats: { sold: 0, revenue: 0, built: 0, lost: 0, stockouts: 0, hustles: 0, play: 0, offline: 0 },
+      stats: { sold: 0, soldGames: 0, soldAcc: 0, addonRevenue: 0, revenue: 0, built: 0, lost: 0, stockouts: 0, hustles: 0, play: 0, offline: 0 },
       ach: {},
       seen: {},
+      aAcc: 0,
+      pcRel: 0.9, // recent quality of the PCs this shop sells; decides which games can run
       rate: { rev: 0, up: 0 },
       settings: { theme: 'auto' },
       meta: meta || newMeta(),
@@ -67,6 +70,7 @@
     s.stats = Object.assign(base.stats, raw.stats || {});
     s.rate = Object.assign(base.rate, raw.rate || {});
     s.settings = Object.assign(base.settings, raw.settings || {});
+    if (!isFinite(s.pcRel)) s.pcRel = 0.9;
     s.meta = Object.assign(newMeta(), raw.meta || {});
     s.meta.tup = Object.assign({}, (raw.meta && raw.meta.tup) || {});
     ['up', 'stock', 'target', 'acc', 'ach', 'seen'].forEach((k) => (s[k] = Object.assign({}, raw[k] || (k === 'seen' ? base.seen : {}))));
@@ -114,7 +118,8 @@
     const ev = eventsAt(y);
     const lv = (id) => s.up[id] || 0;
     let lambda = 0.06, serve = 0.25, restock = 0, build = 0, buildMult = 1, serveMult = 1;
-    let cap = 12, disc = 0, night = 4, bench = 2, loyal = 0, upkeep = 0;
+    let cap = 12, disc = 0, night = 4, bench = 2, loyal = 0, upkeep = 0, upsell = 0;
+    let aisleGame = false, aisleAcc = false;
     CS.UPGRADES.forEach((u) => {
       const L = lv(u.id);
       if (!L) return;
@@ -130,6 +135,9 @@
         case 'night': night += u.per * L; break;
         case 'bench': bench += u.per * L; break;
         case 'loyal': loyal += u.per * L; break;
+        case 'aisle_game': aisleGame = true; break;
+        case 'aisle_acc': aisleAcc = true; break;
+        case 'attach': upsell += u.per * L; break;
       }
       if (u.up) upkeep += u.up * L;
     });
@@ -152,6 +160,9 @@
       benchSlots: bench,
       upkeep: upkeep * wageInfl(y) + rent,
       workshop: lv('workshop') > 0,
+      aisleGame,
+      aisleAcc,
+      upsell,
       achCount,
     };
   }
@@ -192,11 +203,19 @@
     return bpInfo({ parts, markup }, d);
   }
 
-  function totalStock(s) {
+  function itemSize(key) { // shelf spaces per unit: a PC is 1, small items less
+    if (key[0] === 'g' || key[0] === 'a') {
+      const a = CS.ADDON_BY_ID[key.slice(2)];
+      return a ? CS.GROUP_BY_ID[a.group].size : 1;
+    }
+    return 1;
+  }
+  function slotsUsed(s) {
     let n = 0;
-    for (const k in s.stock) n += s.stock[k];
+    for (const k in s.stock) n += s.stock[k] * itemSize(k);
     return n;
   }
+  const totalStock = (s) => Math.ceil(slotsUsed(s) - 1e-9);
 
   /** All items the shop can sell right now (prebuilts in window or in stock, plus blueprints). */
   function getItems(s, d) {
@@ -224,13 +243,34 @@
         canBuild: info.avail, target: bp.target || 0,
       });
     });
+    CS.ADDONS.forEach((a) => {
+      if (a.year > d.y) return;
+      const grp = CS.GROUP_BY_ID[a.group];
+      const game = a.kind === 'game';
+      const key = (game ? 'g:' : 'a:') + a.id;
+      const stock = s.stock[key] || 0;
+      const age = d.y - a.year;
+      const buyable = (game ? d.aisleGame : d.aisleAcc) && age <= grp.window;
+      if (!buyable && !stock) return;
+      const base = a.price * (game ? Math.max(0.25, Math.pow(0.78, age)) : Math.max(0.4, Math.pow(0.9, age)));
+      let capF = 1, req = 0;
+      if (game) { // can the PCs this shop sells run it? (hardware catches up with a game as it ages)
+        req = a.req * Math.pow(C.G, -age);
+        capF = Math.pow(Math.min(1, (s.pcRel * 1.15) / Math.max(0.05, req)), 1.5);
+      }
+      out.push({
+        key, kind: a.kind, id: a.id, def: a, name: a.name, brand: a.brand, icon: a.icon, group: a.group,
+        size: grp.size, pack: grp.pack, age, rel: a.q * Math.pow(grp.decay, -age), price: base * (1 + s.priceAdj),
+        cost: base * (1 - a.m) * (1 - d.disc), stock, buyable, target: s.target[key] || 0, capF, req,
+      });
+    });
     return out;
   }
 
   /* ---------- actions ---------- */
   function buyUnits(s, it, n, d) {
     if (!it.buyable) return 0;
-    const room = d.cap - totalStock(s);
+    const room = Math.floor((d.cap - slotsUsed(s) + 1e-9) / (it.size || 1));
     const afford = Math.floor(s.cash / it.cost);
     const k = Math.max(0, Math.min(n, room, afford));
     if (!k) return 0;
@@ -247,7 +287,7 @@
     return buyUnits(s, it, n, d);
   }
   function setTarget(s, key, n) {
-    n = Math.max(0, Math.min(999, Math.floor(n)));
+    n = Math.max(0, Math.min(99999, Math.floor(n)));
     if (key.startsWith('b:')) {
       const bp = s.bps.find((b) => 'b:' + b.id === key);
       if (bp) bp.target = n;
@@ -293,9 +333,10 @@
 
   /* ---------- simulation ---------- */
   // How attractive an item is to a segment: value for money, collapsing once the price is beyond their budget
-  function itemWeight(seg, rel, price, y) {
-    const c = Math.max(0.4, price / refPrice(y));
-    return (Math.pow(rel, seg.a) * Math.pow(c, -seg.b)) / (1 + Math.pow(price / refPrice(y) / seg.c0, 3));
+  function itemWeight(seg, rel, price, y, ref) {
+    const r = ref || refPrice(y);
+    const c = Math.max(0.4, price / r);
+    return (Math.pow(rel, seg.a) * Math.pow(c, -seg.b)) / (1 + Math.pow(price / r / seg.c0, 3));
   }
   function pickSegmentProb(live, seg, y) {
     const ws = live.map((i) => itemWeight(seg, i.rel, i.price, y));
@@ -308,7 +349,10 @@
     it.stock -= k;
     const rev = k * it.price * (mult || 1);
     s.cash += rev;
-    s.stats.sold += k;
+    if (it.kind === 'game') s.stats.soldGames += k;
+    else if (it.kind === 'acc') s.stats.soldAcc += k;
+    else s.stats.sold += k;
+    if (it.kind === 'game' || it.kind === 'acc') s.stats.addonRevenue += rev;
     s.stats.revenue += rev;
     if (rep) {
       rep.sold[it.key] = (rep.sold[it.key] || 0) + k;
@@ -329,16 +373,20 @@
     const items = getItems(s, d);
     let spent = 0;
 
-    // auto-restock prebuilts
+    // auto-restock: PCs unit by unit; games & accessories by the case from their own order budget
     if (d.restock > 0) {
       s.rAcc = Math.min(Math.max(6, d.restock * dt * 2), s.rAcc + d.restock * dt);
+      s.aAcc = Math.min(Math.max(6, d.restock * dt * 2), (s.aAcc || 0) + d.restock * dt);
       for (const it of items) {
-        if (s.rAcc < 1) break;
-        if (it.kind !== 'pre' || !it.buyable || it.stock >= it.target) continue;
-        const k = buyUnits(s, it, Math.min(Math.floor(s.rAcc), it.target - it.stock), d);
-        s.rAcc -= k;
+        if (it.kind === 'bp' || !it.buyable || it.stock >= it.target) continue;
+        const addon = it.kind === 'game' || it.kind === 'acc'; // ordered by the case, not unit by unit
+        const budget = addon ? s.aAcc : s.rAcc;
+        if (budget < 1) continue;
+        const want = addon ? Math.min(it.pack, it.target - it.stock) : Math.min(Math.floor(budget), it.target - it.stock);
+        const k = buyUnits(s, it, want, d);
+        if (!k) continue; // out of cash or shelf space
+        if (addon) s.aAcc -= 1; else s.rAcc -= k;
         spent += k * it.cost;
-        if (!k) break; // out of cash or shelf space
       }
     }
     // auto-build blueprints
@@ -347,7 +395,7 @@
       for (const it of items) {
         if (s.bAcc < 1) break;
         if (it.kind !== 'bp' || !it.canBuild || it.stock >= it.target) continue;
-        const room = d.cap - totalStock(s);
+        const room = Math.floor(d.cap - slotsUsed(s) + 1e-9);
         const k = Math.max(0, Math.min(Math.floor(s.bAcc), it.target - it.stock, room, Math.floor(s.cash / it.cost)));
         if (!k) continue;
         s.cash -= k * it.cost;
@@ -365,8 +413,8 @@
     const busy = Math.max(0, d.lambda - d.serve) * dt;
     s.stats.lost += busy;
     if (rep) rep.busy += busy;
-    const live = items.filter((i) => i.stock > 0);
-    let revenue = 0;
+    const live = items.filter((i) => i.stock > 0 && (i.kind === 'pre' || i.kind === 'bp'));
+    let revenue = 0, pcExp = 0, soldW = 0, soldN = 0;
     if (!live.length) {
       s.stats.stockouts += served;
       if (rep) rep.stockouts += served;
@@ -384,7 +432,8 @@
         const whole = Math.floor(acc);
         const k = Math.min(whole, it.stock);
         s.acc[it.key] = acc - whole;
-        if (k > 0) revenue += sellUnits(s, it, k, rep, events, d.profit);
+        if (k > 0) { revenue += sellUnits(s, it, k, rep, events, d.profit); soldN += k; soldW += k * it.rel; }
+        pcExp += exp[i];
         sold += exp[i];
         if (k < whole) {
           s.stats.stockouts += whole - k;
@@ -393,11 +442,40 @@
       }
     }
 
+    if (soldN > 0) s.pcRel += (soldW / soldN - s.pcRel) * Math.min(1, soldN * 0.05);
+
+    // games & accessories: every shopper may add on, PC buyers twice as likely
+    const attach = (1 + (served > 0 ? Math.min(1, pcExp / served) : 0)) * (1 + d.upsell) * ADDON_SCALE;
+    const addLive = served > 0 ? items.filter((i) => (i.kind === 'game' || i.kind === 'acc') && i.stock > 0) : [];
+    if (addLive.length) {
+      CS.GROUPS.forEach((grp) => {
+        const gi = addLive.filter((i) => i.group === grp.id);
+        if (!gi.length) return;
+        const ref = grp.ref * Math.pow(grp.grow, d.y - 1993);
+        const exp = new Array(gi.length).fill(0);
+        SEG.forEach((seg) => {
+          const ws = gi.map((i) => itemWeight(seg, i.rel, i.price, d.y, ref) * i.capF);
+          const tot = ws.reduce((a, b) => a + b, 0);
+          if (tot <= 0) return;
+          const p = Math.min(0.95, 1 - Math.exp(-tot / K));
+          for (let i = 0; i < gi.length; i++) exp[i] += (served * seg.share * p * ws[i] / tot) * grp.A * attach;
+        });
+        gi.forEach((it, i) => {
+          const acc = (s.acc[it.key] || 0) + exp[i];
+          const whole = Math.floor(acc);
+          const k = Math.min(whole, it.stock);
+          s.acc[it.key] = acc - whole;
+          if (k > 0) revenue += sellUnits(s, it, k, rep, events, d.profit);
+        });
+      });
+    }
+
     // safety net: never let the shop get stuck broke with empty shelves
-    if (!live.length && totalStock(s) === 0) {
-      const cheapest = items.filter((i) => i.buyable).reduce((m, i) => Math.min(m, i.cost), Infinity);
+    if (!live.length && s.stats.play - (s.bailAt || -1e9) > 600) { // at most one bailout per 10 minutes of play
+      const cheapest = items.filter((i) => i.buyable && (i.kind === 'pre' || i.kind === 'bp')).reduce((m, i) => Math.min(m, i.cost), Infinity);
       if (isFinite(cheapest) && s.cash < cheapest) {
         s.cash = cheapest * 2;
+        s.bailAt = s.stats.play;
         s.stats.bailouts = (s.stats.bailouts || 0) + 1;
         if (rep) rep.bailouts = (rep.bailouts || 0) + 1;
         if (events) events.push({ bailout: cheapest * 2 });
@@ -470,7 +548,8 @@
     s.hustleCd = 3;
     s.stats.hustles++;
     const d = derive(s);
-    const live = getItems(s, d).filter((i) => i.stock > 0);
+    const all = getItems(s, d).filter((i) => i.stock > 0);
+    const live = all.filter((i) => i.kind === 'pre' || i.kind === 'bp');
     if (!live.length) return { none: true };
     let r = Math.random(), seg = SEG[SEG.length - 1];
     for (const sg of SEG) {
@@ -483,9 +562,23 @@
       if ((pick -= q.ws[i]) < 0) { idx = i; break; }
     }
     const it = live[idx];
-    const events = [];
-    sellUnits(s, it, 1, null, events, d.profit);
-    return { sold: it, rev: it.price * d.profit };
+    let rev = it.price * d.profit;
+    sellUnits(s, it, 1, null, [], d.profit);
+    // a hard-sold PC buyer is likely to add on something from each aisle
+    const extras = [];
+    CS.GROUPS.forEach((grp) => {
+      const gi = all.filter((i) => i.group === grp.id && i.stock > 0);
+      if (!gi.length) return;
+      const ref = grp.ref * Math.pow(grp.grow, d.y - 1993);
+      const ws = gi.map((i) => itemWeight(seg, i.rel, i.price, d.y, ref) * i.capF);
+      const tot = ws.reduce((a, b) => a + b, 0);
+      if (tot <= 0 || Math.random() > Math.min(0.9, grp.A * 2 * (1 + d.upsell) * (1 - Math.exp(-tot / K)))) return;
+      let p2 = Math.random() * tot, j = 0;
+      for (let i = 0; i < gi.length; i++) { if ((p2 -= ws[i]) < 0) { j = i; break; } }
+      rev += sellUnits(s, gi[j], 1, null, [], d.profit);
+      extras.push(gi[j]);
+    });
+    return { sold: it, rev, extras };
   }
 
   /** Returns newly-available prebuilts since last call (for "new model" toasts). */
