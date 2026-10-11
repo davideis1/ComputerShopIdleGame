@@ -10,9 +10,11 @@
     if (!isFinite(n)) return '∞';
     const a = Math.abs(n);
     if (a < 1000) return a < 10 && n % 1 ? n.toFixed(2) : a < 100 && n % 1 ? n.toFixed(1) : Math.round(n).toString();
-    const i = Math.min(SUF.length - 1, Math.floor(Math.log10(a) / 3));
-    const v = n / Math.pow(10, i * 3);
-    return v.toFixed(Math.abs(v) < 10 ? 2 : Math.abs(v) < 100 ? 1 : 0) + SUF[i];
+    let i = Math.min(SUF.length - 1, Math.floor(Math.log10(a) / 3));
+    let v = n / Math.pow(10, i * 3);
+    let s = v.toFixed(Math.abs(v) < 10 ? 2 : Math.abs(v) < 100 ? 1 : 0);
+    if (Math.abs(parseFloat(s)) >= 1000 && i < SUF.length - 1) { i++; v = n / Math.pow(10, i * 3); s = v.toFixed(2); } // 999.9K -> 1.00M
+    return s + SUF[i];
   }
   const money = (n) => (n < 0 ? '-$' : '$') + num(Math.abs(n) < 1000 ? Math.round(Math.abs(n)) : Math.abs(n));
   const esc = (t) => String(t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -43,11 +45,18 @@
   let S, noSave = false, rev = BOOT.rev || 0, saving = false, conflict = false, forceNext = false;
   let sync = { state: 'ok', at: Date.now() };
   const api = (name) => BOOT.base + '/api/' + name + '.php';
+  const TAB = (() => { // survives reloads of this tab, differs between tabs
+    try {
+      let v = sessionStorage.getItem('csig-tab');
+      if (!v) { v = Math.random().toString(36).slice(2, 12) + Date.now().toString(36); sessionStorage.setItem('csig-tab', v); }
+      return v;
+    } catch (e) { return Math.random().toString(36).slice(2, 12); }
+  })();
   function post(name, body) {
     return fetch(api(name), {
       method: 'POST', credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': BOOT.csrf },
-      body: JSON.stringify(body),
+      body: JSON.stringify(Object.assign({ tab: TAB }, body)),
     }).then((r) => r.json().catch(() => ({ ok: false, error: 'bad_response' })).then((j) => { j.status = r.status; return j; }));
   }
   function readLocal() {
@@ -90,7 +99,7 @@
     S.saved = Date.now();
     const str = E.serialize(S);
     try { localStorage.setItem(LOCAL_KEY, str); } catch (e) { /* ignore */ }
-    try { navigator.sendBeacon(api('save'), new Blob([JSON.stringify({ state: str, rev, csrf: BOOT.csrf })], { type: 'text/plain' })); } catch (e) { /* ignore */ }
+    try { navigator.sendBeacon(api('save'), new Blob([JSON.stringify({ state: str, rev, csrf: BOOT.csrf, tab: TAB })], { type: 'text/plain' })); } catch (e) { /* ignore */ }
   }
   function onConflict() {
     conflict = true;
@@ -108,6 +117,12 @@
       { label: 'Log in', cls: 'primary', fn: () => { window.open(BOOT.base + '/login.php', '_blank'); } },
       { label: 'Close' },
     ]);
+  }
+  function flushSave() { // wait out any in-flight save, then save
+    return new Promise((resolve) => {
+      const attempt = () => { if (saving) setTimeout(attempt, 100); else save().then(resolve); };
+      attempt();
+    });
   }
   function saveSettings(patch) {
     Object.assign(settings, patch);
@@ -179,13 +194,14 @@
 
   /* ---------- tabs ---------- */
   let tab = 'shop';
-  let newStock = false, newUp = false;
+  let newStock = false, newUp = false, newHQ = false;
   function switchTab(name) {
     tab = name;
     $$('.tab').forEach((t) => (t.hidden = t.id !== 'tab-' + name));
     $$('#nav button').forEach((b) => b.classList.toggle('on', b.dataset.tab === name));
     if (name === 'catalog') newStock = false;
     if (name === 'upgrades') newUp = false;
+    if (name === 'franchise') newHQ = false;
     render(true);
     window.scrollTo(0, 0);
   }
@@ -558,6 +574,81 @@
     });
   }
 
+  /* ---------- FRANCHISE HQ tab ---------- */
+  function buildFranchise() {
+    $('#tab-franchise').innerHTML = `
+      <div class="panel"><div class="title"><span>Franchise HQ</span><span id="fTokens" class="num"></span></div><div class="pbody">
+        <small>Once your shop is a big business it earns <b>Franchise Tokens</b> from its lifetime sales. Cash them in by selling up and opening a brand-new franchise back in 1993. Tokens buy permanent HQ upgrades below.</small>
+        <div class="grid" id="fStats"></div>
+        <div class="bar"><i id="fBar"></i></div><small id="fNext"></small>
+        <button class="primary" data-act="claim" id="fClaim"></button>
+        <small><b>Kept:</b> tokens, HQ upgrades, trophies, shop name, stats. <b>Reset:</b> cash, upgrades, stock, blueprints and the calendar.</small>
+      </div></div>
+      <h3 class="sec">HQ Upgrades (permanent)</h3><div class="list two" id="fList"></div>`;
+    shopRefs.f = {};
+    [['run', 'This run: total sales'], ['pend', 'Tokens ready to claim'], ['resets', 'Franchises opened'], ['earned', 'Tokens earned (all time)']].forEach(([id, l]) => {
+      const m = node(`<div class="mini"><small>${l}</small><b class="num">–</b></div>`);
+      $('#fStats').appendChild(m);
+      shopRefs.f[id] = $('b', m);
+    });
+  }
+  function tupNow(u, L) {
+    const v = u.per * L;
+    switch (u.id) {
+      case 't_cash': return '+' + money(v) + ' start cash';
+      case 't_kit': return 'Start with ' + v + ' clerk/shelf/sales level' + (v > 1 ? 's' : '') + ', ' + 2 * v + ' ad levels';
+      case 't_night': return '+' + v + 'h offline';
+      default: return '+' + Math.round(v * 100) + '%';
+    }
+  }
+  function createTupCard(u) {
+    const el = node(`<div class="card" data-id="${u.id}">
+      <div class="icon">${u.icon}</div>
+      <div class="info"><b>${esc(u.name)} <small class="lv"></small></b><small>${esc(u.desc)}</small><small class="now good"></small></div>
+      <div class="acts"><button class="primary grow" data-act="tup" data-id="${u.id}"></button></div></div>`);
+    return { el, lv: $('.lv', el), now: $('.now', el), buy: $('[data-act=tup]', el) };
+  }
+  function renderFranchise() {
+    const m = S.meta, pend = E.pendingTokens(S), rs = shopRefs.f;
+    setText($('#fTokens'), '🎫 ' + num(m.tokens));
+    setText(rs.run, money(S.stats.revenue));
+    setText(rs.pend, num(pend));
+    setText(rs.resets, num(m.resets));
+    setText(rs.earned, num(m.earned));
+    const next = E.nextTokenAt(S);
+    const prev = pend > 0 ? E.tokenAt(S, pend) : 0;
+    $('#fBar').style.width = Math.max(0, Math.min(100, (100 * (S.stats.revenue - prev)) / (next - prev))) + '%';
+    setText($('#fNext'), pend < 1 ? 'First token at ' + money(next) + ' in total sales this run.' : 'Next token at ' + money(next) + ' in total sales (' + money(Math.max(0, next - S.stats.revenue)) + ' to go).');
+    const b = $('#fClaim');
+    setText(b, pend >= 1 ? '🎫 Sell up & claim ' + num(pend) + ' token' + (pend > 1 ? 's' : '') : 'Reach ' + money(C.TOKEN_R0) + ' in sales to claim tokens');
+    setDis(b, pend < 1);
+    syncList($('#fList'), CS.TOKEN_UPGRADES, (u) => u.id, createTupCard, (n, u) => {
+      const L = E.tl(S, u.id), cost = E.tokenCost(S, u), maxed = L >= u.max;
+      setText(n.lv, 'Lv ' + L + '/' + u.max);
+      setText(n.now, L ? 'Now: ' + tupNow(u, L) : '');
+      setText(n.buy, maxed ? 'MAX' : 'Buy — ' + num(cost) + ' 🎫');
+      setDis(n.buy, maxed || m.tokens < cost);
+    });
+  }
+  function claimTokens() {
+    const pend = E.pendingTokens(S);
+    if (pend < 1) return;
+    const m = S.meta;
+    modal('Open a new franchise?', `<p>Sell this shop for <b>${pend} Franchise Token${pend > 1 ? 's' : ''}</b> and start again in <b>1993</b>.</p>
+      <p><b>You keep:</b> ${num(m.tokens + pend)} tokens in total, your HQ upgrades, trophies, shop name and stats.</p>
+      <p><b>You lose:</b> ${money(S.cash)} cash, shop upgrades, stock, blueprints and your place in history (${E.dateStr(E.yearOf(S))}).</p>`, [
+      { label: 'Sell up & restart', cls: 'danger', fn: () => {
+        const r = E.prestige(S);
+        if (!r) return;
+        S = r.state;
+        forceNext = true;
+        flushSave().then(() => location.reload());
+        toast('🎫 +' + r.gain + ' tokens! Opening your new franchise…', 6000);
+      } },
+      { label: 'Not yet' },
+    ]);
+  }
+
   /* ---------- MENU tab ---------- */
   function buildMenu() {
     $('#tab-menu').innerHTML = `
@@ -577,7 +668,7 @@
       <div class="panel"><div class="title">Save Data</div><div class="pbody">
         <small id="saveInfo">The game saves to your account every 15 seconds and when you leave the page. While you are away the shop keeps trading (up to your offline limit).</small>
         <div class="menu-btns">
-          <button data-act="save">💾 Save now</button><button data-act="export">📤 Export</button><button data-act="import">📥 Import</button><button data-act="reset" class="danger">🗑️ Reset</button>
+          <button data-act="save">💾 Save now</button><button data-act="export">📤 Export</button><button data-act="import">📥 Import</button><button data-act="reset" class="danger">🗑️ Erase all</button>
         </div></div></div>
       <div class="panel"><div class="title">Statistics</div><div class="pbody" id="statsBody"></div></div>
       <div class="panel"><div class="title"><span>Trophies</span><span id="achCount"></span></div><div class="pbody" id="achBody"></div></div>
@@ -602,6 +693,7 @@
       <tr><td>Computers sold</td><td>${num(st.sold)}</td></tr>
       <tr><td>Computers built</td><td>${num(st.built)}</td></tr>
       <tr><td>Hustles</td><td>${num(st.hustles)}</td></tr>
+      <tr><td>Franchises opened</td><td>${num(S.meta.resets)}</td></tr>
       <tr><td>Offline limit</td><td>${d.offlineCap / 3600}h</td></tr></table>`);
     const got = CS.ACH.filter((a) => S.ach[a.id]).length;
     setText($('#achCount'), got + ' / ' + CS.ACH.length + ' (+' + got + '% customers)');
@@ -632,6 +724,17 @@
     if (eraShown && eraShown !== era.name) toast('🕰️ <b>New era: ' + esc(era.name) + '</b><br><small>' + esc(era.blurb) + '</small>', 5000);
     eraShown = era.name;
     applyTheme();
+    const pend = E.pendingTokens(S);
+    const showHQ = S.meta.resets > 0 || S.meta.tokens > 0 || pend > 0 || S.cal >= 20;
+    $('#nav-franchise').hidden = !showHQ;
+    $('#tokStat').hidden = !(S.meta.tokens > 0 || pend > 0);
+    setText($('#tokens'), '🎫 ' + num(S.meta.tokens) + (pend > 0 ? ' (+' + num(pend) + ')' : ''));
+    if (pend >= 1 && !S.seen.tok) {
+      S.seen.tok = 1;
+      newHQ = true;
+      toast('🎫 <b>Franchise Tokens are available!</b><br><small>Open the HQ tab to cash them in for permanent upgrades.</small>', 6000);
+    }
+    $('#badge-franchise').hidden = !newHQ;
     $('#badge-catalog').hidden = !newStock;
     $('#badge-upgrades').hidden = !newUp;
   }
@@ -719,6 +822,8 @@
         break;
       }
       case 'up': E.buyUp(S, t.dataset.id); break;
+      case 'tup': E.buyTokenUp(S, t.dataset.id); break;
+      case 'claim': claimTokens(); break;
       case 'upmax': for (let i = 0; i < 200 && E.buyUp(S, t.dataset.id); i++); break;
       case 'bpCreate': {
         const r = E.createBp(S, design.name.trim() || 'Custom PC', design.parts, design.markup);
@@ -776,7 +881,7 @@
     ]);
   }
   function resetGame() {
-    modal('Reset game?', '<p>This permanently deletes your shop and starts over in 1993. Export your save first if you might want it back.</p>', [
+    modal('Erase everything?', '<p>This permanently deletes your shop <b>and</b> your Franchise Tokens, HQ upgrades and trophies, and starts over in 1993. (To restart a shop but keep your tokens, use the HQ tab.) Export your save first if you might want it back.</p>', [
       { label: 'Delete everything', cls: 'danger', fn: () => { noSave = true; post('reset', {}).then((j) => { if (j.ok) { clearLocal(true); location.reload(); } else { noSave = false; toast('❌ Could not reset (' + esc(j.error || j.status) + ').'); } }).catch(() => { noSave = false; toast('❌ Could not reach the server.'); }); return false; } },
       { label: 'Cancel' },
     ]);
@@ -796,6 +901,7 @@
       case 'catalog': renderCatalog(d, items); break;
       case 'workshop': renderWorkshop(d, items); break;
       case 'upgrades': renderUpgrades(d); break;
+      case 'franchise': renderFranchise(d); break;
       case 'menu': renderMenu(d); break;
     }
   }
@@ -862,7 +968,7 @@
     chooseState().then((c) => {
       S = c.state;
       announceNew(true); // silently mark what already exists
-      buildShop(); buildCatalog(); buildWorkshop(); buildUpgrades(); buildMenu();
+      buildShop(); buildCatalog(); buildWorkshop(); buildUpgrades(); buildFranchise(); buildMenu();
       applyTheme(true);
       eraShown = E.eraAt(E.yearOf(S)).name;
       last = Date.now();

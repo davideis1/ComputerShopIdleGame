@@ -26,6 +26,10 @@ CREATE TABLE IF NOT EXISTS saves (
   total_built     DOUBLE       NOT NULL DEFAULT 0,
   play_seconds    DOUBLE       NOT NULL DEFAULT 0,
   achievements    SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  tokens          DOUBLE       NOT NULL DEFAULT 0,   -- unspent Franchise Tokens
+  tokens_earned   DOUBLE       NOT NULL DEFAULT 0,
+  prestiges       INT UNSIGNED NOT NULL DEFAULT 0,   -- franchises opened (resets)
+  last_tab        VARCHAR(32)  NOT NULL DEFAULT '',  -- browser tab that wrote last; a reload of that tab is never a conflict
   updated_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (user_id),
   KEY idx_saves_cash (cash),

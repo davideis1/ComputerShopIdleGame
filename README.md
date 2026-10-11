@@ -10,7 +10,7 @@ Requirements: PHP 7.4+ with PDO MySQL, MariaDB 10.3+ (or MySQL 5.7+), HTTPS reco
 1. Upload the repo contents to your web root (or a sub-folder).
 2. Create a database and user in your host's control panel.
 3. Copy `inc/config.sample.php` to `inc/config.php` and fill in the database details.
-4. Create the tables with either `php tools/install.php` (SSH) or by importing `sql/schema.sql` in phpMyAdmin.
+4. Create the tables with either `php tools/install.php` (SSH; also upgrades an existing database) or by importing `sql/schema.sql` in phpMyAdmin.
 5. Open the site, register an account, play. Set `allow_registration` to `false` in the config once your players have signed up.
 
 Apache: the bundled `.htaccess` files block `inc/`, `sql/` and `tools/`. On nginx add `location ~ ^/(inc|sql|tools)/ { deny all; }`.
@@ -38,13 +38,14 @@ node tools/api-smoke.js http://localhost:8000   # end-to-end backend checks
 ```
 
 ## Features
-- Calendar advances ~1 year per 5 minutes; the UI theme changes by era (Win95 → XP → Flat → RGB).
+- Calendar advances 1 year per 7 minutes (about 4 hours from 1993 to today); the UI theme changes by era (Win95 → XP → Flat → RGB).
 - Prebuilt catalog (~50 models) that age, get cheaper and fall out of fashion; custom PC blueprints from ~130 parts.
 - Three customer segments (budget / mainstream / enthusiast) weigh performance against price.
+- **Franchise Tokens**: once total sales pass $200M you earn tokens (more as sales grow). Sell up and restart in 1993 to claim them, then spend them in the HQ tab on permanent upgrades. Tokens, HQ upgrades and trophies survive the reset; "Erase all" in the Menu removes them too.
 - Marketing, checkout, stock and workshop upgrades per era; timeline events (Y2K, dot-com bust, crypto craze, chip shortage…).
 - **Accounts & saving**: login, server-side saves (autosave every 15s, on leaving, with local backup), per-user settings, export/import codes, reset.
 - **Offline progress**: the same simulation is run in bulk on return (capped at 4h, upgradeable; the calendar moves at 1/20 speed while away), timed by the server, with a "welcome back" report.
 
 ## Dev
-`node tools/sim.js [minutes]` runs the engine headless with a simple bot for balance checks; `node tools/custom-check.js` compares custom rigs against the best prebuilts per year.
+`node tools/sim.js [minutes] [franchises]` runs the engine headless with a simple bot for balance checks; `node tools/custom-check.js` compares custom rigs against the best prebuilts per year.
 All brand/product names are parodies and not affiliated with any real company.

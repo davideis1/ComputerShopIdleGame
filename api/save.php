@@ -14,12 +14,16 @@ if (($err = validate_state($state)) !== null) {
 }
 $baseRev = (int) ($body['rev'] ?? 0);
 $force = !empty($body['force']);
+$tab = substr(preg_replace('/[^A-Za-z0-9]/', '', (string) ($body['tab'] ?? '')), 0, 32);
 
 $sold = (float) ($state['stats']['sold'] ?? 0);
 $built = (float) ($state['stats']['built'] ?? 0);
 $play = (float) ($state['stats']['play'] ?? 0);
 $ach = isset($state['ach']) && is_array($state['ach']) ? count($state['ach']) : 0;
 $name = clean_name($state['name'] ?? '');
+$tokens = (float) ($state['meta']['tokens'] ?? 0);
+$tokensEarned = (float) ($state['meta']['earned'] ?? 0);
+$prestiges = (int) ($state['meta']['resets'] ?? 0);
 $cal = (float) $state['cal'];
 $cash = (float) $state['cash'];
 $now = time();
@@ -27,18 +31,21 @@ $now = time();
 $pdo = db();
 $pdo->beginTransaction();
 try {
-    $st = $pdo->prepare('SELECT rev, server_saved_at FROM saves WHERE user_id = ? FOR UPDATE');
+    $st = $pdo->prepare('SELECT rev, last_tab, server_saved_at FROM saves WHERE user_id = ? FOR UPDATE');
     $st->execute([$uid]);
     $row = $st->fetch();
 
     if (!$row) {
-        $pdo->prepare('INSERT INTO saves (user_id, state, rev, server_saved_at, shop_name, game_years, cash, total_sold, total_built, play_seconds, achievements)
-                       VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?)')
-            ->execute([$uid, $stateStr, $now, $name, $cal, $cash, $sold, $built, $play, $ach]);
+        $pdo->prepare('INSERT INTO saves (user_id, state, rev, server_saved_at, shop_name, game_years, cash, total_sold, total_built, play_seconds, achievements, tokens, tokens_earned, prestiges, last_tab)
+                       VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+            ->execute([$uid, $stateStr, $now, $name, $cal, $cash, $sold, $built, $play, $ach, $tokens, $tokensEarned, $prestiges, $tab]);
         $newRev = 1;
     } else {
         $rev = (int) $row['rev'];
-        if (!$force && $baseRev !== $rev) {
+        // A different tab/device holding a stale revision is a conflict; the same tab reloading
+        // (its unload save can land after the new page read the revision) is not.
+        $sameTab = $tab !== '' && $tab === $row['last_tab'];
+        if (!$force && $baseRev !== $rev && !$sameTab) {
             $pdo->rollBack();
             json_out(['ok' => false, 'error' => 'conflict', 'rev' => $rev], 409);
         }
@@ -55,8 +62,8 @@ try {
         }
         $newRev = $rev + 1;
         $pdo->prepare('UPDATE saves SET state = ?, rev = ?, server_saved_at = ?, shop_name = ?, game_years = ?, cash = ?,
-                       total_sold = ?, total_built = ?, play_seconds = ?, achievements = ? WHERE user_id = ?')
-            ->execute([$stateStr, $newRev, $now, $name, $cal, $cash, $sold, $built, $play, $ach, $uid]);
+                       total_sold = ?, total_built = ?, play_seconds = ?, achievements = ?, tokens = ?, tokens_earned = ?, prestiges = ?, last_tab = ? WHERE user_id = ?')
+            ->execute([$stateStr, $newRev, $now, $name, $cal, $cash, $sold, $built, $play, $ach, $tokens, $tokensEarned, $prestiges, $tab, $uid]);
     }
     $pdo->commit();
 } catch (Throwable $e) {

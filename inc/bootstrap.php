@@ -241,6 +241,12 @@ function validate_state($s): ?string
     if (!isset($s['stats']) || !is_array($s['stats']) || !isset($s['up']) || !is_array($s['up'])) {
         return 'missing_fields';
     }
+    if (isset($s['meta'])) {
+        $m = $s['meta'];
+        if (!is_array($m) || !isset($m['tokens']) || !is_numeric($m['tokens']) || $m['tokens'] < 0 || !is_finite((float) $m['tokens'])) {
+            return 'bad_meta';
+        }
+    }
     return null;
 }
 

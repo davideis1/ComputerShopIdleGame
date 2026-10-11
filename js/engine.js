@@ -19,7 +19,13 @@
   const K = 0.8; // how easily customers are convinced to buy
 
   /* ---------- state ---------- */
-  function newState() {
+  function newMeta() {
+    return { tokens: 0, earned: 0, resets: 0, tup: {}, lifeRevenue: 0, lifeSold: 0, bestRevenue: 0 };
+  }
+  const tl = (s, id) => (s.meta && s.meta.tup[id]) || 0;
+
+  /** meta (Franchise Tokens and their upgrades) survives resets; everything else starts fresh. */
+  function newState(meta) {
     const s = {
       v: C.VERSION,
       name: 'Mega Byte Computers',
@@ -42,7 +48,13 @@
       seen: {},
       rate: { rev: 0, up: 0 },
       settings: { theme: 'auto' },
+      meta: meta || newMeta(),
     };
+    s.cash += 7500 * tl(s, 't_cash');
+    const kit = tl(s, 't_kit');
+    if (kit) {
+      s.up.clerk = kit; s.up.ads_news = 2 * kit; s.up.shelf = kit; s.up.sales = kit;
+    }
     CS.PRODUCTS.forEach((p) => {
       if (p.year <= C.START_YEAR) s.seen[p.id] = 1;
     });
@@ -55,6 +67,8 @@
     s.stats = Object.assign(base.stats, raw.stats || {});
     s.rate = Object.assign(base.rate, raw.rate || {});
     s.settings = Object.assign(base.settings, raw.settings || {});
+    s.meta = Object.assign(newMeta(), raw.meta || {});
+    s.meta.tup = Object.assign({}, (raw.meta && raw.meta.tup) || {});
     ['up', 'stock', 'target', 'acc', 'ach', 'seen'].forEach((k) => (s[k] = Object.assign({}, raw[k] || (k === 'seen' ? base.seen : {}))));
     s.bps = Array.isArray(raw.bps) ? raw.bps.filter((b) => b && b.parts) : [];
     if (!isFinite(s.cash)) s.cash = 0;
@@ -120,15 +134,19 @@
       if (u.up) upkeep += u.up * L;
     });
     const achCount = Object.keys(s.ach).length;
+    disc += 0.01 * tl(s, 't_supply');
+    night += 2 * tl(s, 't_night');
     const rent = 0.2 * Math.pow(1 + lv('shelf'), 1.2) * infl(y);
     return {
       y,
       ev,
-      lambda: lambda * (1 + loyal) * (1 + 0.01 * achCount) * ev.demand,
+      lambda: lambda * (1 + loyal) * (1 + 0.01 * achCount) * (1 + 0.1 * tl(s, 't_income')) * ev.demand,
       serve: serve * serveMult,
       restock,
       build: build * buildMult,
-      cap,
+      cap: Math.round(cap * (1 + 0.1 * tl(s, 't_cap'))),
+      profit: 1 + 0.03 * tl(s, 't_profit'),
+      customBonus: CUSTOM_BONUS + 0.05 * tl(s, 't_build'),
       disc: Math.min(0.5, disc),
       offlineCap: night * 3600,
       benchSlots: bench,
@@ -158,7 +176,7 @@
   }
   function bpInfo(bp, d) {
     let cost = 40 * infl(d.y);
-    let rel = CUSTOM_BONUS; // hand-assembled, no bloatware
+    let rel = d.customBonus || CUSTOM_BONUS; // hand-assembled, no bloatware
     let avail = true;
     CS.SLOTS.forEach((sl) => {
       const p = CS.PART_BY_ID[bp.parts[sl.id]];
@@ -285,10 +303,10 @@
     return { ws, tot, p: Math.min(0.95, 1 - Math.exp(-tot / K)) };
   }
 
-  function sellUnits(s, it, k, rep, events) {
+  function sellUnits(s, it, k, rep, events, mult) {
     s.stock[it.key] -= k;
     it.stock -= k;
-    const rev = k * it.price;
+    const rev = k * it.price * (mult || 1);
     s.cash += rev;
     s.stats.sold += k;
     s.stats.revenue += rev;
@@ -366,7 +384,7 @@
         const whole = Math.floor(acc);
         const k = Math.min(whole, it.stock);
         s.acc[it.key] = acc - whole;
-        if (k > 0) revenue += sellUnits(s, it, k, rep, events);
+        if (k > 0) revenue += sellUnits(s, it, k, rep, events, d.profit);
         sold += exp[i];
         if (k < whole) {
           s.stats.stockouts += whole - k;
@@ -466,8 +484,8 @@
     }
     const it = live[idx];
     const events = [];
-    sellUnits(s, it, 1, null, events);
-    return { sold: it, rev: it.price };
+    sellUnits(s, it, 1, null, events, d.profit);
+    return { sold: it, rev: it.price * d.profit };
   }
 
   /** Returns newly-available prebuilts since last call (for "new model" toasts). */
@@ -483,6 +501,51 @@
     return out;
   }
 
+  /* ---------- Franchise Tokens ---------- */
+  const tokenMult = (s) => 1 + 0.08 * tl(s, 't_token');
+  function pendingTokens(s) {
+    const r = s.stats.revenue;
+    if (r < C.TOKEN_R0) return 0;
+    const K = C.TOKEN_K;
+    return Math.floor((K * Math.sqrt(r / C.TOKEN_R0) - (K - 1)) * tokenMult(s));
+  }
+  /** Run revenue at which the n-th token is earned. */
+  function tokenAt(s, n) {
+    const K = C.TOKEN_K;
+    return C.TOKEN_R0 * Math.pow((n / tokenMult(s) + K - 1) / K, 2);
+  }
+  const nextTokenAt = (s) => tokenAt(s, pendingTokens(s) + 1);
+  /** Cash in: returns the fresh state for the next franchise (tokens, upgrades, trophies carry over), or null. */
+  function prestige(s) {
+    const gain = pendingTokens(s);
+    if (gain < 1) return null;
+    const m = s.meta;
+    m.tokens += gain;
+    m.earned += gain;
+    m.resets += 1;
+    m.lifeRevenue += s.stats.revenue;
+    m.lifeSold += s.stats.sold;
+    m.bestRevenue = Math.max(m.bestRevenue, s.stats.revenue);
+    const n = newState(m);
+    n.name = s.name;
+    n.ach = Object.assign({}, s.ach);
+    n.started = s.started;
+    n.stats.play = s.stats.play;
+    n.stats.offline = s.stats.offline;
+    n.stats.hustles = s.stats.hustles;
+    return { state: n, gain };
+  }
+  const tokenCost = (s, u) => Math.ceil(u.base * Math.pow(u.grow, tl(s, u.id)));
+  function buyTokenUp(s, id) {
+    const u = CS.TUP_BY_ID[id];
+    if (!u) return false;
+    const L = tl(s, id), cost = tokenCost(s, u);
+    if (L >= u.max || s.meta.tokens < cost) return false;
+    s.meta.tokens -= cost;
+    s.meta.tup[id] = L + 1;
+    return true;
+  }
+
   const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const dateStr = (y) => MONTHS[Math.min(11, Math.floor((y % 1) * 12))] + ' ' + Math.floor(y);
 
@@ -490,7 +553,7 @@
     SEG, K, itemWeight, infl, refPrice, newState, migrate, serialize, deserialize, yearOf, eraAt, eventsAt, derive,
     partAvail, partRel, partPrice, bpInfo, designInfo, totalStock, getItems, buy, buyUnits, setTarget,
     upLevel, upCost, upUnlocked, buyUp, createBp, deleteBp, step, advance, offline, hustle, newProducts,
-    newReport, checkAch, dateStr,
+    newReport, checkAch, dateStr, pendingTokens, nextTokenAt, tokenAt, prestige, tokenCost, buyTokenUp, tl,
   };
   if (typeof module !== 'undefined') module.exports = CS;
 })(typeof window !== 'undefined' ? window : globalThis);
