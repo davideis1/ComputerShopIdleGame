@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#008080">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Mega Byte Computers — Idle Shop</title>
+<meta name="description" content="An idle game where you run a computer shop from 1993 to today.">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css">
+</head>
+<body data-theme="win95">
+<div id="app">
+  <header id="top" class="panel">
+    <div class="title"><span id="shopName">Mega Byte Computers</span><span id="eraName" class="era"></span></div>
+    <div class="topbody">
+      <div class="stat"><small>Date</small><b id="date">Jan 1993</b></div>
+      <div class="stat grow"><small>Cash</small><b id="cash" class="money">$0</b></div>
+      <div class="stat"><small>Sales / min</small><b id="income">$0</b></div>
+    </div>
+    <div id="ticker"><span id="tickerText"></span></div>
+  </header>
+
+  <main id="main">
+    <section id="tab-shop" class="tab"></section>
+    <section id="tab-catalog" class="tab" hidden></section>
+    <section id="tab-workshop" class="tab" hidden></section>
+    <section id="tab-upgrades" class="tab" hidden></section>
+    <section id="tab-menu" class="tab" hidden></section>
+  </main>
+
+  <nav id="nav">
+    <button data-tab="shop" class="on"><i>🏪</i><span>Shop</span></button>
+    <button data-tab="catalog"><i>📦</i><span>Stock</span><em id="badge-catalog" hidden>!</em></button>
+    <button data-tab="workshop"><i>🛠️</i><span>Workshop</span></button>
+    <button data-tab="upgrades"><i>📈</i><span>Upgrades</span><em id="badge-upgrades" hidden>!</em></button>
+    <button data-tab="menu"><i>⚙️</i><span>Menu</span></button>
+  </nav>
+</div>
+<div id="toasts"></div>
+<div id="modal" hidden></div>
+
+<script src="js/data.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>
