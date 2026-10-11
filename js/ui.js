@@ -303,7 +303,7 @@
   }
 
   /* ---------- WORKSHOP tab ---------- */
-  const design = { name: 'My Custom PC', parts: {}, markup: 0.3, sig: {} };
+  const design = { name: 'My Custom PC', parts: {}, markup: 0.6, sig: {} };
   function buildWorkshop() {
     let sel = '';
     CS.SLOTS.forEach((sl) => {
@@ -516,7 +516,7 @@
         </div></div></div>
       <div class="panel"><div class="title">Statistics</div><div class="pbody" id="statsBody"></div></div>
       <div class="panel"><div class="title"><span>Trophies</span><span id="achCount"></span></div><div class="pbody" id="achBody"></div></div>
-      <div class="panel"><div class="title">About</div><div class="pbody"><small>Idle computer shop, 1993 → today. Every brand and product name is a made-up parody; this game is not affiliated with or endorsed by any real company. Offline progress is capped by your shop's Night Lock-Up, and the calendar only moves at ¼ speed while you are away.</small></div></div>`;
+      <div class="panel"><div class="title">About</div><div class="pbody"><small>Idle computer shop, 1993 → today. Every brand and product name is a made-up parody; this game is not affiliated with or endorsed by any real company. Offline progress is capped by your shop's Night Lock-Up, and the calendar crawls at 1/20 speed while you are away.</small></div></div>`;
     $('#nameIn').addEventListener('input', (e) => { S.name = e.target.value.slice(0, 30) || 'Mega Byte Computers'; });
     $('#themeSel').addEventListener('change', (e) => { S.settings.theme = e.target.value; applyTheme(true); });
   }

@@ -11,10 +11,11 @@
 
   // Customer segments: value-for-money weighting = rel^a * (price/ref)^-b
   const SEG = [
-    { id: 'budget', share: 0.45, a: 0.9, b: 2.0 },
-    { id: 'main', share: 0.4, a: 1.3, b: 1.1 },
-    { id: 'enth', share: 0.15, a: 2.0, b: 0.25 },
+    { id: 'budget', share: 0.45, a: 0.9, b: 2.6, c0: 0.75 },
+    { id: 'main', share: 0.4, a: 1.3, b: 1.8, c0: 1.3 },
+    { id: 'enth', share: 0.15, a: 2.0, b: 0.8, c0: 2.3 },
   ];
+  const CUSTOM_BONUS = 1.4;
   const K = 0.8; // how easily customers are convinced to buy
 
   /* ---------- state ---------- */
@@ -157,7 +158,7 @@
   }
   function bpInfo(bp, d) {
     let cost = 40 * infl(d.y);
-    let rel = 1;
+    let rel = CUSTOM_BONUS; // hand-assembled, no bloatware
     let avail = true;
     CS.SLOTS.forEach((sl) => {
       const p = CS.PART_BY_ID[bp.parts[sl.id]];
@@ -273,9 +274,13 @@
   }
 
   /* ---------- simulation ---------- */
+  // How attractive an item is to a segment: value for money, collapsing once the price is beyond their budget
+  function itemWeight(seg, rel, price, y) {
+    const c = Math.max(0.4, price / refPrice(y));
+    return (Math.pow(rel, seg.a) * Math.pow(c, -seg.b)) / (1 + Math.pow(price / refPrice(y) / seg.c0, 3));
+  }
   function pickSegmentProb(live, seg, y) {
-    const ref = refPrice(y);
-    const ws = live.map((i) => Math.pow(i.rel, seg.a) * Math.pow(Math.max(0.4, i.price / ref), -seg.b));
+    const ws = live.map((i) => itemWeight(seg, i.rel, i.price, y));
     const tot = ws.reduce((a, b) => a + b, 0);
     return { ws, tot, p: Math.min(0.95, 1 - Math.exp(-tot / K)) };
   }
@@ -308,7 +313,7 @@
 
     // auto-restock prebuilts
     if (d.restock > 0) {
-      s.rAcc = Math.min(6, s.rAcc + d.restock * dt);
+      s.rAcc = Math.min(Math.max(6, d.restock * dt * 2), s.rAcc + d.restock * dt);
       for (const it of items) {
         if (s.rAcc < 1) break;
         if (it.kind !== 'pre' || !it.buyable || it.stock >= it.target) continue;
@@ -320,7 +325,7 @@
     }
     // auto-build blueprints
     if (d.workshop && d.build > 0) {
-      s.bAcc = Math.min(4, s.bAcc + d.build * dt);
+      s.bAcc = Math.min(Math.max(4, d.build * dt * 2), s.bAcc + d.build * dt);
       for (const it of items) {
         if (s.bAcc < 1) break;
         if (it.kind !== 'bp' || !it.canBuild || it.stock >= it.target) continue;
@@ -482,7 +487,7 @@
   const dateStr = (y) => MONTHS[Math.min(11, Math.floor((y % 1) * 12))] + ' ' + Math.floor(y);
 
   CS.E = {
-    SEG, infl, refPrice, newState, migrate, serialize, deserialize, yearOf, eraAt, eventsAt, derive,
+    SEG, K, itemWeight, infl, refPrice, newState, migrate, serialize, deserialize, yearOf, eraAt, eventsAt, derive,
     partAvail, partRel, partPrice, bpInfo, designInfo, totalStock, getItems, buy, buyUnits, setTarget,
     upLevel, upCost, upUnlocked, buyUp, createBp, deleteBp, step, advance, offline, hustle, newProducts,
     newReport, checkAch, dateStr,
