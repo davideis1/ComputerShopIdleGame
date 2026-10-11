@@ -265,3 +265,15 @@ label.check input { width: 20px; height: 20px; accent-color: var(--accent); }
 .chips { display: flex; gap: 6px; flex-wrap: wrap; }
 .chips button { flex: 1 1 90px; min-height: 36px; padding: 4px 8px; font-size: 13px; }
 .chips button.on { box-shadow: var(--bevel-in); background: var(--inset); color: var(--accent); }
+
+/* List filters */
+.ftools { display: flex; flex-direction: column; gap: 6px; }
+.frow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.frow > small { min-width: 38px; }
+.frow .fsel { flex: 1 1 140px; }
+.fsel { display: flex; flex-direction: column; gap: 2px; }
+.fsel select { min-height: 34px; padding: 4px 8px; }
+.fchips { flex: 1 1 auto; }
+.fchips button { min-height: 32px; font-size: 13px; flex: 1 1 60px; }
+.ftools > .chips { margin: 0; }
+h3.sec[hidden] { display: none; }

@@ -313,6 +313,36 @@
   }
 
   /* ---------- STOCK tab ---------- */
+  /* ---------- list filters (remembered per browser) ---------- */
+  const FILT_KEY = 'csig-filters';
+  const FILT = { cat: { age: 'all', shelf: 'all', sort: 'new', group: 'all', q: '' }, bp: { f: 'all', sort: 'new' }, up: { f: 'all' }, hq: { f: 'all' }, tro: { f: 'all' } };
+  try { const o = JSON.parse(localStorage.getItem(FILT_KEY) || '{}'); Object.keys(FILT).forEach((k) => Object.assign(FILT[k], o[k] || {})); } catch (e) { /* defaults */ }
+  const fget = (path) => { const [a, b] = path.split('.'); return FILT[a][b]; };
+  function fset(path, v) {
+    const [a, b] = path.split('.');
+    FILT[a][b] = v;
+    try { localStorage.setItem(FILT_KEY, JSON.stringify(FILT)); } catch (e) { /* ignore */ }
+  }
+  const chipRow = (path, opts) => '<div class="chips fchips">' + opts.map(([v, l]) => `<button data-act="fchip" data-flt="${path}" data-v="${v}">${l}</button>`).join('') + '</div>';
+  const selectEl = (path, opts, label) => `<label class="fsel"><small>${label}</small><select data-flt="${path}">${opts.map(([v, l]) => `<option value="${v}">${l}</option>`).join('')}</select></label>`;
+  function syncFilterUI(root) { // reflect state in chips / selects / search boxes without fighting the user's focus
+    $$('[data-act=fchip]', root).forEach((b) => b.classList.toggle('on', fget(b.dataset.flt) === b.dataset.v));
+    $$('select[data-flt], input[data-flt]', root).forEach((el) => {
+      if (document.activeElement !== el && el.value !== fget(el.dataset.flt)) el.value = fget(el.dataset.flt);
+    });
+  }
+  const isCurrent = (it) => it.buyable && (it.kind === 'game' ? it.age <= 1.5 : it.kind === 'acc' ? it.age <= 4 : it.age <= 2);
+  const CAT_SORTS = {
+    new: (a, b) => a.age - b.age || a.price - b.price,
+    pop: (a, b) => (popNorm[b.key] || 0) - (popNorm[a.key] || 0),
+    profit: (a, b) => (b.price - b.cost) - (a.price - a.cost),
+    margin: (a, b) => (b.price - b.cost) / b.price - (a.price - a.cost) / a.price,
+    cheap: (a, b) => a.price - b.price,
+    pricey: (a, b) => b.price - a.price,
+    stock: (a, b) => b.stock - a.stock,
+    name: (a, b) => (a.brand + a.name).localeCompare(b.brand + b.name),
+  };
+
   let catFilter = 'pre';
   function buildCatalog() {
     $('#tab-catalog').innerHTML = `
@@ -320,11 +350,19 @@
         <div class="pbody">
           <div class="chips" id="catChips"><button data-act="catfilter" data-f="pre" class="on">🖥️ Computers</button><button data-act="catfilter" data-f="game">💿 Games</button><button data-act="catfilter" data-f="acc">🖱️ Accessories</button></div>
           <div class="bar"><i id="catBar"></i></div>
+          <div class="ftools">
+            <div class="frow"><small>Age</small>${chipRow('cat.age', [['all', 'All'], ['current', 'Current'], ['old', 'Older']])}</div>
+            <div class="frow"><small>Shelf</small>${chipRow('cat.shelf', [['all', 'All'], ['stocked', 'In stock'], ['empty', 'Not stocked']])}</div>
+            <div class="frow">${selectEl('cat.sort', [['new', 'Newest first'], ['pop', 'Most popular'], ['profit', 'Profit per sale'], ['margin', 'Margin %'], ['cheap', 'Price: low to high'], ['pricey', 'Price: high to low'], ['stock', 'Most in stock'], ['name', 'Name A–Z']], 'Sort')}
+              <label class="fsel" id="grpSel"><small>Group</small><select data-flt="cat.group" id="grpSelect"></select></label></div>
+            <input type="text" data-flt="cat.q" placeholder="Search name or brand…" id="catSearch" autocomplete="off">
+          </div>
           <div class="field"><label><span>Pricing policy (all retail items)</span><b id="priceLbl"></b></label>
             <input type="range" id="priceAdj" min="-20" max="30" step="5"></div>
           <small id="clerkNote"></small>
         </div></div>
       <div id="catNotice"></div>
+      <div class="empty-note" id="catEmpty" hidden>Nothing matches these filters.</div>
       <div class="list two" id="catList"></div>`;
     $('#priceAdj').addEventListener('input', (e) => { S.priceAdj = +e.target.value / 100; });
   }
@@ -341,7 +379,7 @@
     const el = node(`<div class="card" data-key="${it.key}">
       <div class="icon">${it.icon}</div>
       <div class="info"><b class="nm"></b><small class="sub"></small>
-        <div class="tags"><span class="tag t-age"></span><span class="tag t-perf"></span><span class="tag t-extra" hidden></span></div>
+        <div class="tags"><span class="tag t-age"></span><span class="tag t-perf"></span><span class="tag t-extra" hidden></span><span class="tag t-pop"></span></div>
         <div class="nums"><span>Price <b class="pp num"></b></span><span>Cost <b class="cc num"></b></span><span>Profit <b class="pf num good"></b></span></div>
         <div>In stock: <b class="stk num"></b></div></div>
       <div class="acts">
@@ -350,16 +388,18 @@
           <button data-act="tgt" data-d="-1">−</button><b class="tg num">0</b><button data-act="tgt" data-d="1">+</button></div>
       </div></div>`);
     const r = (s) => $(s, el);
-    const refs = { el, nm: r('.nm'), sub: r('.sub'), age: r('.t-age'), perf: r('.t-perf'), extra: r('.t-extra'), pp: r('.pp'), cc: r('.cc'), pf: r('.pf'), stk: r('.stk'), tg: r('.tg'), lbl: r('.lbl'), btns: $$('button', el), buy2: $('[data-act=buy][data-n="5"]', el) };
+    const refs = { el, nm: r('.nm'), sub: r('.sub'), age: r('.t-age'), perf: r('.t-perf'), extra: r('.t-extra'), pop: r('.t-pop'), pp: r('.pp'), cc: r('.cc'), pf: r('.pf'), stk: r('.stk'), tg: r('.tg'), lbl: r('.lbl'), btns: $$('button', el), buy2: $('[data-act=buy][data-n="5"]', el) };
     return refs;
   }
+  let popNorm = {};
   function updateItemCard(n, it, d, clerk) {
     setText(n.nm, (it.brand ? it.brand + ' ' : '') + it.name);
     const addon = it.kind === 'game' || it.kind === 'acc';
     setText(n.sub, addon ? (it.kind === 'acc' ? CS.GROUP_BY_ID[it.group].name + ' · ' : 'PC game · ') + it.def.year : it.def.year + ' model');
     setText(n.age, ageTag(it));
     n.age.classList.toggle('new', it.age < 0.7 && it.buyable);
-    setText(n.perf, (addon ? 'Popularity ' : 'Performance ') + Math.round(it.rel * 100) + '%');
+    setText(n.perf, (addon ? 'Hype ' : 'Performance ') + Math.round(it.rel * 100) + '%');
+    setText(n.pop, '🔥 Demand ' + Math.round(((popNorm[it.key] || 0) * 100)) + '%');
     n.extra.hidden = it.kind !== 'game';
     if (it.kind === 'game') setText(n.extra, it.capF >= 0.95 ? '✅ Runs on your PCs' : it.capF >= 0.5 ? '⚠️ Marginal on your PCs' : '🚫 Too demanding for your PCs');
     if (addon && n.buy2.dataset.n !== String(it.pack)) { n.buy2.dataset.n = String(it.pack); setText(n.buy2, '+' + it.pack); }
@@ -388,8 +428,32 @@
     const unlocked = catFilter === 'pre' || (catFilter === 'game' ? d.aisleGame : d.aisleAcc);
     const aisle = CS.UP_BY_ID[catFilter === 'game' ? 'aisle_games' : 'aisle_acc'];
     setHtml($('#catNotice'), unlocked ? '' : `<div class="panel"><div class="pbody"><b>${aisle.icon} ${esc(aisle.name)}</b><div>${esc(aisle.desc)}</div><button class="primary" data-act="up" data-id="${aisle.id}" ${S.cash < aisle.base ? 'disabled' : ''}>Open for ${money(aisle.base)}</button></div></div>`);
-    const order = (i) => (i.group ? CS.GROUPS.findIndex((g) => g.id === i.group) : 0);
-    const list = items.filter((i) => i.kind === catFilter).sort((a, b) => (b.buyable - a.buyable) || order(a) - order(b) || b.def.year - a.def.year || b.price - a.price);
+    // filters & sorting
+    const kindItems = items.filter((i) => i.kind === catFilter);
+    const pop = E.popularityMap(kindItems, d);
+    const maxPop = {}; // demand is compared within a group (a keyboard against other keyboards)
+    kindItems.forEach((i) => { const g = i.group || ''; maxPop[g] = Math.max(maxPop[g] || 1e-9, pop[i.key]); });
+    popNorm = {};
+    kindItems.forEach((i) => (popNorm[i.key] = pop[i.key] / maxPop[i.group || '']));
+    const gs = $('#grpSelect');
+    if (catFilter === 'acc') {
+      const sig = CS.GROUPS.filter((g) => g.kind === 'acc').map((g) => g.id).join();
+      if (gs._sig !== sig) { gs._sig = sig; gs.innerHTML = '<option value="all">All groups</option>' + CS.GROUPS.filter((g) => g.kind === 'acc').map((g) => `<option value="${g.id}">${g.icon} ${esc(g.name)}</option>`).join(''); }
+    }
+    $('#grpSel').hidden = catFilter !== 'acc';
+    const F = FILT.cat, q = F.q.trim().toLowerCase();
+    const sort = CAT_SORTS[F.sort] || CAT_SORTS.new;
+    const list = kindItems.filter((i) => {
+      if (F.age === 'current' && !isCurrent(i)) return false;
+      if (F.age === 'old' && isCurrent(i)) return false;
+      if (F.shelf === 'stocked' && !(i.stock > 0 || i.target > 0)) return false;
+      if (F.shelf === 'empty' && (i.stock > 0 || i.target > 0)) return false;
+      if (catFilter === 'acc' && F.group !== 'all' && i.group !== F.group) return false;
+      if (q && !(i.brand + ' ' + i.name).toLowerCase().includes(q)) return false;
+      return true;
+    }).sort((a, b) => (b.buyable - a.buyable) || sort(a, b, pop));
+    syncFilterUI($('#tab-catalog'));
+    $('#catEmpty').hidden = !!list.length || !unlocked;
     syncList($('#catList'), list, (i) => i.key, createItemCard, (n, it) => updateItemCard(n, it, d, clerk));
   }
 
@@ -405,6 +469,7 @@
       <div id="wsMain" class="tab" hidden>
         <div class="panel"><div class="title">Workshop</div><div class="pbody"><div class="grid" id="wsStats"></div><small id="wsHint"></small></div></div>
         <h3 class="sec">Your Blueprints</h3>
+        <div class="ftools" id="bpTools">${chipRow('bp.f', [['all', 'All'], ['build', 'Buildable'], ['old', 'Discontinued parts']])}${selectEl('bp.sort', [['new', 'Newest first'], ['profit', 'Profit per PC'], ['perf', 'Performance'], ['stock', 'Most in stock']], 'Sort')}</div>
         <div class="list two" id="bpList"></div>
         <div class="panel"><div class="title">Design a New PC</div><div class="pbody">
           <div class="field"><label><span>Model name</span></label><input type="text" id="dname" maxlength="28"></div>
@@ -497,7 +562,9 @@
     setText(design.stats.stock, num(items.filter((i) => i.kind === 'bp').reduce((a, i) => a + i.stock, 0)));
     setText($('#wsHint'), d.build ? 'Technicians build PCs up to each blueprint\'s auto-build target and pay for parts as they go. Old parts are discontinued after ~6 years — design a fresh blueprint then.' : 'Hire Build Technicians in Upgrades — they build your blueprints automatically.');
 
-    const bps = items.filter((i) => i.kind === 'bp');
+    const BS = { new: (a, b) => b.def.id.slice(2) - a.def.id.slice(2), profit: (a, b) => (b.price - b.cost) - (a.price - a.cost), perf: (a, b) => b.rel - a.rel, stock: (a, b) => b.stock - a.stock };
+    const bps = items.filter((i) => i.kind === 'bp' && (FILT.bp.f === 'all' || (FILT.bp.f === 'build') === i.canBuild)).sort(BS[FILT.bp.sort] || BS.new);
+    syncFilterUI($('#bpTools'));
     syncList($('#bpList'), bps, (i) => i.id, (i) => createBpCard(i.def), (n, it) => {
       const bp = it.def;
       setText(n.nm, bp.name);
@@ -535,8 +602,9 @@
   const GROUPS = ['Marketing', 'Checkout', 'Stock', 'Shop', 'Workshop'];
   function buildUpgrades() {
     $('#tab-upgrades').innerHTML = `
-      <div class="panel"><div class="title">Shop Overview</div><div class="pbody"><div class="grid" id="upSum"></div><small id="upHint"></small></div></div>` +
-      GROUPS.map((g) => `<h3 class="sec">${g}</h3><div class="list two" id="upl-${g}"></div>`).join('');
+      <div class="panel"><div class="title">Shop Overview</div><div class="pbody"><div class="grid" id="upSum"></div><small id="upHint"></small></div></div>
+      <div class="ftools" id="upTools">${chipRow('up.f', [['all', 'All'], ['afford', 'Affordable now'], ['open', 'Not maxed']])}</div>` +
+      GROUPS.map((g) => `<h3 class="sec" id="uph-${g}">${g}</h3><div class="list two" id="upl-${g}"></div>`).join('');
     const box = $('#upSum');
     shopRefs.up = {};
     [['lambda', 'Customers / s'], ['serve', 'Checkout / s'], ['restock', 'Restock / s'], ['cap', 'Shelf space']].forEach(([id, l]) => {
@@ -573,10 +641,16 @@
   function renderUpgrades(d) {
     const rs = shopRefs.up;
     setText(rs.lambda, num(d.lambda)); setText(rs.serve, num(d.serve)); setText(rs.restock, d.restock ? num(d.restock) : '–'); setText(rs.cap, num(d.cap));
+    syncFilterUI($('#upTools'));
     const bottleneck = d.lambda > d.serve * 1.05 ? 'Checkout is your bottleneck: customers are leaving. Upgrade checkout!' : d.serve > d.lambda * 1.5 ? 'Checkout has spare capacity — more marketing will pay off.' : 'Marketing and checkout are well balanced.';
     setText($('#upHint'), bottleneck);
     GROUPS.forEach((g) => {
-      const list = CS.UPGRADES.filter((u) => u.grp === g && d.y >= u.year - 2 && !(u.req && !S.up[u.req] && d.y < u.year));
+      const list = CS.UPGRADES.filter((u) => u.grp === g && d.y >= u.year - 2 && !(u.req && !S.up[u.req] && d.y < u.year)).filter((u) => {
+        if (FILT.up.f === 'all') return true;
+        const maxed = E.upLevel(S, u.id) >= u.max;
+        return FILT.up.f === 'open' ? !maxed : !maxed && E.upUnlocked(S, u) && S.cash >= E.upCost(S, u);
+      });
+      $('#uph-' + g).hidden = !list.length;
       syncList($('#upl-' + g), list, (u) => u.id, createUpCard, (n, u) => {
         const L = E.upLevel(S, u.id);
         const unlocked = E.upUnlocked(S, u);
@@ -604,7 +678,9 @@
         <button class="primary" data-act="claim" id="fClaim"></button>
         <small><b>Kept:</b> tokens, HQ upgrades, trophies, shop name, stats. <b>Reset:</b> cash, upgrades, stock, blueprints and the calendar.</small>
       </div></div>
-      <h3 class="sec">HQ Upgrades (permanent)</h3><div class="list two" id="fList"></div>`;
+      <h3 class="sec">HQ Upgrades (permanent)</h3>
+      <div class="ftools" id="hqTools">${chipRow('hq.f', [['all', 'All'], ['afford', 'Affordable now'], ['open', 'Not maxed']])}</div>
+      <div class="list two" id="fList"></div>`;
     shopRefs.f = {};
     [['run', 'This run: total sales'], ['pend', 'Tokens ready to claim'], ['resets', 'Franchises opened'], ['earned', 'Tokens earned (all time)']].forEach(([id, l]) => {
       const m = node(`<div class="mini"><small>${l}</small><b class="num">–</b></div>`);
@@ -642,7 +718,13 @@
     const b = $('#fClaim');
     setText(b, pend >= 1 ? '🎫 Sell up & claim ' + num(pend) + ' token' + (pend > 1 ? 's' : '') : 'Reach ' + money(C.TOKEN_R0) + ' in sales to claim tokens');
     setDis(b, pend < 1);
-    syncList($('#fList'), CS.TOKEN_UPGRADES, (u) => u.id, createTupCard, (n, u) => {
+    syncFilterUI($('#hqTools'));
+    const tlist = CS.TOKEN_UPGRADES.filter((u) => {
+      if (FILT.hq.f === 'all') return true;
+      const maxed = E.tl(S, u.id) >= u.max;
+      return FILT.hq.f === 'open' ? !maxed : !maxed && m.tokens >= E.tokenCost(S, u);
+    });
+    syncList($('#fList'), tlist, (u) => u.id, createTupCard, (n, u) => {
       const L = E.tl(S, u.id), cost = E.tokenCost(S, u), maxed = L >= u.max;
       setText(n.lv, 'Lv ' + L + '/' + u.max);
       setText(n.now, L ? 'Now: ' + tupNow(u, L) : '');
@@ -691,7 +773,7 @@
           <button data-act="save">💾 Save now</button><button data-act="export">📤 Export</button><button data-act="import">📥 Import</button><button data-act="reset" class="danger">🗑️ Erase all</button>
         </div></div></div>
       <div class="panel"><div class="title">Statistics</div><div class="pbody" id="statsBody"></div></div>
-      <div class="panel"><div class="title"><span>Trophies</span><span id="achCount"></span></div><div class="pbody" id="achBody"></div></div>
+      <div class="panel"><div class="title"><span>Trophies</span><span id="achCount"></span></div><div class="pbody"><div id="troTools">${chipRow('tro.f', [['all', 'All'], ['earned', 'Earned'], ['locked', 'Locked']])}</div><div id="achBody"></div></div></div>
       <div class="panel"><div class="title">About</div><div class="pbody"><small>Idle computer shop, 1993 → today. Every brand and product name is a made-up parody; this game is not affiliated with or endorsed by any real company. Offline progress is capped by your shop's Night Lock-Up, and the calendar crawls at 1/20 speed while you are away.</small></div></div>`;
     $('#nameIn').addEventListener('input', (e) => { S.name = e.target.value.slice(0, 30) || 'Mega Byte Computers'; });
     $('#themeSel').addEventListener('change', (e) => { saveSettings({ theme: e.target.value }); applyTheme(true); });
@@ -719,7 +801,8 @@
       <tr><td>Offline limit</td><td>${d.offlineCap / 3600}h</td></tr></table>`);
     const got = CS.ACH.filter((a) => S.ach[a.id]).length;
     setText($('#achCount'), got + ' / ' + CS.ACH.length + ' (+' + got + '% customers)');
-    setHtml($('#achBody'), CS.ACH.map((a) => `<div class="ach ${S.ach[a.id] ? '' : 'locked'}"><span>${S.ach[a.id] ? '🏆' : '🔒'}</span><div><b>${esc(a.name)}</b><br><small>${esc(a.desc)}</small></div></div>`).join(''));
+    syncFilterUI($('#troTools'));
+    setHtml($('#achBody'), CS.ACH.filter((a) => FILT.tro.f === 'all' || (FILT.tro.f === 'earned') === !!S.ach[a.id]).map((a) => `<div class="ach ${S.ach[a.id] ? '' : 'locked'}"><span>${S.ach[a.id] ? '🏆' : '🔒'}</span><div><b>${esc(a.name)}</b><br><small>${esc(a.desc)}</small></div></div>`).join(''));
   }
 
   /* ---------- theme / header ---------- */
@@ -845,6 +928,7 @@
         break;
       }
       case 'catfilter': catFilter = t.dataset.f; break;
+      case 'fchip': fset(t.dataset.flt, t.dataset.v); break;
       case 'up': E.buyUp(S, t.dataset.id); break;
       case 'tup': E.buyTokenUp(S, t.dataset.id); break;
       case 'claim': claimTokens(); break;
@@ -866,6 +950,7 @@
   });
   document.addEventListener('input', (e) => {
     const t = e.target;
+    if (t.dataset && t.dataset.flt && (t.tagName === 'SELECT' || t.tagName === 'INPUT')) { fset(t.dataset.flt, t.value); render(true); return; }
     if (t.classList && t.classList.contains('mk')) {
       const bp = S.bps.find((b) => b.id === t.dataset.bp);
       if (bp) bp.markup = +t.value / 100;
@@ -968,11 +1053,20 @@
   }
 
   /* ---------- init ---------- */
-  function chooseState() {
-    // Returns {state, elapsed}. Server clock decides offline time; a newer local backup (failed sync) can win.
-    const server = BOOT.state ? E.migrate(BOOT.state) : null;
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  async function chooseState() {
+    // Returns {state, elapsed, force}. The server clock decides offline time; a newer local backup (failed sync) can win.
+    let server = BOOT.state ? E.migrate(BOOT.state) : null;
     const local = readLocal();
     const legacy = server ? null : legacyLocal();
+    if (server && local && local.saved > server.saved + 2000) {
+      // The previous page's unload save may still have been in flight when this page loaded: look again before asking.
+      await sleep(1500);
+      try {
+        const j = await post('load', {});
+        if (j.ok && j.state) { server = E.migrate(j.state); rev = j.rev; BOOT.elapsed = j.elapsed; }
+      } catch (e) { /* offline: fall through to the prompt */ }
+    }
     if (server && local && local.saved > server.saved + 2000) {
       return new Promise((resolve) => {
         modal('Newer progress found', '<p>This device holds a newer copy of your shop (' + new Date(local.saved).toLocaleString() + ') than your account (' + new Date(server.saved).toLocaleString() + '), probably from a dropped connection. Which should be used?</p>', [
@@ -981,13 +1075,13 @@
         ]);
       });
     }
-    if (server) return Promise.resolve({ state: server, elapsed: BOOT.elapsed });
+    if (server) return { state: server, elapsed: BOOT.elapsed };
     const seed = legacy || local;
     if (seed) {
       toast('📥 Imported the shop saved in this browser into your account.', 5000);
-      return Promise.resolve({ state: seed, elapsed: (Date.now() - seed.saved) / 1000, force: true });
+      return { state: seed, elapsed: (Date.now() - seed.saved) / 1000, force: true };
     }
-    return Promise.resolve({ state: E.newState(), elapsed: 0 });
+    return { state: E.newState(), elapsed: 0 };
   }
 
   function init() {

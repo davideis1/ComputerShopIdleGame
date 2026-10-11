@@ -608,6 +608,19 @@
     return C.TOKEN_R0 * Math.pow((n / tokenMult(s) + K - 1) / K, 2);
   }
   const nextTokenAt = (s) => tokenAt(s, pendingTokens(s) + 1);
+  /** How strongly shoppers want each item (all segments blended), raw units; compare within a kind. */
+  function popularityMap(items, d) {
+    const out = {};
+    items.forEach((it) => {
+      const grp = it.group ? CS.GROUP_BY_ID[it.group] : null;
+      const ref = grp ? grp.ref * Math.pow(grp.grow, d.y - 1993) : undefined;
+      let v = 0;
+      SEG.forEach((seg) => { v += seg.share * itemWeight(seg, it.rel, it.price, d.y, ref) * (it.capF == null ? 1 : it.capF); });
+      out[it.key] = v;
+    });
+    return out;
+  }
+
   /** Cash in: returns the fresh state for the next franchise (tokens, upgrades, trophies carry over), or null. */
   function prestige(s) {
     const gain = pendingTokens(s);
@@ -643,7 +656,7 @@
   const dateStr = (y) => MONTHS[Math.min(11, Math.floor((y % 1) * 12))] + ' ' + Math.floor(y);
 
   CS.E = {
-    SEG, K, itemWeight, infl, refPrice, newState, migrate, serialize, deserialize, yearOf, eraAt, eventsAt, derive,
+    SEG, K, itemWeight, popularityMap, infl, refPrice, newState, migrate, serialize, deserialize, yearOf, eraAt, eventsAt, derive,
     partAvail, partRel, partPrice, bpInfo, designInfo, totalStock, getItems, buy, buyUnits, setTarget,
     upLevel, upCost, upUnlocked, buyUp, createBp, deleteBp, step, advance, offline, hustle, newProducts,
     newReport, checkAch, dateStr, pendingTokens, nextTokenAt, tokenAt, prestige, tokenCost, buyTokenUp, tl,

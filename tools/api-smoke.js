@@ -73,6 +73,10 @@ const state = (cash, cal, meta) => JSON.stringify({ meta, cash, cal, stats: { so
   ok(/"rev":6/.test(html) && /"cash":300/.test(html), 'page boots with saved state');
   ok(!/<\/script><b>/.test(html), 'user text cannot break out of the boot script');
 
+  // load endpoint (used to re-check after a reload race)
+  r = await post('/api/load.php', {});
+  j = await r.json(); ok(j.ok && j.rev === 6 && j.state && j.state.cash === 300, 'load returns the latest save');
+
   // settings
   r = await post('/api/settings.php', { theme: 'rgb', showTicker: false });
   j = await r.json(); ok(j.ok && j.settings.theme === 'rgb' && j.settings.showTicker === false, 'settings saved');
