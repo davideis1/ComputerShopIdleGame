@@ -1,6 +1,6 @@
 # Deploys to IONOS over SFTP on every push to Main.
 # Secrets (repo Settings -> Secrets and variables -> Actions): SFTP_SERVER, SFTP_USERNAME, SFTP_PASSWORD
-# Variables (same page, Variables tab): SITE_URL (e.g. https://shop.example.com), PHP_BIN (e.g. /usr/bin/php8.2-cli)
+# Variables (same page, Variables tab): SITE_URL (e.g. https://computershopidlegame.davideis.com), PHP_BIN (e.g. /usr/bin/php8.4-cli)
 # inc/config.php lives ONLY on the server and is never uploaded or overwritten.
 name: Deploy to production
 
@@ -37,7 +37,7 @@ jobs:
           password: ${{ secrets.SFTP_PASSWORD }}
           port: 22
           local_path: ./build/*
-          remote_path: shop
+          remote_path: computershopidlegame
 
       # Idempotent (CREATE TABLE IF NOT EXISTS); needs inc/config.php on the server first.
       - name: Create/upgrade tables
@@ -48,7 +48,7 @@ jobs:
           password: ${{ secrets.SFTP_PASSWORD }}
           port: 22
           script: |
-            cd shop
+            cd computershopidlegame
             ${{ vars.PHP_BIN }} tools/install.php
 
       - name: Post-deploy checks
