@@ -227,7 +227,7 @@
     const defs = [
       ['cust', 'Customers / min'], ['serve', 'Checkout capacity / min'], ['sell', 'Revenue / min'],
       ['rest', 'Auto-restock / min'], ['up', 'Wages & rent / min'], ['lost', 'Walk-outs (busy)'],
-      ['sold', 'Computers sold'], ['built', 'Computers built'],
+      ['sold', 'Computers sold'], ['built', 'Computers built'], ['games', 'Games sold'], ['acc', 'Accessories sold'],
     ];
     const grid = $('#statGrid');
     shopRefs = { cells: {} };
@@ -281,6 +281,8 @@
     if (S.stats.sold === 0 && total === 0) al.push(['warn', '👋 Welcome! Open the <b>Stock</b> tab, buy a computer, then hit <b>Hustle</b> to sell it. Set an <b>auto-restock</b> target once you hire a Stock Clerk (Upgrades).']);
     else if (!active) al.push(['bad', '🚫 Shelves are empty — customers are walking out! Restock in the Stock tab.']);
     else if (d.lambda > d.serve * 1.05) al.push(['warn', '⏳ Customers are waiting in line (' + d.lambda.toFixed(2) + '/s arriving vs ' + d.serve.toFixed(2) + '/s served). Upgrade checkout or hire sales staff.']);
+    if (S.stats.sold >= 15 && !d.aisleAcc) al.push(['warn', '🖱️ Tip: open the <b>Accessories Wall</b> (Upgrades → Shop). Keyboards, monitors and modems carry fat margins, and PC buyers add them on.']);
+    else if (S.stats.sold >= 60 && !d.aisleGame) al.push(['warn', '💿 Tip: open the <b>Software Aisle</b> (Upgrades → Shop) to sell PC games.']);
     if (total >= d.cap) al.push(['warn', '📦 Shelves are full. Expand the shop floor to stock more.']);
     if (!(S.up.clerk > 0) && S.stats.sold > 0 && S.stats.sold < 40) al.push(['warn', '💡 Tip: a <b>Stock Clerk</b> restocks automatically — even while you are away.']);
     if (d.upkeep * 60 > 0 && S.rate.rev < d.upkeep * 0.9 && S.stats.sold > 5) al.push(['bad', '💸 Wages & rent are exceeding your sales.']);
@@ -296,6 +298,8 @@
     setText(c.lost, num(S.stats.lost));
     setText(c.sold, num(S.stats.sold));
     setText(c.built, num(S.stats.built));
+    setText(c.games, num(S.stats.soldGames));
+    setText(c.acc, num(S.stats.soldAcc));
 
     if (logDirty) {
       setHtml($('#log'), logLines.length ? logLines.map((l) => `<li><span>${esc(l.text)}</span><b class="good num">${l.amt ? '+' + money(l.amt) : ''}</b></li>`).join('') : '<li><small>No sales yet.</small></li>');
@@ -309,21 +313,26 @@
   }
 
   /* ---------- STOCK tab ---------- */
+  let catFilter = 'pre';
   function buildCatalog() {
     $('#tab-catalog').innerHTML = `
       <div class="panel"><div class="title"><span>Stock Room</span><span id="catCap" class="num"></span></div>
         <div class="pbody">
+          <div class="chips" id="catChips"><button data-act="catfilter" data-f="pre" class="on">🖥️ Computers</button><button data-act="catfilter" data-f="game">💿 Games</button><button data-act="catfilter" data-f="acc">🖱️ Accessories</button></div>
           <div class="bar"><i id="catBar"></i></div>
-          <div class="field"><label><span>Pricing policy (prebuilt PCs)</span><b id="priceLbl"></b></label>
+          <div class="field"><label><span>Pricing policy (all retail items)</span><b id="priceLbl"></b></label>
             <input type="range" id="priceAdj" min="-20" max="30" step="5"></div>
           <small id="clerkNote"></small>
         </div></div>
+      <div id="catNotice"></div>
       <div class="list two" id="catList"></div>`;
     $('#priceAdj').addEventListener('input', (e) => { S.priceAdj = +e.target.value / 100; });
   }
   function ageTag(it) {
     if (!it.buyable) return 'Clearance';
     if (it.age < 0.7) return 'New!';
+    if (it.kind === 'game') return it.age > 1.5 ? 'Bargain bin' : 'Current';
+    if (it.kind === 'acc') return it.age > 4 ? 'Older model' : 'Current';
     if (it.age > 4) return 'Old stock';
     if (it.age > 2) return 'Aging';
     return 'Current';
@@ -332,7 +341,7 @@
     const el = node(`<div class="card" data-key="${it.key}">
       <div class="icon">${it.icon}</div>
       <div class="info"><b class="nm"></b><small class="sub"></small>
-        <div class="tags"><span class="tag t-age"></span><span class="tag t-perf"></span></div>
+        <div class="tags"><span class="tag t-age"></span><span class="tag t-perf"></span><span class="tag t-extra" hidden></span></div>
         <div class="nums"><span>Price <b class="pp num"></b></span><span>Cost <b class="cc num"></b></span><span>Profit <b class="pf num good"></b></span></div>
         <div>In stock: <b class="stk num"></b></div></div>
       <div class="acts">
@@ -341,15 +350,19 @@
           <button data-act="tgt" data-d="-1">−</button><b class="tg num">0</b><button data-act="tgt" data-d="1">+</button></div>
       </div></div>`);
     const r = (s) => $(s, el);
-    const refs = { el, nm: r('.nm'), sub: r('.sub'), age: r('.t-age'), perf: r('.t-perf'), pp: r('.pp'), cc: r('.cc'), pf: r('.pf'), stk: r('.stk'), tg: r('.tg'), lbl: r('.lbl'), btns: $$('button', el) };
+    const refs = { el, nm: r('.nm'), sub: r('.sub'), age: r('.t-age'), perf: r('.t-perf'), extra: r('.t-extra'), pp: r('.pp'), cc: r('.cc'), pf: r('.pf'), stk: r('.stk'), tg: r('.tg'), lbl: r('.lbl'), btns: $$('button', el), buy2: $('[data-act=buy][data-n="5"]', el) };
     return refs;
   }
   function updateItemCard(n, it, d, clerk) {
     setText(n.nm, (it.brand ? it.brand + ' ' : '') + it.name);
-    setText(n.sub, it.def.year + (it.kind === 'pre' ? ' model' : ''));
+    const addon = it.kind === 'game' || it.kind === 'acc';
+    setText(n.sub, addon ? (it.kind === 'acc' ? CS.GROUP_BY_ID[it.group].name + ' · ' : 'PC game · ') + it.def.year : it.def.year + ' model');
     setText(n.age, ageTag(it));
     n.age.classList.toggle('new', it.age < 0.7 && it.buyable);
-    setText(n.perf, 'Performance ' + Math.round(it.rel * 100) + '%');
+    setText(n.perf, (addon ? 'Popularity ' : 'Performance ') + Math.round(it.rel * 100) + '%');
+    n.extra.hidden = it.kind !== 'game';
+    if (it.kind === 'game') setText(n.extra, it.capF >= 0.95 ? '✅ Runs on your PCs' : it.capF >= 0.5 ? '⚠️ Marginal on your PCs' : '🚫 Too demanding for your PCs');
+    if (addon && n.buy2.dataset.n !== String(it.pack)) { n.buy2.dataset.n = String(it.pack); setText(n.buy2, '+' + it.pack); }
     setText(n.pp, money(it.price));
     setText(n.cc, money(it.cost));
     setText(n.pf, money(it.price - it.cost) + ' (' + Math.round(((it.price - it.cost) / it.price) * 100) + '%)');
@@ -358,7 +371,7 @@
     setText(n.lbl, clerk ? 'Auto-restock to' : '🔒 Needs Stock Clerk');
     const room = d.cap - E.totalStock(S);
     n.btns.forEach((b) => {
-      if (b.dataset.act === 'buy') setDis(b, !it.buyable || S.cash < it.cost || room < 1);
+      if (b.dataset.act === 'buy') setDis(b, !it.buyable || S.cash < it.cost || room < (it.size || 1));
       else setDis(b, !clerk || !it.buyable);
     });
   }
@@ -371,8 +384,13 @@
     setText($('#priceLbl'), (S.priceAdj >= 0 ? '+' : '') + Math.round(S.priceAdj * 100) + '%');
     const clerk = (S.up.clerk || 0) + (S.up.warehouse || 0) + (S.up.robot || 0) > 0;
     setText($('#clerkNote'), clerk ? 'Higher prices = more profit per sale but fewer buyers. Lower prices attract bargain hunters.' : 'Hire a Stock Clerk in Upgrades to unlock auto-restocking.');
-    const pre = items.filter((i) => i.kind === 'pre').sort((a, b) => (b.buyable - a.buyable) || b.def.year - a.def.year || b.price - a.price);
-    syncList($('#catList'), pre, (i) => i.key, createItemCard, (n, it) => updateItemCard(n, it, d, clerk));
+    $$('#catChips button').forEach((b) => b.classList.toggle('on', b.dataset.f === catFilter));
+    const unlocked = catFilter === 'pre' || (catFilter === 'game' ? d.aisleGame : d.aisleAcc);
+    const aisle = CS.UP_BY_ID[catFilter === 'game' ? 'aisle_games' : 'aisle_acc'];
+    setHtml($('#catNotice'), unlocked ? '' : `<div class="panel"><div class="pbody"><b>${aisle.icon} ${esc(aisle.name)}</b><div>${esc(aisle.desc)}</div><button class="primary" data-act="up" data-id="${aisle.id}" ${S.cash < aisle.base ? 'disabled' : ''}>Open for ${money(aisle.base)}</button></div></div>`);
+    const order = (i) => (i.group ? CS.GROUPS.findIndex((g) => g.id === i.group) : 0);
+    const list = items.filter((i) => i.kind === catFilter).sort((a, b) => (b.buyable - a.buyable) || order(a) - order(b) || b.def.year - a.def.year || b.price - a.price);
+    syncList($('#catList'), list, (i) => i.key, createItemCard, (n, it) => updateItemCard(n, it, d, clerk));
   }
 
   /* ---------- WORKSHOP tab ---------- */
@@ -536,10 +554,12 @@
       case 'build': return '+' + num(v) + ' PCs/s';
       case 'cap': return '+' + v + ' shelf spaces';
       case 'disc': return '-' + (v * 100).toFixed(1) + '% costs';
+      case 'aisle_game': case 'aisle_acc': return '';
       case 'loyal': return '+' + Math.round(v * 100) + '% customers';
       case 'night': return '+' + v + 'h offline';
       case 'serveMult': case 'buildMult': return '+' + Math.round(v * 100) + '%';
       case 'bench': return '+' + v + ' slots';
+      case 'attach': return '+' + Math.round(v * 100) + '% add-on sales';
       default: return '';
     }
   }
@@ -566,7 +586,7 @@
         setText(n.now, L && u.max > 1 ? 'Now: ' + upNow(u, L) : '');
         setText(n.req, !unlocked ? (d.y < u.year ? '🔒 Available in ' + u.year : '🔒 Requires ' + CS.UP_BY_ID[u.req].name) : '');
         const cost = E.upCost(S, u);
-        setText(n.buy, maxed ? 'MAX' : (u.max === 1 ? 'Build — ' : 'Buy — ') + money(cost));
+        setText(n.buy, maxed ? (u.verb ? 'OPEN ✔' : 'MAX') : (u.max === 1 ? (u.verb || 'Build') + ' — ' : 'Buy — ') + money(cost));
         setDis(n.buy, !unlocked || maxed || S.cash < cost);
         n.max.hidden = u.max === 1;
         setDis(n.max, !unlocked || maxed || S.cash < cost);
@@ -692,6 +712,8 @@
       <tr><td>Lifetime sales</td><td>${money(st.revenue)}</td></tr>
       <tr><td>Computers sold</td><td>${num(st.sold)}</td></tr>
       <tr><td>Computers built</td><td>${num(st.built)}</td></tr>
+      <tr><td>Games sold</td><td>${num(st.soldGames)}</td></tr>
+      <tr><td>Accessories sold</td><td>${num(st.soldAcc)}</td></tr>
       <tr><td>Hustles</td><td>${num(st.hustles)}</td></tr>
       <tr><td>Franchises opened</td><td>${num(S.meta.resets)}</td></tr>
       <tr><td>Offline limit</td><td>${d.offlineCap / 3600}h</td></tr></table>`);
@@ -800,7 +822,7 @@
     if (r.passed) { floatText(hb, 'Just browsing…', 40); spawnWalker(false); return; }
     floatText(hb, '+' + money(r.rev), 42);
     spawnWalker(true);
-    logSale('Hustled: ' + r.sold.name, r.rev);
+    logSale('Hustled: ' + r.sold.name + (r.extras && r.extras.length ? ' + ' + r.extras.length + ' add-on' + (r.extras.length > 1 ? 's' : '') : ''), r.rev);
     announceAch(E.checkAch(S));
   }
   document.addEventListener('click', (e) => {
@@ -816,11 +838,13 @@
         const items = E.getItems(S, E.derive(S));
         const it = items.find((i) => i.key === key);
         if (it) {
-          const big = it.target >= 10 ? 5 : 1;
+          const step = it.pack || 1;
+          const big = it.target >= 10 * step ? 5 * step : step;
           E.setTarget(S, key, it.target + (+t.dataset.d) * big);
         }
         break;
       }
+      case 'catfilter': catFilter = t.dataset.f; break;
       case 'up': E.buyUp(S, t.dataset.id); break;
       case 'tup': E.buyTokenUp(S, t.dataset.id); break;
       case 'claim': claimTokens(); break;
@@ -928,12 +952,14 @@
       const agg = {};
       events.forEach((ev) => {
         if (ev.bailout) { toast('🏦 Out of cash! The bank lent you <b>' + money(ev.bailout) + '</b> to restock.'); return; }
-        const a = agg[ev.it.key] || (agg[ev.it.key] = { name: ev.it.name, k: 0, rev: 0 });
+        const addon = ev.it.kind === 'game' || ev.it.kind === 'acc';
+        const key = addon ? 'addons' : ev.it.key;
+        const a = agg[key] || (agg[key] = { name: addon ? 'Games & accessories' : ev.it.name, k: 0, rev: 0, addon });
         a.k += ev.k; a.rev += ev.rev;
       });
       Object.values(agg).forEach((a) => {
         logSale((a.k > 1 ? a.k + '× ' : '') + a.name, a.rev);
-        for (let i = 0; i < Math.min(a.k, 2); i++) spawnWalker(true);
+        if (!a.addon) for (let i = 0; i < Math.min(a.k, 2); i++) spawnWalker(true);
       });
     }
     if (tab === 'shop' && Math.random() < Math.min(0.5, E.derive(S).lambda * dt * 0.6)) spawnWalker(false);

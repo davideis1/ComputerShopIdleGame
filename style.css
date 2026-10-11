@@ -261,3 +261,7 @@ input[type=password] { background: #fff; color: #000; border: 0; padding: 8px; b
 body[data-theme="win95"] .btnlink { font-weight: 400; border: 1px solid #000; }
 label.check { display: flex; gap: 8px; align-items: center; min-height: 32px; }
 label.check input { width: 20px; height: 20px; accent-color: var(--accent); }
+
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chips button { flex: 1 1 90px; min-height: 36px; padding: 4px 8px; font-size: 13px; }
+.chips button.on { box-shadow: var(--bevel-in); background: var(--inset); color: var(--accent); }

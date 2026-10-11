@@ -41,6 +41,7 @@ node tools/api-smoke.js http://localhost:8000   # end-to-end backend checks
 - Calendar advances 1 year per 7 minutes (about 4 hours from 1993 to today); the UI theme changes by era (Win95 → XP → Flat → RGB).
 - Prebuilt catalog (~50 models) that age, get cheaper and fall out of fashion; custom PC blueprints from ~130 parts.
 - Three customer segments (budget / mainstream / enthusiast) weigh performance against price.
+- **Games & accessories**: open the Software Aisle and Accessories Wall, then stock ~70 parody PC games and ~85 accessories (keyboards, monitors, modems, VR…). Shoppers add items on, PC buyers twice as likely; games only sell well if the PCs you sell are powerful enough to run them. Cases are reordered automatically by your clerks.
 - **Franchise Tokens**: once total sales pass $200M you earn tokens (more as sales grow). Sell up and restart in 1993 to claim them, then spend them in the HQ tab on permanent upgrades. Tokens, HQ upgrades and trophies survive the reset; "Erase all" in the Menu removes them too.
 - Marketing, checkout, stock and workshop upgrades per era; timeline events (Y2K, dot-com bust, crypto craze, chip shortage…).
 - **Accounts & saving**: login, server-side saves (autosave every 15s, on leaving, with local backup), per-user settings, export/import codes, reset.
