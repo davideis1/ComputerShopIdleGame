@@ -1,3 +1,31 @@
+<?php
+require __DIR__ . '/inc/bootstrap.php';
+
+$user = current_user();
+if (!$user) {
+    redirect('login.php');
+}
+send_security_headers();
+header('Cache-Control: no-store');
+
+$st = db()->prepare('SELECT state, rev, server_saved_at FROM saves WHERE user_id = ?');
+$st->execute([$user['id']]);
+$row = $st->fetch();
+$state = $row ? json_decode($row['state'], true) : null;
+$boot = [
+    'user' => ['id' => (int) $user['id'], 'name' => $user['username']],
+    'csrf' => csrf_token(),
+    'rev' => $row ? (int) $row['rev'] : 0,
+    'state' => is_array($state) ? $state : null,
+    // Offline time is measured on the server clock, so changing the device clock cannot cheat it.
+    'elapsed' => $row ? max(0, time() - (int) $row['server_saved_at']) : 0,
+    'settings' => load_settings((int) $user['id']),
+    'base' => base_url(),
+];
+// JSON_HEX_* keeps user-entered text (shop name, blueprint names) from breaking out of the script tag.
+$bootJson = json_encode($boot, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_PARTIAL_OUTPUT_ON_ERROR);
+$v = static function (string $f): string { return (string) @filemtime(__DIR__ . '/' . $f); };
+?>
 <!doctype html>
 <html lang="en">
 <head>
@@ -10,7 +38,7 @@
 <meta name="description" content="An idle game where you run a computer shop from 1993 to today.">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=<?= $v('style.css') ?>">
 </head>
 <body data-theme="win95">
 <div id="app">
@@ -43,8 +71,9 @@
 <div id="toasts"></div>
 <div id="modal" hidden></div>
 
-<script src="js/data.js"></script>
-<script src="js/engine.js"></script>
-<script src="js/ui.js"></script>
+<script>window.CSIG = <?= $bootJson ?>;</script>
+<script src="js/data.js?v=<?= $v('js/data.js') ?>"></script>
+<script src="js/engine.js?v=<?= $v('js/engine.js') ?>"></script>
+<script src="js/ui.js?v=<?= $v('js/ui.js') ?>"></script>
 </body>
 </html>

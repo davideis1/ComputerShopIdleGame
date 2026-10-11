@@ -248,3 +248,16 @@ body[data-theme="flat"] h3.sec { color: var(--fg); text-shadow: none; }
 table.rep { width: 100%; border-collapse: collapse; } table.rep td { padding: 2px 0; } table.rep td:last-child { text-align: right; font-weight: 700; }
 .ach { display: flex; gap: 8px; align-items: center; padding: 3px 0; } .ach.locked { opacity: .45; }
 .menu-btns { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
+
+/* Account pages & misc */
+.authwrap { justify-content: center; min-height: 100vh; padding-bottom: 20px; }
+.authbox { max-width: 420px; width: 100%; margin: 0 auto; }
+.authbox a, .pbody a { color: var(--accent); }
+body[data-theme="win95"] .authbox a, body[data-theme="win95"] .pbody a { color: #0000c0; }
+.authbox hr { border: 0; border-top: 1px solid rgba(128, 128, 128, .5); width: 100%; }
+.authbox .list { gap: 8px; }
+input[type=password] { background: #fff; color: #000; border: 0; padding: 8px; border-radius: var(--radius); box-shadow: var(--bevel-in); min-height: 38px; width: 100%; }
+.btnlink { display: flex; align-items: center; justify-content: center; text-align: center; background: var(--btn); color: var(--btn-fg) !important; border-radius: var(--radius); box-shadow: var(--bevel); padding: 8px 12px; min-height: 40px; text-decoration: none; font-weight: 600; }
+body[data-theme="win95"] .btnlink { font-weight: 400; border: 1px solid #000; }
+label.check { display: flex; gap: 8px; align-items: center; min-height: 32px; }
+label.check input { width: 20px; height: 20px; accent-color: var(--accent); }
