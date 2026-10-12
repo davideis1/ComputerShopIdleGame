@@ -278,7 +278,15 @@
     { id: 't_cap', name: 'Mega Shelves', icon: '🏬', desc: '+10% shelf space', base: 2, grow: 1.6, max: 15, per: 0.1 },
     { id: 't_build', name: 'Master Builder', icon: '🔧', desc: '+5% custom PC quality', base: 3, grow: 1.7, max: 12, per: 0.05 },
     { id: 't_night', name: 'Night Shift Franchise', icon: '🌙', desc: '+2h of offline earnings', base: 3, grow: 2.0, max: 6, per: 2 },
-    { id: 't_mgr', name: 'Head Hunter', icon: '🎯', desc: 'Your purchasing managers get +1 to every skill', base: 4, grow: 2.0, max: 5, per: 1 },
+    { id: 't_mgr', grp: 'Buyers', name: 'Head Hunter', icon: '🎯', desc: 'Your purchasing managers get +1 to every skill', base: 4, grow: 2.0, max: 5, per: 1 },
+    { id: 't_mgr_deal', grp: 'Buyers', name: 'Bulk Contracts', icon: '📑', desc: 'Buyers get an extra -0.5% on purchase costs, stacking with their negotiation', base: 3, grow: 1.7, max: 10, per: 0.005 },
+    { id: 't_mgr_wage', grp: 'Buyers', name: 'Loyalty Bonuses', icon: '🤗', desc: '-8% buyer wages', base: 2, grow: 1.6, max: 5, per: 0.08 },
+    { id: 't_mgr_recruit', grp: 'Buyers', name: 'Recruiter Network', icon: '📇', desc: '-15% signing bonuses and candidate searches', base: 2, grow: 1.7, max: 4, per: 0.15 },
+    { id: 't_mgr_academy', grp: 'Buyers', name: 'Corporate Academy', icon: '🎓', desc: '-10% buyer training costs', base: 2, grow: 1.6, max: 6, per: 0.1 },
+    { id: 't_mgr_speed', grp: 'Buyers', name: 'Overnight Logistics', icon: '🚛', desc: '+15% buyer order speed', base: 2, grow: 1.6, max: 6, per: 0.15 },
+    { id: 't_mgr_wide', grp: 'Buyers', name: 'Wider Aisles', icon: '🗂️', desc: 'Each buyer can stock +2 more products at once', base: 3, grow: 1.8, max: 5, per: 2 },
+    { id: 't_mgr_free', grp: 'Buyers', name: 'Succession Plan', icon: '🪪', desc: 'The first hires of every new franchise have no signing bonus (1 per level)', base: 3, grow: 2.0, max: 4, per: 1 },
+    { id: 't_mgr_office', grp: 'Buyers', name: 'Corner Office', icon: '🏢', desc: 'Every new franchise starts with the Purchasing Office already open (even before 1995)', base: 4, grow: 1, max: 1, per: 1 },
     { id: 't_token', name: 'Franchise Consultant', icon: '🎫', desc: '+8% Franchise Tokens when you reset', base: 5, grow: 1.8, max: 20, per: 0.08 },
   ];
   CS.TUP_BY_ID = {};
