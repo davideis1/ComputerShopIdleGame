@@ -56,6 +56,7 @@ $v = static function (string $f): string { return (string) @filemtime(__DIR__ . 
   <main id="main">
     <section id="tab-shop" class="tab"></section>
     <section id="tab-catalog" class="tab" hidden></section>
+    <section id="tab-buyers" class="tab" hidden></section>
     <section id="tab-workshop" class="tab" hidden></section>
     <section id="tab-upgrades" class="tab" hidden></section>
     <section id="tab-franchise" class="tab" hidden></section>
@@ -65,6 +66,7 @@ $v = static function (string $f): string { return (string) @filemtime(__DIR__ . 
   <nav id="nav">
     <button data-tab="shop" class="on"><i>🏪</i><span>Shop</span></button>
     <button data-tab="catalog"><i>📦</i><span>Stock</span><em id="badge-catalog" hidden>!</em></button>
+    <button data-tab="buyers" id="nav-buyers" hidden><i>👔</i><span>Buyers</span><em id="badge-buyers" hidden>!</em></button>
     <button data-tab="workshop"><i>🛠️</i><span>Workshop</span></button>
     <button data-tab="upgrades"><i>📈</i><span>Upgrades</span><em id="badge-upgrades" hidden>!</em></button>
     <button data-tab="franchise" id="nav-franchise" hidden><i>🎫</i><span>HQ</span><em id="badge-franchise" hidden>!</em></button>
@@ -78,6 +80,7 @@ $v = static function (string $f): string { return (string) @filemtime(__DIR__ . 
 <script src="js/data.js?v=<?= $v('js/data.js') ?>"></script>
 <script src="js/addons.js?v=<?= $v('js/addons.js') ?>"></script>
 <script src="js/engine.js?v=<?= $v('js/engine.js') ?>"></script>
+<script src="js/managers.js?v=<?= $v('js/managers.js') ?>"></script>
 <script src="js/ui.js?v=<?= $v('js/ui.js') ?>"></script>
 </body>
 </html>

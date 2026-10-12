@@ -53,6 +53,7 @@
       settings: { theme: 'auto' },
       meta: meta || newMeta(),
     };
+    if (CS.M) CS.M.init(s);
     s.cash += 7500 * tl(s, 't_cash');
     const kit = tl(s, 't_kit');
     if (kit) {
@@ -71,6 +72,8 @@
     s.rate = Object.assign(base.rate, raw.rate || {});
     s.settings = Object.assign(base.settings, raw.settings || {});
     if (!isFinite(s.pcRel)) s.pcRel = 0.9;
+    s.mgr = raw.mgr || null; s.mgrCfg = raw.mgrCfg || {}; s.mgrPool = raw.mgrPool || {}; s.mAcc = raw.mAcc || {}; s.vel = raw.vel || {};
+    if (CS.M) CS.M.init(s);
     s.meta = Object.assign(newMeta(), raw.meta || {});
     s.meta.tup = Object.assign({}, (raw.meta && raw.meta.tup) || {});
     ['up', 'stock', 'target', 'acc', 'ach', 'seen'].forEach((k) => (s[k] = Object.assign({}, raw[k] || (k === 'seen' ? base.seen : {}))));
@@ -119,7 +122,7 @@
     const lv = (id) => s.up[id] || 0;
     let lambda = 0.06, serve = 0.25, restock = 0, build = 0, buildMult = 1, serveMult = 1;
     let cap = 12, disc = 0, night = 4, bench = 2, loyal = 0, upkeep = 0, upsell = 0;
-    let aisleGame = false, aisleAcc = false;
+    let aisleGame = false, aisleAcc = false, office = false;
     CS.UPGRADES.forEach((u) => {
       const L = lv(u.id);
       if (!L) return;
@@ -135,6 +138,7 @@
         case 'night': night += u.per * L; break;
         case 'bench': bench += u.per * L; break;
         case 'loyal': loyal += u.per * L; break;
+        case 'office': office = true; break;
         case 'aisle_game': aisleGame = true; break;
         case 'aisle_acc': aisleAcc = true; break;
         case 'attach': upsell += u.per * L; break;
@@ -145,7 +149,7 @@
     disc += 0.01 * tl(s, 't_supply');
     night += 2 * tl(s, 't_night');
     const rent = 0.2 * Math.pow(1 + lv('shelf'), 1.2) * infl(y);
-    return {
+    const out = {
       y,
       ev,
       lambda: lambda * (1 + loyal) * (1 + 0.01 * achCount) * (1 + 0.1 * tl(s, 't_income')) * ev.demand,
@@ -162,9 +166,15 @@
       workshop: lv('workshop') > 0,
       aisleGame,
       aisleAcc,
+      office,
       upsell,
       achCount,
     };
+    if (CS.M) {
+      out.mgr = CS.M.derive(s, out);
+      out.upkeep += out.mgr.wages;
+    }
+    return out;
   }
 
   /* ---------- parts & items ---------- */
@@ -264,6 +274,7 @@
         cost: base * (1 - a.m) * (1 - d.disc), stock, buyable, target: s.target[key] || 0, capF, req,
       });
     });
+    if (CS.M) CS.M.decorate(s, d, out);
     return out;
   }
 
@@ -354,6 +365,7 @@
     else s.stats.sold += k;
     if (it.kind === 'game' || it.kind === 'acc') s.stats.addonRevenue += rev;
     s.stats.revenue += rev;
+    if (CS.M) CS.M.noteSale(s, it.key, k);
     if (rep) {
       rep.sold[it.key] = (rep.sold[it.key] || 0) + k;
       rep.names[it.key] = it.name;
@@ -373,12 +385,14 @@
     const items = getItems(s, d);
     let spent = 0;
 
+    // purchasing managers place their own orders
+    if (CS.M) spent += CS.M.restock(s, d, items, dt);
     // auto-restock: PCs unit by unit; games & accessories by the case from their own order budget
     if (d.restock > 0) {
       s.rAcc = Math.min(Math.max(6, d.restock * dt * 2), s.rAcc + d.restock * dt);
       s.aAcc = Math.min(Math.max(6, d.restock * dt * 2), (s.aAcc || 0) + d.restock * dt);
       for (const it of items) {
-        if (it.kind === 'bp' || !it.buyable || it.stock >= it.target) continue;
+        if (it.kind === 'bp' || it.managed || !it.buyable || it.stock >= it.target) continue;
         const addon = it.kind === 'game' || it.kind === 'acc'; // ordered by the case, not unit by unit
         const budget = addon ? s.aAcc : s.rAcc;
         if (budget < 1) continue;
@@ -469,6 +483,8 @@
         });
       });
     }
+
+    if (CS.M) CS.M.tick(s, d, items, dt);
 
     // safety net: never let the shop get stuck broke with empty shelves
     if (!live.length && s.stats.play - (s.bailAt || -1e9) > 600) { // at most one bailout per 10 minutes of play
@@ -656,7 +672,7 @@
   const dateStr = (y) => MONTHS[Math.min(11, Math.floor((y % 1) * 12))] + ' ' + Math.floor(y);
 
   CS.E = {
-    SEG, K, itemWeight, popularityMap, infl, refPrice, newState, migrate, serialize, deserialize, yearOf, eraAt, eventsAt, derive,
+    SEG, K, ADDON_SCALE, itemWeight, popularityMap, infl, refPrice, newState, migrate, serialize, deserialize, yearOf, eraAt, eventsAt, derive,
     partAvail, partRel, partPrice, bpInfo, designInfo, totalStock, getItems, buy, buyUnits, setTarget,
     upLevel, upCost, upUnlocked, buyUp, createBp, deleteBp, step, advance, offline, hustle, newProducts,
     newReport, checkAch, dateStr, pendingTokens, nextTokenAt, tokenAt, prestige, tokenCost, buyTokenUp, tl,
