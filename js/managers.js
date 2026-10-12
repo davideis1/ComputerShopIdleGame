@@ -82,6 +82,7 @@
   function derive(s, d) {
     const out = { office: d.office, cats: {}, wages: 0, count: 0 };
     const infl = wageInfl(d.y);
+    const wageF = Math.max(0.2, 1 - 0.08 * E.tl(s, 't_mgr_wage')); // HQ: Loyalty Bonuses
     CS.MGR_CATS.forEach((c) => {
       const mg = s.mgr && s.mgr[c.id];
       if (!mg) { out.cats[c.id] = null; return; }
@@ -89,11 +90,11 @@
       const eff = effSkills(s, mg);
       const L = eff.logistics;
       out.cats[c.id] = {
-        eff, on: !!cfg.on, disc: Math.min(0.07, 0.005 * eff.negotiate),
-        rate: 0.4 + 0.25 * L + d.restock * (0.4 + 0.06 * L), // orders per second; clerk crews help
-        maxSkus: Math.min(16, 3 + L) * (c.id === 'acc' ? 2 : 1), wage: mg.wage * infl,
+        eff, on: !!cfg.on, disc: Math.min(0.07, 0.005 * eff.negotiate) + 0.005 * E.tl(s, 't_mgr_deal'),
+        rate: (0.4 + 0.25 * L + d.restock * (0.4 + 0.06 * L)) * (1 + 0.15 * E.tl(s, 't_mgr_speed')), // orders per second; clerk crews help
+        maxSkus: (Math.min(16, 3 + L) + 2 * E.tl(s, 't_mgr_wide')) * (c.id === 'acc' ? 2 : 1), wage: mg.wage * infl * wageF,
       };
-      out.wages += mg.wage * infl;
+      out.wages += mg.wage * infl * wageF;
       out.count++;
     });
     return out;
@@ -382,9 +383,10 @@
     }
     return s.mgrPool[catId];
   }
-  const bonusFor = (wage, y) => Math.round(wage * wageInfl(y) * 1800);
-  const refreshCost = (d) => Math.round(500 * Math.pow(1.025, d.y - 1993));
-  const trainCost = (s, mg, skill, d) => Math.round(1200 * Math.pow(1.55, mg.skills[skill] - 1) * Math.pow(1.025, d.y - 1993));
+  // HQ upgrades trim the one-off costs; the first few hires of a franchise can be free (Succession Plan)
+  const bonusFor = (s, wage, y) => (s.freeHires > 0 ? 0 : Math.round(wage * wageInfl(y) * 1800 * Math.max(0.2, 1 - 0.15 * E.tl(s, 't_mgr_recruit'))));
+  const refreshCost = (s, d) => Math.round(500 * Math.pow(1.025, d.y - 1993) * Math.max(0.2, 1 - 0.15 * E.tl(s, 't_mgr_recruit')));
+  const trainCost = (s, mg, skill, d) => Math.round(1200 * Math.pow(1.55, mg.skills[skill] - 1) * Math.pow(1.025, d.y - 1993) * Math.max(0.2, 1 - 0.1 * E.tl(s, 't_mgr_academy')));
 
   function available(d, cat) {
     return d.office && (!CAT[cat].needs || d[CAT[cat].needs]);
@@ -395,9 +397,10 @@
     if (!available(d, catId) || s.mgr[catId]) return { ok: false, err: 'Not available.' };
     const c = candidates(s, catId)[idx];
     if (!c) return { ok: false, err: 'No such candidate.' };
-    const bonus = bonusFor(c.wage, d.y);
+    const bonus = bonusFor(s, c.wage, d.y);
     if (s.cash < bonus) return { ok: false, err: 'Not enough cash for the signing bonus.' };
     s.cash -= bonus;
+    if (s.freeHires > 0) s.freeHires--;
     s.mgr[catId] = { name: c.name, trait: c.trait, skills: Object.assign({}, c.skills), wage: c.wage, hiredAt: s.stats.play, stats: { ordered: 0, spent: 0, saved: 0 }, plan: [], log: [], tAcc: 0, planT: null };
     s.mgrPool[catId] = null;
     if (!s.mgrCfg[catId]) { // first hire in this category: start from the trait's favourite preset
@@ -421,7 +424,7 @@
   }
   function refresh(s, catId) {
     const d = E.derive(s);
-    const cost = refreshCost(d);
+    const cost = refreshCost(s, d);
     if (s.cash < cost) return false;
     s.cash -= cost;
     s.mgrPool[catId] = null;

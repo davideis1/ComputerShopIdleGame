@@ -55,6 +55,8 @@
     };
     if (CS.M) CS.M.init(s);
     s.cash += 7500 * tl(s, 't_cash');
+    s.freeHires = tl(s, 't_mgr_free');
+    if (tl(s, 't_mgr_office')) s.up.purchasing = 1;
     const kit = tl(s, 't_kit');
     if (kit) {
       s.up.clerk = kit; s.up.ads_news = 2 * kit; s.up.shelf = kit; s.up.sales = kit;
@@ -72,6 +74,7 @@
     s.rate = Object.assign(base.rate, raw.rate || {});
     s.settings = Object.assign(base.settings, raw.settings || {});
     if (!isFinite(s.pcRel)) s.pcRel = 0.9;
+    s.freeHires = isFinite(raw.freeHires) ? raw.freeHires : 0;
     s.mgr = raw.mgr || null; s.mgrCfg = raw.mgrCfg || {}; s.mgrPool = raw.mgrPool || {}; s.mAcc = raw.mAcc || {}; s.vel = raw.vel || {};
     if (CS.M) CS.M.init(s);
     s.meta = Object.assign(newMeta(), raw.meta || {});

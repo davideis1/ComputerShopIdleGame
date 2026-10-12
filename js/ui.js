@@ -612,19 +612,19 @@
         const cands = avail ? M.candidates(S, c.id) : [];
         syncList($('.mgCands', mgEl), cands.map((x, i) => Object.assign({ idx: i }, x)), (x) => x.name, candCard, (cn, x) => {
           const tr = CS.MGR_TRAITS[x.trait];
-          const bonus = M.bonusFor(x.wage, d.y);
+          const bonus = M.bonusFor(S, x.wage, d.y);
           setText(cn.ic, tr.icon);
           setText(cn.nm, x.name + ' — ' + tr.name);
           setText(cn.tr, tr.desc);
           setHtml(cn.st, CS.MGR_SKILLS.map((sk) => `<span>${sk.icon} ${x.skills[sk.id]}</span>`).join(''));
           setText(cn.wg, 'Wage ' + money(x.wage * M.wageInfl(d.y) * 60) + '/min · signing bonus ' + money(bonus));
           cn.btn.dataset.cat = c.id; cn.btn.dataset.idx = String(x.idx);
-          setText(cn.btn, 'Hire for ' + money(bonus));
+          setText(cn.btn, bonus ? 'Hire for ' + money(bonus) : 'Hire (no signing bonus)');
           setDis(cn.btn, S.cash < bonus);
         });
         const rb = $('[data-act=mgrefresh]', mgEl);
-        setText(rb, 'Look for other candidates — ' + money(M.refreshCost(d)));
-        setDis(rb, !avail || S.cash < M.refreshCost(d));
+        setText(rb, 'Look for other candidates — ' + money(M.refreshCost(S, d)));
+        setDis(rb, !avail || S.cash < M.refreshCost(S, d));
         return;
       }
       const m = d.mgr.cats[c.id], cfg = M.cfgOf(S, c.id), tr = CS.MGR_TRAITS[mg.trait];
@@ -914,7 +914,9 @@
       </div></div>
       <h3 class="sec">HQ Upgrades (permanent)</h3>
       <div class="ftools" id="hqTools">${chipRow('hq.f', [['all', 'All'], ['afford', 'Affordable now'], ['open', 'Not maxed']])}</div>
-      <div class="list two" id="fList"></div>`;
+      <div class="list two" id="fList"></div>
+      <h3 class="sec">Buyer upgrades (permanent)</h3>
+      <div class="list two" id="fListB"></div>`;
     shopRefs.f = {};
     [['run', 'This run: total sales'], ['pend', 'Tokens ready to claim'], ['resets', 'Franchises opened'], ['earned', 'Tokens earned (all time)']].forEach(([id, l]) => {
       const m = node(`<div class="mini"><small>${l}</small><b class="num">–</b></div>`);
@@ -929,6 +931,14 @@
       case 't_kit': return 'Start with ' + v + ' clerk/shelf/sales level' + (v > 1 ? 's' : '') + ', ' + 2 * v + ' ad levels';
       case 't_night': return '+' + v + 'h offline';
       case 't_mgr': return '+' + v + ' to every buyer skill';
+      case 't_mgr_deal': return '-' + (v * 100).toFixed(1) + '% purchase costs';
+      case 't_mgr_wage': return '-' + Math.round(v * 100) + '% wages';
+      case 't_mgr_recruit': return '-' + Math.round(v * 100) + '% hiring costs';
+      case 't_mgr_academy': return '-' + Math.round(v * 100) + '% training costs';
+      case 't_mgr_speed': return '+' + Math.round(v * 100) + '% order speed';
+      case 't_mgr_wide': return '+' + v + ' products per buyer';
+      case 't_mgr_free': return v + ' free hire' + (v > 1 ? 's' : '') + ' per franchise';
+      case 't_mgr_office': return 'Office open from the start';
       default: return '+' + Math.round(v * 100) + '%';
     }
   }
@@ -959,13 +969,17 @@
       const maxed = E.tl(S, u.id) >= u.max;
       return FILT.hq.f === 'open' ? !maxed : !maxed && m.tokens >= E.tokenCost(S, u);
     });
-    syncList($('#fList'), tlist, (u) => u.id, createTupCard, (n, u) => {
+    const upd = (n, u) => {
       const L = E.tl(S, u.id), cost = E.tokenCost(S, u), maxed = L >= u.max;
       setText(n.lv, 'Lv ' + L + '/' + u.max);
       setText(n.now, L ? 'Now: ' + tupNow(u, L) : '');
       setText(n.buy, maxed ? 'MAX' : 'Buy — ' + num(cost) + ' 🎫');
       setDis(n.buy, maxed || m.tokens < cost);
-    });
+    };
+    syncList($('#fList'), tlist.filter((u) => u.grp !== 'Buyers'), (u) => u.id, createTupCard, upd);
+    const buyerList = tlist.filter((u) => u.grp === 'Buyers');
+    $('#fListB').previousElementSibling.hidden = !buyerList.length;
+    syncList($('#fListB'), buyerList, (u) => u.id, createTupCard, upd);
   }
   function claimTokens() {
     const pend = E.pendingTokens(S);
