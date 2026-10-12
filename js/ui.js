@@ -221,6 +221,12 @@
         <div class="scene"><div class="sign" id="sign"></div><div class="street" id="street"></div><div class="shopfront" id="shelf"></div></div></div>
       <button id="hustle" class="primary" data-act="hustle"><span id="hustleTxt">🤝 Hustle a customer</span><span class="hbar" id="hbar"></span></button>
       <div id="alerts" class="list"></div>
+      <div class="panel" id="advisor"><div class="title"><span>💡 Advisor</span><button class="small" data-act="advtoggle" id="advToggle" aria-label="Show or hide the advisor">▾</button></div>
+        <div class="pbody" id="advBody">
+          <div class="advsec"><b class="advh">Suggested next steps</b><div class="list" id="advRecs"></div><small id="advNoRec"></small></div>
+          <div class="advsec"><b class="advh">Good to know</b><ul id="advIns"></ul><small id="advMore"></small></div>
+          <small class="advnote">Estimates from your recent sales. Payback = how long an upgrade takes to earn back its cost.</small>
+        </div></div>
       <div class="panel"><div class="title">Shop Report</div><div class="pbody"><div class="grid" id="statGrid"></div></div></div>
       <div class="panel"><div class="title">Recent Sales</div><div class="pbody"><ul id="log"></ul></div></div>
       <div class="panel"><div class="title">The Times</div><div class="pbody" id="times"></div></div>`;
@@ -257,6 +263,40 @@
     setTimeout(() => f.remove(), 1300);
   }
 
+  /* ---------- advisor box ---------- */
+  let advCache = { at: 0, data: null };
+  const advOpen = () => { try { return localStorage.getItem('csig-adv') !== '0'; } catch (e) { return true; } };
+  function createRecCard(r) {
+    const el = node(`<div class="card rec"><div class="icon rci"></div><div class="info"><b class="rnm"></b><small class="rwhy"></small><div class="tags"><span class="tag rpb"></span><span class="tag rlv"></span></div></div><div class="acts"><button class="primary grow rbuy"></button></div></div>`);
+    return { el, ic: $('.rci', el), nm: $('.rnm', el), why: $('.rwhy', el), pb: $('.rpb', el), lv: $('.rlv', el), buy: $('.rbuy', el) };
+  }
+  function renderAdvisor(d, items) {
+    const open = advOpen();
+    $('#advBody').hidden = !open;
+    setText($('#advToggle'), open ? '▾' : '▸');
+    if (!open) return;
+    const now = performance.now();
+    if (!advCache.data || now - advCache.at > 2000) { advCache = { at: now, data: CS.Advisor.analyze(S, d, items) }; }
+    const a = advCache.data, fm = CS.Advisor.fmt;
+    const recs = a.recs.concat(a.tokenRec ? [a.tokenRec] : []);
+    syncList($('#advRecs'), recs, (r) => r.kind + r.id, createRecCard, (n, r) => {
+      const tok = r.kind === 'tup';
+      setText(n.ic, r.icon);
+      setText(n.nm, r.name);
+      setText(n.why, r.why);
+      setText(n.pb, tok ? 'Permanent' : 'Pays back in ~' + fm.dur(r.payback));
+      setText(n.lv, r.max > 1 ? 'Lv ' + r.lvl + ' → ' + (r.lvl + 1) : 'One-off');
+      n.buy.dataset.act = tok ? 'tup' : 'up';
+      n.buy.dataset.id = r.id;
+      const cur = r.afford ? (tok ? 'Buy — ' + num(r.cost) + ' 🎫' : 'Buy — ' + money(r.cost)) : 'Save up — ' + money(r.cost) + (isFinite(r.eta) ? ' (about ' + fm.dur(r.eta) + ')' : '');
+      setText(n.buy, cur);
+      setDis(n.buy, !r.afford);
+    });
+    setText($('#advNoRec'), recs.length ? '' : 'No upgrade stands out right now. Keep the shelves stocked and the sales will tell us more.');
+    setHtml($('#advIns'), a.insights.map((i) => `<li class="adv-${i.lv}"><span>${i.icon}</span><span>${esc(i.text)}</span></li>`).join('') || '<li><small>Nothing to report yet.</small></li>');
+    setText($('#advMore'), a.more ? '+' + a.more + ' lower-priority notes hidden' : '');
+  }
+
   function renderShop(d, items) {
     const total = E.totalStock(S);
     setText($('#stockInfo'), 'Shelves ' + total + '/' + d.cap);
@@ -280,11 +320,11 @@
     const active = items.filter((i) => i.stock > 0).length;
     if (S.stats.sold === 0 && total === 0) al.push(['warn', '👋 Welcome! Open the <b>Stock</b> tab, buy a computer, then hit <b>Hustle</b> to sell it. Set an <b>auto-restock</b> target once you hire a Stock Clerk (Upgrades).']);
     else if (!active) al.push(['bad', '🚫 Shelves are empty — customers are walking out! Restock in the Stock tab.']);
-    else if (d.lambda > d.serve * 1.05) al.push(['warn', '⏳ Customers are waiting in line (' + d.lambda.toFixed(2) + '/s arriving vs ' + d.serve.toFixed(2) + '/s served). Upgrade checkout or hire sales staff.']);
+    else if (d.lambda > d.serve * 1.05 && !advOpen()) al.push(['warn', '⏳ Customers are waiting in line (' + d.lambda.toFixed(2) + '/s arriving vs ' + d.serve.toFixed(2) + '/s served). Upgrade checkout or hire sales staff.']);
     if (d.y >= 1995 && !d.office && S.stats.sold >= 60 && (S.up.clerk || 0) > 0) al.push(['warn', '👔 Tip: a <b>Purchasing Office</b> (Upgrades → Shop) lets you hire buyers who manage your stock levels for you.']);
     if (S.stats.sold >= 15 && !d.aisleAcc) al.push(['warn', '🖱️ Tip: open the <b>Accessories Wall</b> (Upgrades → Shop). Keyboards, monitors and modems carry fat margins, and PC buyers add them on.']);
     else if (S.stats.sold >= 60 && !d.aisleGame) al.push(['warn', '💿 Tip: open the <b>Software Aisle</b> (Upgrades → Shop) to sell PC games.']);
-    if (total >= d.cap) al.push(['warn', '📦 Shelves are full. Expand the shop floor to stock more.']);
+    if (total >= d.cap && !advOpen()) al.push(['warn', '📦 Shelves are full. Expand the shop floor to stock more.']);
     if (!(S.up.clerk > 0) && S.stats.sold > 0 && S.stats.sold < 40) al.push(['warn', '💡 Tip: a <b>Stock Clerk</b> restocks automatically — even while you are away.']);
     if (d.upkeep * 60 > 0 && S.rate.rev < d.upkeep * 0.9 && S.stats.sold > 5) al.push(['bad', '💸 Wages & rent are exceeding your sales.']);
     setHtml($('#alerts'), al.map((a) => `<div class="alert ${a[0]}">${a[1]}</div>`).join(''));
@@ -301,6 +341,8 @@
     setText(c.built, num(S.stats.built));
     setText(c.games, num(S.stats.soldGames));
     setText(c.acc, num(S.stats.soldAcc));
+
+    renderAdvisor(d, items);
 
     if (logDirty) {
       setHtml($('#log'), logLines.length ? logLines.map((l) => `<li><span>${esc(l.text)}</span><b class="good num">${l.amt ? '+' + money(l.amt) : ''}</b></li>`).join('') : '<li><small>No sales yet.</small></li>');
@@ -1177,6 +1219,7 @@
         }
         break;
       }
+      case 'advtoggle': try { localStorage.setItem('csig-adv', advOpen() ? '0' : '1'); } catch (e) { /* ignore */ } break;
       case 'catfilter': catFilter = t.dataset.f; break;
       case 'mghire': { const r = M.hire(S, t.dataset.cat, +t.dataset.idx); if (!r.ok) toast(esc(r.err)); else { toast('👔 Hired!'); announceAch(E.checkAch(S)); } break; }
       case 'mgrefresh': M.refresh(S, t.dataset.cat); break;
@@ -1214,6 +1257,7 @@
       case 'import': importSave(); break;
       case 'reset': resetGame(); break;
     }
+    advCache.at = 0;
     render(true);
   });
   function onMcInput(e) {

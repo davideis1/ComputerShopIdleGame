@@ -75,6 +75,7 @@
     s.settings = Object.assign(base.settings, raw.settings || {});
     if (!isFinite(s.pcRel)) s.pcRel = 0.9;
     s.freeHires = isFinite(raw.freeHires) ? raw.freeHires : 0;
+    s.lastAway = raw.lastAway || null;
     s.mgr = raw.mgr || null; s.mgrCfg = raw.mgrCfg || {}; s.mgrPool = raw.mgrPool || {}; s.mAcc = raw.mAcc || {}; s.vel = raw.vel || {};
     if (CS.M) CS.M.init(s);
     s.meta = Object.assign(newMeta(), raw.meta || {});
@@ -556,6 +557,7 @@
     rep.year0 = d0.y;
     s.stats.offline += eff;
     rep.ach = advance(s, eff, C.OFFLINE_CAL_RATE, rep);
+    s.lastAway = { elapsed, cap: d0.offlineCap, capped: elapsed > eff };
     rep.cash1 = s.cash;
     rep.year1 = yearOf(s);
     return rep;

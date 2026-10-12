@@ -303,3 +303,17 @@ details.mgd summary { cursor: pointer; padding: 10px; font-weight: 700; min-heig
 .mgrow .mginfo { flex: 1 1 100%; font-size: 13px; }
 .mgrow button { flex: 1 1 100px; }
 .mgCands .cst { gap: 10px; }
+
+/* Advisor */
+#advisor .advsec { display: flex; flex-direction: column; gap: 6px; }
+#advisor .advh { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+#advIns { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+#advIns li { display: flex; gap: 8px; align-items: flex-start; font-size: 13.5px; }
+#advIns li > span:first-child { flex: 0 0 22px; text-align: center; }
+#advIns li.adv-warn { color: var(--warn); }
+#advIns li.adv-bad { color: var(--bad); font-weight: 600; }
+#advIns li.adv-good { color: var(--good); }
+.card.rec { grid-template-columns: 40px 1fr; padding: 8px; }
+.card.rec .rci { font-size: 28px; }
+.card.rec .rwhy { overflow-wrap: anywhere; }
+.advnote { opacity: .8; }
