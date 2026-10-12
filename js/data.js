@@ -235,6 +235,7 @@
     { id: 'aisle_acc', grp: 'Shop', name: 'Accessories Wall', icon: '🖱️', desc: 'Sell keyboards, mice, monitors, modems and more alongside your PCs. PC buyers are twice as likely to add on.', year: 1993, base: 1500, grow: 1, max: 1, kind: 'aisle_acc', per: 1, verb: 'Open' },
     { id: 'aisle_games', grp: 'Shop', name: 'Software Aisle', icon: '💿', desc: 'Sell PC games. Demanding new releases only sell if the PCs you sell can run them.', year: 1993, base: 3000, grow: 1, max: 1, kind: 'aisle_game', per: 1, verb: 'Open' },
     { id: 'upsell', grp: 'Shop', name: 'Upsell Training', icon: '🗣️', desc: '"Would you like a mouse pad with that?" +10% game & accessory sales', year: 1993, base: 2000, grow: 1.45, max: 25, kind: 'attach', per: 0.1 },
+    { id: 'purchasing', grp: 'Shop', name: 'Purchasing Office', icon: '👔', desc: 'Opens the Buyers tab: hire a purchasing manager for each product category to watch trends and manage your stock levels.', year: 1995, base: 15000, grow: 1, max: 1, kind: 'office', per: 1, verb: 'Open' },
     // Marketing
     { id: 'ads_news', grp: 'Marketing', name: 'Classified Ads', icon: '📰', desc: '+0.03 customers/s', year: 1993, base: 250, grow: 1.22, max: 60, kind: 'lambda', per: 0.03 },
     { id: 'ads_tv', grp: 'Marketing', name: 'Late-Night Infomercials', icon: '📺', desc: '+0.07 customers/s', year: 1994, base: 2000, grow: 1.22, max: 60, kind: 'lambda', per: 0.07 },
@@ -277,6 +278,7 @@
     { id: 't_cap', name: 'Mega Shelves', icon: '🏬', desc: '+10% shelf space', base: 2, grow: 1.6, max: 15, per: 0.1 },
     { id: 't_build', name: 'Master Builder', icon: '🔧', desc: '+5% custom PC quality', base: 3, grow: 1.7, max: 12, per: 0.05 },
     { id: 't_night', name: 'Night Shift Franchise', icon: '🌙', desc: '+2h of offline earnings', base: 3, grow: 2.0, max: 6, per: 2 },
+    { id: 't_mgr', name: 'Head Hunter', icon: '🎯', desc: 'Your purchasing managers get +1 to every skill', base: 4, grow: 2.0, max: 5, per: 1 },
     { id: 't_token', name: 'Franchise Consultant', icon: '🎫', desc: '+8% Franchise Tokens when you reset', base: 5, grow: 1.8, max: 20, per: 0.08 },
   ];
   CS.TUP_BY_ID = {};
@@ -349,6 +351,8 @@
     { id: 'a_b3', name: 'Product Line', desc: 'Have 3 blueprints at once', ok: (s) => s.bps.length >= 3 },
     { id: 'a_game100', name: 'Game Night', desc: 'Sell 100 PC games', ok: (s) => (s.stats.soldGames || 0) >= 100 },
     { id: 'a_acc100', name: 'Accessorised', desc: 'Sell 100 accessories', ok: (s) => (s.stats.soldAcc || 0) >= 100 },
+    { id: 'a_mgr1', name: 'Delegation', desc: 'Hire your first purchasing manager', ok: (s) => !!s.mgr && Object.values(s.mgr).some(Boolean) },
+    { id: 'a_mgr4', name: 'Full Buying Team', desc: 'Employ a manager in all four categories', ok: (s) => !!s.mgr && Object.values(s.mgr).filter(Boolean).length >= 4 },
     { id: 'a_hustle', name: 'Door-to-Door', desc: 'Hustle 100 times', ok: (s) => s.stats.hustles >= 100 },
   ];
 })(typeof window !== 'undefined' ? window : globalThis);

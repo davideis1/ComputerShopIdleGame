@@ -281,6 +281,7 @@
     if (S.stats.sold === 0 && total === 0) al.push(['warn', '👋 Welcome! Open the <b>Stock</b> tab, buy a computer, then hit <b>Hustle</b> to sell it. Set an <b>auto-restock</b> target once you hire a Stock Clerk (Upgrades).']);
     else if (!active) al.push(['bad', '🚫 Shelves are empty — customers are walking out! Restock in the Stock tab.']);
     else if (d.lambda > d.serve * 1.05) al.push(['warn', '⏳ Customers are waiting in line (' + d.lambda.toFixed(2) + '/s arriving vs ' + d.serve.toFixed(2) + '/s served). Upgrade checkout or hire sales staff.']);
+    if (d.y >= 1995 && !d.office && S.stats.sold >= 60 && (S.up.clerk || 0) > 0) al.push(['warn', '👔 Tip: a <b>Purchasing Office</b> (Upgrades → Shop) lets you hire buyers who manage your stock levels for you.']);
     if (S.stats.sold >= 15 && !d.aisleAcc) al.push(['warn', '🖱️ Tip: open the <b>Accessories Wall</b> (Upgrades → Shop). Keyboards, monitors and modems carry fat margins, and PC buyers add them on.']);
     else if (S.stats.sold >= 60 && !d.aisleGame) al.push(['warn', '💿 Tip: open the <b>Software Aisle</b> (Upgrades → Shop) to sell PC games.']);
     if (total >= d.cap) al.push(['warn', '📦 Shelves are full. Expand the shop floor to stock more.']);
@@ -386,10 +387,20 @@
         <button data-act="buy" data-n="1">Buy 1</button><button data-act="buy" data-n="5">+5</button><button data-act="buy" data-n="max">Max</button>
         <div class="stepper"><span class="lbl">Auto-restock to</span>
           <button data-act="tgt" data-d="-1">−</button><b class="tg num">0</b><button data-act="tgt" data-d="1">+</button></div>
+        <div class="mgrow" hidden><span class="mginfo"></span><button class="small" data-act="mgpin"></button><button class="small" data-act="mgskip"></button></div>
       </div></div>`);
     const r = (s) => $(s, el);
-    const refs = { el, nm: r('.nm'), sub: r('.sub'), age: r('.t-age'), perf: r('.t-perf'), extra: r('.t-extra'), pop: r('.t-pop'), pp: r('.pp'), cc: r('.cc'), pf: r('.pf'), stk: r('.stk'), tg: r('.tg'), lbl: r('.lbl'), btns: $$('button', el), buy2: $('[data-act=buy][data-n="5"]', el) };
+    const refs = { stepper: r('.stepper'), mgrow: r('.mgrow'), mginfo: r('.mginfo'), mgpin: r('[data-act=mgpin]'), mgskip: r('[data-act=mgskip]'), el, nm: r('.nm'), sub: r('.sub'), age: r('.t-age'), perf: r('.t-perf'), extra: r('.t-extra'), pop: r('.t-pop'), pp: r('.pp'), cc: r('.cc'), pf: r('.pf'), stk: r('.stk'), tg: r('.tg'), lbl: r('.lbl'), btns: $$('button', el), buy2: $('[data-act=buy][data-n="5"]', el) };
     return refs;
+  }
+  // show who sets this item's stock level when a purchasing manager is on duty
+  function updateMgrRow(n, it) {
+    n.mgrow.hidden = !it.mgrCat;
+    if (!it.mgrCat) { n.stepper.hidden = false; return; }
+    n.stepper.hidden = !!it.managed;
+    setText(n.mginfo, it.managed ? '👔 Manager sets the target: ' + it.target : it.pin === 'skip' ? '🚫 Manager skips this' : '📌 You set this one');
+    setText(n.mgpin, it.pin === 'pin' ? 'Hand to manager' : 'Set it myself');
+    setText(n.mgskip, it.pin === 'skip' ? 'Allow again' : 'Never stock');
   }
   let popNorm = {};
   function updateItemCard(n, it, d, clerk) {
@@ -410,9 +421,10 @@
     setText(n.tg, String(it.target));
     setText(n.lbl, clerk ? 'Auto-restock to' : '🔒 Needs Stock Clerk');
     const room = d.cap - E.totalStock(S);
+    updateMgrRow(n, it);
     n.btns.forEach((b) => {
       if (b.dataset.act === 'buy') setDis(b, !it.buyable || S.cash < it.cost || room < (it.size || 1));
-      else setDis(b, !clerk || !it.buyable);
+      else if (b.dataset.act === 'tgt') setDis(b, !clerk || !it.buyable);
     });
   }
   function renderCatalog(d, items) {
@@ -455,6 +467,226 @@
     syncFilterUI($('#tab-catalog'));
     $('#catEmpty').hidden = !!list.length || !unlocked;
     syncList($('#catList'), list, (i) => i.key, createItemCard, (n, it) => updateItemCard(n, it, d, clerk));
+  }
+
+  /* ---------- BUYERS tab (purchasing managers) ---------- */
+  const M = CS.M;
+  const MC_SPEC = [
+    { grp: 'Strategy', ctl: [
+      { k: 'preset', t: 'select', l: 'Preset', o: () => Object.entries(CS.MGR_PRESETS).map(([v, p]) => [v, p.label]).concat([['custom', 'Custom (your own settings)']]) },
+      { k: 'priority', t: 'select', l: 'Prioritise', o: [['balanced', 'Balanced'], ['profit', 'Profit per sale'], ['volume', 'Best sellers'], ['margin', 'Highest margin']] },
+      { k: 'coverage', t: 'range', l: 'Stock cover', min: 0.5, max: 20, step: 0.5, f: (v) => v + ' min of sales' },
+      { k: 'safety', t: 'range', l: 'Safety buffer', min: 0, max: 100, step: 5, f: (v) => v + '%' },
+      { k: 'maxSkus', t: 'range', l: 'Products stocked at once', min: 1, max: 'skus', step: 1, f: (v) => v },
+    ] },
+    { grp: 'Budget & space', ctl: [
+      { k: 'reserveCash', t: 'num', l: 'Never spend below ($)', min: 0, hide: ['bp'] },
+      { k: 'maxOrderPct', t: 'range', l: 'Max share of free cash per order', min: 5, max: 100, step: 5, f: (v) => v + '%', hide: ['bp'] },
+      { k: 'maxSpacePct', t: 'range', l: 'Shelf-space allowance', min: 5, max: 100, step: 5, f: (v) => v + '% of shelves' },
+    ] },
+    { grp: 'What to stock', ctl: [
+      { k: 'age', t: 'select', l: 'Age policy', o: [['current', 'Current models only'], ['new', 'New releases only (up to 1 year)'], ['any', 'Anything still orderable']], hide: ['bp'] },
+      { k: 'maxAge', t: 'range', l: '"Current" means up to', min: 0.5, max: 8, step: 0.5, f: (v) => v + ' years old', hide: ['bp'] },
+      { k: 'minMargin', t: 'range', l: 'Minimum margin', min: 0, max: 60, step: 5, f: (v) => (v ? v + '%' : 'any') },
+      { k: 'maxPrice', t: 'num', l: 'Max unit price ($, 0 = no limit)', min: 0 },
+      { k: 'blocked', t: 'chips', l: 'Never buy from (tap to block)', hide: ['bp'] },
+      { k: 'groups', t: 'chips', l: 'Only these groups (none selected = all)', only: ['acc'] },
+    ] },
+    { grp: 'Trends & pricing', ctl: [
+      { k: 'sensitivity', t: 'range', l: 'Trend sensitivity', min: 0, max: 100, step: 5, f: (v) => (v < 34 ? 'slow & steady' : v < 67 ? 'moderate' : 'quick to react') },
+      { k: 'anticipate', t: 'toggle', l: 'Plan ahead for market events', req: ['forecast', 4] },
+      { k: 'preBuy', t: 'toggle', l: 'Time purchases around price spikes', req: ['forecast', 6], only: ['pre', 'bp'] },
+      { k: 'testSize', t: 'range', l: 'Test order for new releases', min: 0, max: 12, step: 1, f: (v) => (v ? v + ' units' : 'none'), hide: ['bp'] },
+      { k: 'mdOn', t: 'toggle', l: 'Mark down older stock', hide: ['bp'] },
+      { k: 'mdAge', t: 'range', l: '…once older than', min: 0.5, max: 6, step: 0.5, f: (v) => v + ' years', hide: ['bp'] },
+      { k: 'mdPct', t: 'range', l: '…by', min: 5, max: 60, step: 5, f: (v) => v + '% off', hide: ['bp'] },
+    ] },
+    { grp: 'Reports', ctl: [{ k: 'log', t: 'toggle', l: 'Keep a notebook of decisions' }] },
+  ];
+  const brandCache = {};
+  function brandsOf(cat) {
+    if (!brandCache[cat]) {
+      const set = new Set();
+      if (cat === 'pre') CS.PRODUCTS.forEach((p) => set.add(p.brand));
+      else CS.ADDONS.filter((a) => a.kind === cat).forEach((a) => set.add(a.brand));
+      brandCache[cat] = Array.from(set).sort();
+    }
+    return brandCache[cat];
+  }
+  const mcId = (cat, k) => cat + ':' + k;
+  function ctlHtml(cat, c) {
+    const id = `data-mc="${mcId(cat, c.k)}"`;
+    const lab = (extra) => `<div class="field mc" data-row="${mcId(cat, c.k)}"><label><span>${esc(c.l)}</span><b class="mcv"></b></label>${extra}<small class="mcreq"></small></div>`;
+    switch (c.t) {
+      case 'select': return lab(`<select ${id}></select>`);
+      case 'range': return lab(`<input type="range" ${id} min="${c.min}" step="${c.step}">`);
+      case 'num': return lab(`<input type="text" inputmode="numeric" ${id}>`);
+      case 'toggle': return `<label class="check mc" data-row="${mcId(cat, c.k)}"><input type="checkbox" ${id}> <span>${esc(c.l)}</span><small class="mcreq"></small></label>`;
+      case 'chips': return lab(`<div class="chips mcchips" ${id}></div>`);
+    }
+    return '';
+  }
+  function buildBuyers() {
+    let html = `
+      <div class="panel" id="byLocked"><div class="title">Purchasing Office</div><div class="pbody" id="byLockedBody"></div></div>
+      <div id="byMain" class="tab" hidden>
+        <div class="panel"><div class="title"><span>Purchasing Office</span><span id="byWages" class="num"></span></div><div class="pbody">
+          <small>Hire a buyer for each product category. They watch sales trends, decide what to stock and how much, and place the orders themselves. Tune how each one works below, and pin or skip individual products from the Stock tab.</small>
+          <div class="grid" id="bySum"></div></div></div>`;
+    CS.MGR_CATS.forEach((c) => {
+      html += `<div class="panel mgr" id="mg-${c.id}" data-cat="${c.id}"><div class="title"><span>${c.icon} ${esc(c.name)} buyer</span><span class="mgName"></span></div><div class="pbody">
+        <div class="mgVacant">
+          <div class="alert warn mgNeed" hidden></div>
+          <div class="list mgCands"></div>
+          <button class="small" data-act="mgrefresh" data-cat="${c.id}"></button>
+        </div>
+        <div class="mgStaffed" hidden>
+          <div class="mgHead"><div><b class="mgPerson"></b><br><small class="mgTrait"></small></div><label class="check"><input type="checkbox" data-mc="${mcId(c.id, 'on')}"> On duty</label></div>
+          <div class="grid mgStats"></div>
+          <div class="alert mgStance" hidden></div>
+          <h4 class="mgh">Skills</h4><div class="mgSkills"></div>
+          <h4 class="mgh">This week's plan</h4><div class="mgPlan"></div>`;
+      MC_SPEC.forEach((g) => {
+        const ctls = g.ctl.filter((x) => (!x.hide || !x.hide.includes(c.id)) && (!x.only || x.only.includes(c.id)));
+        if (!ctls.length) return;
+        html += `<details class="mgd"${g.grp === "Strategy" ? " open" : ""}><summary>${esc(g.grp)}</summary><div class="mgdb">${ctls.map((x) => ctlHtml(c.id, x)).join('')}</div></details>`;
+      });
+      html += `<h4 class="mgh">Notebook</h4><ul class="mgLog"></ul>
+          <button class="small danger" data-act="mgfire" data-cat="${c.id}">Let go…</button>
+        </div></div></div>`;
+    });
+    html += '</div>';
+    $('#tab-buyers').innerHTML = html;
+    shopRefs.by = {};
+    [['mgrs', 'Buyers employed'], ['orders', 'Units ordered'], ['saved', 'Saved by negotiating'], ['wages', 'Wages / min']].forEach(([id, l]) => {
+      const m = node(`<div class="mini"><small>${l}</small><b class="num">–</b></div>`);
+      $('#bySum').appendChild(m);
+      shopRefs.by[id] = $('b', m);
+    });
+    // skills rows
+    CS.MGR_CATS.forEach((c) => {
+      const box = $('#mg-' + c.id + ' .mgSkills');
+      CS.MGR_SKILLS.forEach((sk) => {
+        box.appendChild(node(`<div class="mgSkill" data-skill="${sk.id}"><div><b>${sk.icon} ${sk.name}</b> <small class="sklv"></small><div class="bar"><i></i></div><small>${esc(sk.desc)}</small></div><button class="small" data-act="mgtrain" data-cat="${c.id}" data-skill="${sk.id}"></button></div>`));
+      });
+      // chips
+      const bl = $('[data-mc="' + mcId(c.id, 'blocked') + '"]'), gr = $('[data-mc="' + mcId(c.id, 'groups') + '"]');
+      if (bl) bl.innerHTML = brandsOf(c.id).map((b) => `<button data-act="mcchip" data-mc="${mcId(c.id, 'blocked')}" data-v="${esc(b)}">${esc(b)}</button>`).join('');
+      if (gr) gr.innerHTML = CS.GROUPS.filter((g) => g.kind === 'acc').map((g) => `<button data-act="mcchip" data-mc="${mcId(c.id, 'groups')}" data-v="${g.id}">${g.icon} ${esc(g.name)}</button>`).join('');
+    });
+  }
+  function candCard(c) {
+    const el = node(`<div class="card"><div class="icon cic"></div><div class="info"><b class="cnm"></b><small class="ctr"></small><div class="nums cst"></div><small class="cwg"></small></div><div class="acts"><button class="primary grow" data-act="mghire"></button></div></div>`);
+    return { el, ic: $('.cic', el), nm: $('.cnm', el), tr: $('.ctr', el), st: $('.cst', el), wg: $('.cwg', el), btn: $('[data-act=mghire]', el) };
+  }
+  const trendArrow = (tr) => (tr == null ? '' : tr > 0.25 ? '↗' : tr < -0.25 ? '↘' : '→');
+  function renderBuyers(d, items) {
+    const lock = $('#byLocked'), main = $('#byMain');
+    const u = CS.UP_BY_ID.purchasing;
+    if (!d.office) {
+      lock.hidden = false; main.hidden = true;
+      if (d.y < u.year) setHtml($('#byLockedBody'), `<div class="empty-note">🔒 Purchasing managers become available in <b>${u.year}</b>, once the shop is big enough to need a buyer.</div>`);
+      else setHtml($('#byLockedBody'), `<p>${esc(u.desc)}</p><button class="primary" data-act="up" data-id="purchasing" id="byBuy" ${S.cash < u.base ? 'disabled' : ''}>Open the Purchasing Office — ${money(u.base)}</button>`);
+      return;
+    }
+    lock.hidden = true; main.hidden = false;
+    const rs = shopRefs.by;
+    let n = 0, ordered = 0, saved = 0;
+    CS.MGR_CATS.forEach((c) => { const mg = S.mgr[c.id]; if (mg) { n++; ordered += mg.stats.ordered; saved += mg.stats.saved; } });
+    setText(rs.mgrs, n + ' / 4'); setText(rs.orders, num(ordered)); setText(rs.saved, money(saved)); setText(rs.wages, money(d.mgr.wages * 60));
+    setText($('#byWages'), n ? 'Wages ' + money(d.mgr.wages * 60) + '/min' : '');
+    const byKey = {};
+    items.forEach((i) => (byKey[i.key] = i));
+
+    CS.MGR_CATS.forEach((c) => {
+      const mgEl = $('#mg-' + c.id);
+      const mg = S.mgr[c.id], avail = M.available(d, c.id);
+      mgEl.hidden = !avail && !mg ? false : false;
+      const vac = $('.mgVacant', mgEl), stf = $('.mgStaffed', mgEl);
+      vac.hidden = !!mg; stf.hidden = !mg;
+      setText($('.mgName', mgEl), mg ? mg.name : 'Vacant');
+      if (!mg) {
+        const need = $('.mgNeed', mgEl);
+        need.hidden = avail;
+        if (!avail) setText(need, c.id === 'bp' ? 'Needs the Build Workshop.' : c.id === 'game' ? 'Needs the Software Aisle.' : 'Needs the Accessories Wall.');
+        const cands = avail ? M.candidates(S, c.id) : [];
+        syncList($('.mgCands', mgEl), cands.map((x, i) => Object.assign({ idx: i }, x)), (x) => x.name, candCard, (cn, x) => {
+          const tr = CS.MGR_TRAITS[x.trait];
+          const bonus = M.bonusFor(x.wage, d.y);
+          setText(cn.ic, tr.icon);
+          setText(cn.nm, x.name + ' — ' + tr.name);
+          setText(cn.tr, tr.desc);
+          setHtml(cn.st, CS.MGR_SKILLS.map((sk) => `<span>${sk.icon} ${x.skills[sk.id]}</span>`).join(''));
+          setText(cn.wg, 'Wage ' + money(x.wage * M.wageInfl(d.y) * 60) + '/min · signing bonus ' + money(bonus));
+          cn.btn.dataset.cat = c.id; cn.btn.dataset.idx = String(x.idx);
+          setText(cn.btn, 'Hire for ' + money(bonus));
+          setDis(cn.btn, S.cash < bonus);
+        });
+        const rb = $('[data-act=mgrefresh]', mgEl);
+        setText(rb, 'Look for other candidates — ' + money(M.refreshCost(d)));
+        setDis(rb, !avail || S.cash < M.refreshCost(d));
+        return;
+      }
+      const m = d.mgr.cats[c.id], cfg = M.cfgOf(S, c.id), tr = CS.MGR_TRAITS[mg.trait];
+      setText($('.mgPerson', mgEl), tr.icon + ' ' + mg.name + ' (' + tr.name + ')');
+      setText($('.mgTrait', mgEl), tr.desc + ' Wage ' + money(m.wage * 60) + '/min.');
+      const onBox = $('[data-mc="' + mcId(c.id, 'on') + '"]', mgEl);
+      if (document.activeElement !== onBox) onBox.checked = !!cfg.on;
+      const st = $('.mgStats', mgEl);
+      if (!st._built) {
+        [['ord', 'Units ordered'], ['spent', 'Spent'], ['saved', 'Saved (deals)'], ['plan', 'Products planned']].forEach(([id, l]) => st.appendChild(node(`<div class="mini" data-s="${id}"><small>${l}</small><b class="num">–</b></div>`)));
+        st._built = true;
+      }
+      const sv = (id, v) => setText($('[data-s=' + id + '] b', st), v);
+      sv('ord', num(mg.stats.ordered)); sv('spent', money(mg.stats.spent)); sv('saved', money(mg.stats.saved)); sv('plan', String(mg.plan.length));
+      const stance = $('.mgStance', mgEl);
+      stance.hidden = !(cfg.on && mg.stance);
+      if (!stance.hidden) { stance.className = 'alert mgStance warn'; setText(stance, mg.stance === 'prebuy' ? '🛒 Buying ahead of a price spike.' : '⏳ Holding back while prices are inflated.'); }
+      // skills
+      $$('.mgSkill', mgEl).forEach((row) => {
+        const sk = row.dataset.skill, lvl = mg.skills[sk], eff = m.eff[sk];
+        setText($('.sklv', row), 'Lv ' + lvl + (eff > lvl ? ' (+' + (eff - lvl) + ' HQ)' : '') + ' / ' + M.MAX_LEVEL);
+        $('.bar i', row).style.width = (100 * Math.min(eff, M.MAX_LEVEL)) / M.MAX_LEVEL + '%';
+        const b = $('button', row), cost = M.trainCost(S, mg, sk, d);
+        setText(b, lvl >= M.MAX_LEVEL ? 'MAX' : 'Train — ' + money(cost));
+        setDis(b, lvl >= M.MAX_LEVEL || S.cash < cost);
+      });
+      // plan
+      const plan = mg.plan.slice().sort((a, b) => b.t - a.t);
+      const wk = cfg.on ? '' : '<div class="empty-note">Off duty: nothing is being planned or ordered. Targets you set by hand apply.</div>';
+      setHtml($('.mgPlan', mgEl), wk + (plan.length ? plan.map((p) => {
+        const it = byKey[p.k];
+        return `<div class="mgp"><span class="mgpn">${esc(p.name)}</span><span class="mgpv num">${it ? it.stock : 0} / ${p.t}</span><span class="mgpt">${trendArrow(p.tr)} ${esc(p.why)} · ${p.v.toFixed(p.v < 10 ? 1 : 0)}/min</span></div>`;
+      }).join('') : (cfg.on ? '<div class="empty-note">Nothing worth stocking yet. Loosen the filters or wait for new products.</div>' : '')));
+      // controls
+      MC_SPEC.forEach((g) => g.ctl.forEach((x) => {
+        const sel = '[data-mc="' + mcId(c.id, x.k) + '"]';
+        const el = $(sel, mgEl);
+        if (!el) return;
+        const row = el.closest('.mc');
+        const v = cfg[x.k];
+        const locked = x.req && m.eff[x.req[0]] < x.req[1];
+        if (row) { const rq = $('.mcreq', row); setText(rq, locked ? '🔒 Needs ' + CS.MGR_SKILLS.find((s) => s.id === x.req[0]).name + ' ' + x.req[1] : ''); }
+        if (x.t === 'select') {
+          const opts = typeof x.o === 'function' ? x.o() : x.o;
+          const sig = opts.map((o) => o[0]).join();
+          if (el._sig !== sig) { el._sig = sig; el.innerHTML = opts.map(([val, lb]) => `<option value="${val}">${esc(lb)}</option>`).join(''); }
+          if (document.activeElement !== el && el.value !== String(v)) el.value = String(v);
+        } else if (x.t === 'range') {
+          const max = x.max === 'skus' ? m.maxSkus : x.max;
+          el.max = String(max);
+          if (document.activeElement !== el) el.value = String(Math.min(v, max));
+          setText($('.mcv', row), x.f(Math.min(v, max)));
+        } else if (x.t === 'num') {
+          if (document.activeElement !== el) el.value = String(v || 0);
+        } else if (x.t === 'toggle') {
+          el.checked = !!v && !locked; setDis(el, locked);
+        } else if (x.t === 'chips') {
+          $$('button', el).forEach((b) => b.classList.toggle('on', v.includes(b.dataset.v)));
+        }
+      }));
+      setHtml($('.mgLog', mgEl), (mg.log || []).slice(0, 8).map((l) => `<li>${esc(l.txt)}</li>`).join('') || '<li><small>Nothing yet.</small></li>');
+    });
   }
 
   /* ---------- WORKSHOP tab ---------- */
@@ -530,7 +762,7 @@
     return parts;
   }
   function createBpCard(bp) {
-    const el = node(`<div class="card" data-id="${bp.id}">
+    const el = node(`<div class="card" data-id="${bp.id}" data-key="b:${bp.id}">
       <div class="icon">🛠️</div>
       <div class="info"><b class="nm"></b><small class="spec"></small>
         <div class="tags"><span class="tag t-perf"></span><span class="tag t-warn" hidden>⚠ Parts discontinued</span></div>
@@ -540,10 +772,11 @@
       </div>
       <div class="acts">
         <div class="stepper"><span class="lbl">Auto-build to</span><button data-act="tgt" data-d="-1">−</button><b class="tg num">0</b><button data-act="tgt" data-d="1">+</button></div>
+        <div class="mgrow" hidden><span class="mginfo"></span><button class="small" data-act="mgpin"></button><button class="small" data-act="mgskip"></button></div>
         <button data-act="bpDel" data-id="${bp.id}" class="small">Delete</button>
       </div></div>`);
     const r = (s) => $(s, el);
-    return { el, nm: r('.nm'), spec: r('.spec'), perf: r('.t-perf'), warn: r('.t-warn'), cc: r('.cc'), pp: r('.pp'), pf: r('.pf'), stk: r('.stk'), tg: r('.tg'), mk: r('.mk'), mkl: r('.mkl'), del: r('[data-act=bpDel]'), btns: $$('[data-act=tgt]', el) };
+    return { el, stepper: r('.stepper'), mgrow: r('.mgrow'), mginfo: r('.mginfo'), mgpin: r('[data-act=mgpin]'), mgskip: r('[data-act=mgskip]'), nm: r('.nm'), spec: r('.spec'), perf: r('.t-perf'), warn: r('.t-warn'), cc: r('.cc'), pp: r('.pp'), pf: r('.pf'), stk: r('.stk'), tg: r('.tg'), mk: r('.mk'), mkl: r('.mkl'), del: r('[data-act=bpDel]'), btns: $$('[data-act=tgt]', el) };
   }
   function renderWorkshop(d, items) {
     const wsl = $('#wsLocked'), wsm = $('#wsMain');
@@ -577,6 +810,7 @@
       setText(n.mkl, '+' + Math.round(bp.markup * 100) + '%');
       if (document.activeElement !== n.mk) n.mk.value = Math.round(bp.markup * 100);
       setDis(n.del, it.stock > 0);
+      updateMgrRow(n, it);
       n.btns.forEach((b) => setDis(b, !it.canBuild && b.dataset.d > 0));
     });
     if (!bps.length) { if (!$('#bpEmpty')) $('#bpList').insertAdjacentHTML('beforebegin', '<div class="empty-note" id="bpEmpty">No blueprints yet — design your first PC below.</div>'); } else { const e = $('#bpEmpty'); if (e) e.remove(); }
@@ -622,7 +856,7 @@
       case 'build': return '+' + num(v) + ' PCs/s';
       case 'cap': return '+' + v + ' shelf spaces';
       case 'disc': return '-' + (v * 100).toFixed(1) + '% costs';
-      case 'aisle_game': case 'aisle_acc': return '';
+      case 'aisle_game': case 'aisle_acc': case 'office': return '';
       case 'loyal': return '+' + Math.round(v * 100) + '% customers';
       case 'night': return '+' + v + 'h offline';
       case 'serveMult': case 'buildMult': return '+' + Math.round(v * 100) + '%';
@@ -694,6 +928,7 @@
       case 't_cash': return '+' + money(v) + ' start cash';
       case 't_kit': return 'Start with ' + v + ' clerk/shelf/sales level' + (v > 1 ? 's' : '') + ', ' + 2 * v + ' ad levels';
       case 't_night': return '+' + v + 'h offline';
+      case 't_mgr': return '+' + v + ' to every buyer skill';
       default: return '+' + Math.round(v * 100) + '%';
     }
   }
@@ -832,6 +1067,7 @@
     const pend = E.pendingTokens(S);
     const showHQ = S.meta.resets > 0 || S.meta.tokens > 0 || pend > 0 || S.cal >= 20;
     $('#nav-franchise').hidden = !showHQ;
+    $('#nav-buyers').hidden = !(d.office || d.y >= CS.UP_BY_ID.purchasing.year);
     $('#tokStat').hidden = !(S.meta.tokens > 0 || pend > 0);
     setText($('#tokens'), '🎫 ' + num(S.meta.tokens) + (pend > 0 ? ' (+' + num(pend) + ')' : ''));
     if (pend >= 1 && !S.seen.tok) {
@@ -928,6 +1164,24 @@
         break;
       }
       case 'catfilter': catFilter = t.dataset.f; break;
+      case 'mghire': { const r = M.hire(S, t.dataset.cat, +t.dataset.idx); if (!r.ok) toast(esc(r.err)); else { toast('👔 Hired!'); announceAch(E.checkAch(S)); } break; }
+      case 'mgrefresh': M.refresh(S, t.dataset.cat); break;
+      case 'mgtrain': M.train(S, t.dataset.cat, t.dataset.skill); break;
+      case 'mgfire': confirmFire(t.dataset.cat); break;
+      case 'mgpin': case 'mgskip': {
+        const key = card.dataset.key;
+        const it = E.getItems(S, E.derive(S)).find((i) => i.key === key);
+        if (it && it.mgrCat) { const want = act === 'mgpin' ? 'pin' : 'skip'; M.setPin(S, it.mgrCat, key, it.pin === want ? '' : want); }
+        break;
+      }
+      case 'mcchip': {
+        const [cat, k] = t.dataset.mc.split(':');
+        const cur = M.cfgOf(S, cat)[k].slice();
+        const i = cur.indexOf(t.dataset.v);
+        if (i >= 0) cur.splice(i, 1); else cur.push(t.dataset.v);
+        M.setCfg(S, cat, k, cur);
+        break;
+      }
       case 'fchip': fset(t.dataset.flt, t.dataset.v); break;
       case 'up': E.buyUp(S, t.dataset.id); break;
       case 'tup': E.buyTokenUp(S, t.dataset.id); break;
@@ -948,6 +1202,21 @@
     }
     render(true);
   });
+  function onMcInput(e) {
+    const t = e.target;
+    if (!t.dataset || !t.dataset.mc || t.classList.contains('mcchips')) return;
+    const [cat, k] = t.dataset.mc.split(':');
+    let v;
+    if (t.type === 'checkbox') v = t.checked;
+    else if (t.type === 'range') v = parseFloat(t.value);
+    else if (t.tagName === 'SELECT') v = t.value;
+    else v = Math.max(0, parseFloat(String(t.value).replace(/[^0-9.]/g, '')) || 0);
+    M.setCfg(S, cat, k, v);
+    if (k === 'preset' || k === 'on') render(true);
+    else if (e.type === 'change') render(true);
+  }
+  document.addEventListener('input', onMcInput);
+  document.addEventListener('change', onMcInput);
   document.addEventListener('input', (e) => {
     const t = e.target;
     if (t.dataset && t.dataset.flt && (t.tagName === 'SELECT' || t.tagName === 'INPUT')) { fset(t.dataset.flt, t.value); render(true); return; }
@@ -961,6 +1230,15 @@
     if (b) switchTab(b.dataset.tab);
   });
 
+  function confirmFire(cat) {
+    const mg = S.mgr[cat];
+    if (!mg) return;
+    const sev = Math.round(mg.wage * M.wageInfl(E.yearOf(S)) * 3600);
+    modal('Let ' + mg.name + ' go?', `<p>Severance is <b>${money(sev)}</b> (one hour of wages). Your settings for this category are kept for the next buyer, and items stay stocked as they are, but nobody will plan or order them until you hire someone.</p>`, [
+      { label: 'Let them go', cls: 'danger', fn: () => { const r = M.fire(S, cat); if (!r.ok) { toast(esc(r.err || 'Cannot do that.')); return false; } } },
+      { label: 'Keep them' },
+    ]);
+  }
   function exportSave() {
     save();
     const code = encode(E.serialize(S));
@@ -1008,6 +1286,7 @@
     switch (tab) {
       case 'shop': renderShop(d, items); break;
       case 'catalog': renderCatalog(d, items); break;
+      case 'buyers': renderBuyers(d, items); break;
       case 'workshop': renderWorkshop(d, items); break;
       case 'upgrades': renderUpgrades(d); break;
       case 'franchise': renderFranchise(d); break;
@@ -1088,7 +1367,7 @@
     chooseState().then((c) => {
       S = c.state;
       announceNew(true); // silently mark what already exists
-      buildShop(); buildCatalog(); buildWorkshop(); buildUpgrades(); buildFranchise(); buildMenu();
+      buildShop(); buildCatalog(); buildBuyers(); buildWorkshop(); buildUpgrades(); buildFranchise(); buildMenu();
       applyTheme(true);
       eraShown = E.eraAt(E.yearOf(S)).name;
       last = Date.now();

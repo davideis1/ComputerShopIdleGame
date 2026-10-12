@@ -277,3 +277,29 @@ label.check input { width: 20px; height: 20px; accent-color: var(--accent); }
 .fchips button { min-height: 32px; font-size: 13px; flex: 1 1 60px; }
 .ftools > .chips { margin: 0; }
 h3.sec[hidden] { display: none; }
+
+/* Buyers */
+#nav button span { font-size: 11px; }
+@media (max-width: 440px) { #nav { gap: 2px; padding-left: 2px; padding-right: 2px; } #nav button { padding: 4px 0; } #nav button span { font-size: 10px; } #nav button i { font-size: 19px; } }
+.mgr .pbody { gap: 10px; }
+.mgHead { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.mgh { margin: 6px 0 0; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.mgSkill { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; padding: 4px 0; }
+.mgSkill .bar { margin: 3px 0; }
+.mgp { display: grid; grid-template-columns: 1fr auto; gap: 0 10px; padding: 4px 0; border-bottom: 1px solid rgba(128, 128, 128, .25); }
+.mgp .mgpn { font-weight: 600; overflow-wrap: anywhere; }
+.mgp .mgpv { text-align: right; font-weight: 700; }
+.mgp .mgpt { grid-column: 1 / -1; font-size: 12px; color: var(--muted); }
+details.mgd { background: var(--inset); border-radius: var(--radius); box-shadow: var(--bevel-in); }
+details.mgd summary { cursor: pointer; padding: 10px; font-weight: 700; min-height: 40px; }
+.mgdb { display: flex; flex-direction: column; gap: 10px; padding: 0 10px 10px; }
+.mc .mcreq { color: var(--warn); }
+.mgChips, .mcchips { gap: 4px; }
+.mcchips button { flex: 0 1 auto; min-height: 30px; padding: 2px 8px; font-size: 12px; }
+.mcchips button.on { background: var(--bad); color: #fff; box-shadow: var(--bevel-in); }
+[data-mc$=":groups"].mcchips button.on { background: var(--accent); color: var(--sel-fg, #fff); }
+.mgLog { margin: 0; padding-left: 18px; font-size: 13px; display: flex; flex-direction: column; gap: 3px; }
+.mgrow { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; flex: 2 1 220px; }
+.mgrow .mginfo { flex: 1 1 100%; font-size: 13px; }
+.mgrow button { flex: 1 1 100px; }
+.mgCands .cst { gap: 10px; }
