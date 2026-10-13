@@ -234,6 +234,7 @@
     // Product lines
     { id: 'aisle_acc', grp: 'Shop', name: 'Accessories Wall', icon: '🖱️', desc: 'Sell keyboards, mice, monitors, modems and more alongside your PCs. PC buyers are twice as likely to add on.', year: 1993, base: 1500, grow: 1, max: 1, kind: 'aisle_acc', per: 1, verb: 'Open' },
     { id: 'aisle_games', grp: 'Shop', name: 'Software Aisle', icon: '💿', desc: 'Sell PC games. Demanding new releases only sell if the PCs you sell can run them.', year: 1993, base: 3000, grow: 1, max: 1, kind: 'aisle_game', per: 1, verb: 'Open' },
+    { id: 'aisle_console', grp: 'Shop', name: 'Console Corner', icon: '🎮', desc: 'Sell game consoles, console games and accessories. Console games sell to people who own that platform, so the consoles you sell build your game business.', year: 1993, base: 6000, grow: 1, max: 1, kind: 'aisle_console', per: 1, verb: 'Open' },
     { id: 'upsell', grp: 'Shop', name: 'Upsell Training', icon: '🗣️', desc: '"Would you like a mouse pad with that?" +10% game & accessory sales', year: 1993, base: 2000, grow: 1.45, max: 25, kind: 'attach', per: 0.1 },
     { id: 'purchasing', grp: 'Shop', name: 'Purchasing Office', icon: '👔', desc: 'Opens the Buyers tab: hire a purchasing manager for each product category to watch trends and manage your stock levels.', year: 1995, base: 15000, grow: 1, max: 1, kind: 'office', per: 1, verb: 'Open' },
     // Marketing
@@ -361,6 +362,9 @@
     { id: 'a_acc100', name: 'Accessorised', desc: 'Sell 100 accessories', ok: (s) => (s.stats.soldAcc || 0) >= 100 },
     { id: 'a_mgr1', name: 'Delegation', desc: 'Hire your first purchasing manager', ok: (s) => !!s.mgr && Object.values(s.mgr).some(Boolean) },
     { id: 'a_mgr4', name: 'Full Buying Team', desc: 'Employ a manager in all four categories', ok: (s) => !!s.mgr && Object.values(s.mgr).filter(Boolean).length >= 4 },
+    { id: 'a_con100', name: 'Player Two', desc: 'Sell 100 consoles', ok: (s) => (s.stats.soldConsoles || 0) >= 100 },
+    { id: 'a_con1k', name: 'Console Wars', desc: 'Sell 1,000 consoles', ok: (s) => (s.stats.soldConsoles || 0) >= 1000 },
+    { id: 'a_cg1k', name: 'Backlog Builder', desc: 'Sell 1,000 console games', ok: (s) => (s.stats.soldCGames || 0) >= 1000 },
     { id: 'a_hustle', name: 'Door-to-Door', desc: 'Hustle 100 times', ok: (s) => s.stats.hustles >= 100 },
   ];
 })(typeof window !== 'undefined' ? window : globalThis);

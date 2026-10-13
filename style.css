@@ -297,7 +297,7 @@ details.mgd summary { cursor: pointer; padding: 10px; font-weight: 700; min-heig
 .mgChips, .mcchips { gap: 4px; }
 .mcchips button { flex: 0 1 auto; min-height: 30px; padding: 2px 8px; font-size: 12px; }
 .mcchips button.on { background: var(--bad); color: #fff; box-shadow: var(--bevel-in); }
-[data-mc$=":groups"].mcchips button.on { background: var(--accent); color: var(--sel-fg, #fff); }
+[data-mc$=":groups"].mcchips button.on, [data-mc$=":platforms"].mcchips button.on { background: var(--accent); color: var(--sel-fg, #fff); }
 .mgLog { margin: 0; padding-left: 18px; font-size: 13px; display: flex; flex-direction: column; gap: 3px; }
 .mgrow { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; flex: 2 1 220px; }
 .mgrow .mginfo { flex: 1 1 100%; font-size: 13px; }
@@ -317,3 +317,10 @@ details.mgd summary { cursor: pointer; padding: 10px; font-weight: 700; min-heig
 .card.rec .rci { font-size: 28px; }
 .card.rec .rwhy { overflow-wrap: anywhere; }
 .advnote { opacity: .8; }
+
+/* Console market */
+.cmrow { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 4px 0; border-bottom: 1px solid rgba(128, 128, 128, .25); font-size: 13px; }
+.cmrow .cmn { font-weight: 700; }
+.cmrow .cmst { text-align: right; font-size: 12px; }
+.cmrow .cmbar { grid-column: 1 / -1; }
+.cmrow .cmv { grid-column: 1 / -1; font-size: 12px; color: var(--muted); }

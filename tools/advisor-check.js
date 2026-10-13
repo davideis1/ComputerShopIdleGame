@@ -1,5 +1,5 @@
 /* Prints what the shop advisor would say in a few typical situations:  node tools/advisor-check.js */
-require('../js/data.js'); require('../js/addons.js'); require('../js/engine.js'); require('../js/managers.js'); require('../js/advisor.js');
+require('../js/data.js'); require('../js/addons.js'); require('../js/engine.js'); require('../js/consoles.js'); require('../js/managers.js'); require('../js/advisor.js');
 const CS = globalThis.CS, E = CS.E, A = CS.Advisor;
 function show(title, s) {
   const d = E.derive(s), items = E.getItems(s, d);
