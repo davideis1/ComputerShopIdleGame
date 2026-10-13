@@ -1132,6 +1132,30 @@
   }
 
   /* ---------- MENU tab ---------- */
+  /* ---------- version & change log ---------- */
+  const VER = BOOT.version || { major: 1, minor: 0, build: 0 };
+  const verStr = () => VER.major + '.' + VER.minor + '.' + VER.build;
+  const SEEN_KEY = 'csig-seen-build';
+  const getSeen = () => { try { const v = localStorage.getItem(SEEN_KEY); return v == null ? null : +v; } catch (e) { return null; } };
+  const setSeen = (b) => { try { localStorage.setItem(SEEN_KEY, String(b)); } catch (e) { /* ignore */ } };
+  function changelogHtml(entries) {
+    return entries.map((e) => `<h4 class="mgh">${esc(e.title)} <small>v${VER.major}.${VER.minor}.${esc(e.build)} · ${esc(e.date || '')}</small></h4><ul class="clog">${(e.changes || []).map((c) => `<li>${esc(c)}</li>`).join('')}</ul>`).join('');
+  }
+  /** After an update: list what changed since the last build this device saw. */
+  function maybeShowWhatsNew(playedBefore) {
+    const log = (BOOT.changelog || []).filter((e) => typeof e.build === 'number');
+    const seen = getSeen();
+    setSeen(VER.build);
+    if (!log.length || seen === VER.build) return;
+    let fresh = seen == null ? (playedBefore ? log.slice(0, 1) : []) : log.filter((e) => e.build > seen);
+    fresh = fresh.slice(0, 5);
+    if (!fresh.length) return;
+    const open = () => {
+      if (!$('#modal').hidden && $('#modal').innerHTML) { setTimeout(open, 1500); return; } // wait for the welcome-back report
+      modal("What's new — v" + verStr(), changelogHtml(fresh), [{ label: 'Got it', cls: 'primary' }]);
+    };
+    setTimeout(open, 800);
+  }
   function buildMenu() {
     $('#tab-menu').innerHTML = `
       <div class="panel"><div class="title">Shop Settings</div><div class="pbody">
@@ -1154,7 +1178,8 @@
         </div></div></div>
       <div class="panel"><div class="title">Statistics</div><div class="pbody" id="statsBody"></div></div>
       <div class="panel"><div class="title"><span>Trophies</span><span id="achCount"></span></div><div class="pbody"><div id="troTools">${chipRow('tro.f', [['all', 'All'], ['earned', 'Earned'], ['locked', 'Locked']])}</div><div id="achBody"></div></div></div>
-      <div class="panel"><div class="title">About</div><div class="pbody"><small>Idle computer shop, 1993 → today. Every brand and product name is a made-up parody; this game is not affiliated with or endorsed by any real company. Offline progress is capped by your shop's Night Lock-Up, and the calendar crawls at 1/20 speed while you are away.</small></div></div>`;
+      <div class="panel"><div class="title"><span>About</span><span class="num" id="verLbl"></span></div><div class="pbody"><div class="menu-btns"><button data-act="changelog">📰 What's new</button></div><small>Idle computer shop, 1993 → today. Every brand and product name is a made-up parody; this game is not affiliated with or endorsed by any real company. Offline progress is capped by your shop's Night Lock-Up, and the calendar crawls at 1/20 speed while you are away.</small></div></div>`;
+    setText($('#verLbl'), 'v' + verStr());
     $('#nameIn').addEventListener('input', (e) => { S.name = e.target.value.slice(0, 30) || 'Mega Byte Computers'; });
     $('#themeSel').addEventListener('change', (e) => { saveSettings({ theme: e.target.value }); applyTheme(true); });
     $('#optTicker').addEventListener('change', (e) => saveSettings({ showTicker: e.target.checked }));
@@ -1343,6 +1368,7 @@
         else toast(esc(r.err));
         break;
       }
+      case 'changelog': modal("What's new — v" + verStr(), changelogHtml((BOOT.changelog || []).filter((e) => typeof e.build === 'number').slice(0, 8)), [{ label: 'Close' }]); break;
       case 'bpTake': if (M.takeOver(S, t.dataset.id)) toast('✋ ' + esc((S.bps.find((b) => b.id === t.dataset.id) || {}).name || 'Blueprint') + ' is yours now.'); break;
       case 'bpDel': if (!E.deleteBp(S, t.dataset.id)) toast('Sell the remaining stock first.'); break;
       case 'save': save().then(() => toast(sync.state === 'ok' ? '☁️ Saved to your account' : '⚠️ Saved on this device only; server unreachable')); break;
@@ -1530,6 +1556,7 @@
       nextHeadline();
       $('#tickerText').addEventListener('animationiteration', nextHeadline);
       switchTab('shop');
+      maybeShowWhatsNew(S.stats.play > 120);
       setInterval(tick, 250);
       setInterval(save, 15000);
       document.addEventListener('visibilitychange', () => {

@@ -1,0 +1,10 @@
+[
+  {"build":8,"date":"2026-10-13","title":"PC Designer & change log","changes":["New hire in the Buyers tab: the PC Designer studies demand and designs custom-PC blueprints for you, prices them to the market and retires old ones.","Auto-designed blueprints are tagged in the Workshop; tap Take over to manage one yourself.","The game now shows its version number (Menu → About) and pops up what changed after each update."]},
+  {"build":7,"date":"2026-10-12","title":"Collapsible buyers","changes":["Collapse any buyer panel to compare them easily. Your choice is remembered."]},
+  {"build":6,"date":"2026-10-11","title":"Console gaming","changes":["Consoles, console games and accessories, with console generations and launch events.","Console Corner upgrade, a Consoles filter in the Stock tab and a Consoles buyer."]},
+  {"build":5,"date":"2026-10-09","title":"HQ buyer upgrades & Shop Advisor","changes":["Nine permanent HQ upgrades improve your buyers.","The shop summary now has an Advisor box with upgrade suggestions and insights."]},
+  {"build":4,"date":"2026-10-07","title":"Purchasing managers & list filters","changes":["Hire a buyer for each product category. They watch trends and manage stock, with plenty of settings.","Filters on the Stock and Upgrades lists (current vs old, by popularity and more)."]},
+  {"build":3,"date":"2026-10-04","title":"Games & accessories","changes":["Sell PC games and accessories alongside your computers.","Customers add them on to PC purchases."]},
+  {"build":2,"date":"2026-10-02","title":"Franchise Tokens & slower calendar","changes":["Late in the game you earn Franchise Tokens. Reset to claim them and spend them on permanent HQ upgrades.","The calendar runs a little slower."]},
+  {"build":1,"date":"2026-09-28","title":"Grand opening","changes":["Run a computer shop from 1993 to today: prebuilts, custom builds, upgrades and offline progress.","Accounts and cloud saves."]}
+]
