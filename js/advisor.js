@@ -105,6 +105,7 @@
         return { gain: pm.gross * 0.1, why: 'Your blueprints have unfilled build targets: more builders turn parts into sales.' };
       }
       case 'aisle_acc': return d.aisleAcc || pm.gross <= 0 ? null : { gain: pm.gross * 0.2, why: 'Keyboards, monitors and modems carry fat margins and PC buyers add them on.' };
+      case 'aisle_console': return d.aisleConsole || pm.gross <= 0 ? null : { gain: pm.gross * 0.15, why: 'Consoles bring gamers in, and their games and accessories carry the margin. Every console you sell grows your game business.' };
       case 'aisle_game': return d.aisleGame || pm.gross <= 0 ? null : { gain: pm.gross * 0.12, why: 'PC games sell to almost every shopper. Better PCs mean better game sales.' };
       case 'office': return d.office || pm.gross <= 0 || !(s.up.clerk > 0) ? null : { gain: pm.gross * 0.05, why: 'Buyers watch trends and manage your stock levels, so you do not have to.' };
       case 'workshop': return d.workshop || d.y < 1996 || pm.gross <= 0 ? null : { gain: pm.gross * 0.2, why: 'Build and sell your own PCs: fatter margins than prebuilts.' };
@@ -240,11 +241,25 @@
     // upcoming events
     const evNow = E.eventsAt(year), evSoon = E.eventsAt(year + 0.3);
     const soonNew = evSoon.list.filter((e) => !evNow.list.includes(e));
-    soonNew.forEach((e) => {
+    soonNew.filter((e) => !e.launch).forEach((e) => {
       const months = Math.max(1, Math.round((e.from - year) * 12));
       add(72, e.demand && e.demand < 1 ? 'warn' : 'info', '📅', e.name + ' in about ' + months + ' month' + (months > 1 ? 's' : '') + ': ' + (e.demand ? (e.demand > 1 ? 'demand +' : 'demand ') + Math.round((e.demand - 1) * 100) + '%' : 'prices will swing') + (e.demand > 1 ? '. Build up stock.' : e.partCost || e.gpuCost || e.preCost ? '. Stock up before prices rise.' : '.'));
     });
     evNow.list.forEach((e) => add(38, 'info', '📣', e.name + ' is on: ' + e.text));
+
+    // console platforms: launches, allocation, and games without an installed base
+    if (CS.Con && d.aisleConsole) {
+      CS.Con.upcoming(year, 0.6).forEach((p) => {
+        const months = Math.max(1, Math.round((p.year - year) * 12));
+        add(73, 'info', '🎮', p.name + ' launches in about ' + months + ' month' + (months > 1 ? 's' : '') + '. Expect a rush, but supply will be limited: get consoles in early.');
+      });
+      items.filter((i) => i.kind === 'console' && i.limited).forEach((i) => add(71, 'warn', '🔥', i.name + ' is in its launch window: demand is hot but you can only hold about ' + i.allocCap + '. Each one you sell builds your game sales.'));
+      const stockedPlats = {};
+      items.forEach((i) => { if (i.kind === 'cgame' && i.stock > 0) stockedPlats[i.plat] = (stockedPlats[i.plat] || 0) + i.stock; });
+      CS.Con.market(s, d).filter((m) => m.share > 0.06 && m.base < 3 && stockedPlats[m.plat.id]).slice(0, 1).forEach((m) => add(57, 'info', '💿', 'You stock ' + m.plat.name + ' games but have sold almost no ' + m.plat.name + ' consoles. Sell some and its games will sell much better.'));
+      const topShare = CS.Con.market(s, d)[0];
+      if (topShare && topShare.share > 0.08 && !items.some((i) => i.kind === 'console' && i.plat === topShare.plat.id && i.stock > 0) && items.some((i) => i.kind === 'console' && i.plat === topShare.plat.id && i.buyable)) add(59, 'info', '🛒', topShare.plat.name + ' is the most-owned console (' + pct(topShare.share) + ' of shoppers) and you have none in stock.');
+    } else if (CS.Con && !d.aisleConsole && s.stats.sold >= 40) add(53, 'info', '🎮', 'Console Corner (Upgrades → Shop): consoles bring in gamers, and their games and accessories earn the margin.');
 
     // unattended trading
     const pcStock = pcItems.reduce((a, i) => a + i.stock, 0);

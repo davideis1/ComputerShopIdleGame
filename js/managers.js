@@ -15,10 +15,11 @@
     { id: 'bp', name: 'Custom Builds', icon: '🛠️', kinds: ['bp'], needs: 'workshop', tab: 'pre' },
     { id: 'game', name: 'PC Games', icon: '💿', kinds: ['game'], needs: 'aisleGame', tab: 'game' },
     { id: 'acc', name: 'Accessories', icon: '🖱️', kinds: ['acc'], needs: 'aisleAcc', tab: 'acc' },
+    { id: 'con', name: 'Consoles', icon: '🎮', kinds: ['console', 'cgame', 'cacc'], needs: 'aisleConsole', tab: 'con' },
   ];
   const CAT = {};
   CS.MGR_CATS.forEach((c) => (CAT[c.id] = c));
-  const catOfKind = (k) => (k === 'pre' ? 'pre' : k === 'bp' ? 'bp' : k);
+  const catOfKind = (k) => (k === 'console' || k === 'cgame' || k === 'cacc' ? 'con' : k);
 
   CS.MGR_SKILLS = [
     { id: 'forecast', name: 'Forecasting', icon: '🔮', desc: 'Reads demand trends. Lv2 shows trend arrows, Lv4 anticipates events, Lv6 times purchases around shortages, Lv8 plans new releases without test orders.' },
@@ -50,9 +51,9 @@
 
   const defaults = (cat) => ({
     on: true, preset: 'balanced', priority: 'balanced',
-    coverage: { pre: 3, bp: 3, game: 4, acc: 5 }[cat], safety: 20, maxSkus: cat === 'acc' ? 14 : 6,
-    reserveCash: 0, maxOrderPct: 50, maxSpacePct: { pre: 60, bp: 30, game: 20, acc: 30 }[cat],
-    age: 'current', maxAge: { pre: 2, bp: 99, game: 1.5, acc: 4 }[cat], minMargin: 0, maxPrice: 0, blocked: [], groups: [],
+    coverage: { pre: 3, bp: 3, game: 4, acc: 5, con: 4 }[cat], safety: 20, maxSkus: cat === 'acc' ? 14 : cat === 'con' ? 12 : 6,
+    reserveCash: 0, maxOrderPct: 50, maxSpacePct: { pre: 60, bp: 30, game: 20, acc: 30, con: 25 }[cat],
+    age: 'current', maxAge: { pre: 2, bp: 99, game: 1.5, acc: 4, con: 3 }[cat], minMargin: 0, maxPrice: 0, blocked: [], groups: [], platforms: [],
     sensitivity: 50, anticipate: true, preBuy: true, testSize: 3, mdOn: false, mdAge: 3, mdPct: 25, log: true, pins: {},
   });
 
@@ -92,7 +93,7 @@
       out.cats[c.id] = {
         eff, on: !!cfg.on, disc: Math.min(0.07, 0.005 * eff.negotiate) + 0.005 * E.tl(s, 't_mgr_deal'),
         rate: (0.4 + 0.25 * L + d.restock * (0.4 + 0.06 * L)) * (1 + 0.15 * E.tl(s, 't_mgr_speed')), // orders per second; clerk crews help
-        maxSkus: (Math.min(16, 3 + L) + 2 * E.tl(s, 't_mgr_wide')) * (c.id === 'acc' ? 2 : 1), wage: mg.wage * infl * wageF,
+        maxSkus: (Math.min(16, 3 + L) + 2 * E.tl(s, 't_mgr_wide')) * (c.id === 'acc' || c.id === 'con' ? 2 : 1), wage: mg.wage * infl * wageF,
       };
       out.wages += mg.wage * infl * wageF;
       out.count++;
@@ -161,6 +162,7 @@
     const pcShare = served > 0 && pcs.length ? clamp(pcRate / served, 0, 1) : pcShareHint;
     const attach = (1 + pcShare) * (1 + d.upsell) * E.ADDON_SCALE;
     CS.GROUPS.forEach((grp) => {
+      if (grp.kind !== 'game' && grp.kind !== 'acc') return;
       const gi = set.filter((i) => i.group === grp.id);
       if (!gi.length) return;
       const ref = grp.ref * Math.pow(grp.grow, d.y - 1993);
@@ -174,6 +176,9 @@
       });
       gi.forEach((i, k) => (out[i.key] = ex[k]));
     });
+    if (CS.Con && set.some((i) => i.kind === 'console' || i.kind === 'cgame' || i.kind === 'cacc')) {
+      Object.assign(out, CS.Con.rates(set, d, served, pcShare).rates);
+    }
     return out;
   }
 
@@ -206,7 +211,8 @@
       && (cfg.minMargin <= 0 || ((i.price - i.cost) / i.price) * 100 >= cfg.minMargin)
       && (!cfg.maxPrice || i.price <= cfg.maxPrice)
       && !cfg.blocked.includes(i.brand)
-      && (cat.id !== 'acc' || !cfg.groups.length || cfg.groups.includes(i.group)));
+      && (cat.id !== 'acc' || !cfg.groups.length || cfg.groups.includes(i.group))
+      && (cat.id !== 'con' || !cfg.platforms.length || cfg.platforms.includes(i.plat)));
 
     // rank by the manager's priority, using each item's standalone appeal to shoppers
     const pop = E.popularityMap(elig, d);
@@ -344,7 +350,7 @@
       for (const it of list) {
         const budget = s.mAcc[c.id];
         if (budget < 1) break;
-        const addon = it.kind === 'game' || it.kind === 'acc';
+        const addon = E.isAddon(it.kind);
         const want = addon ? Math.min(it.pack, it.target - it.stock) : Math.min(Math.floor(budget), it.target - it.stock);
         const avail = s.cash - cfg.reserveCash;
         const byPct = cfg.maxOrderPct >= 100 ? Infinity : Math.floor((avail * cfg.maxOrderPct) / 100 / it.cost);

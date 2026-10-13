@@ -44,10 +44,11 @@
       rAcc: 0,
       bAcc: 0,
       hustleCd: 0,
-      stats: { sold: 0, soldGames: 0, soldAcc: 0, addonRevenue: 0, revenue: 0, built: 0, lost: 0, stockouts: 0, hustles: 0, play: 0, offline: 0 },
+      stats: { sold: 0, soldGames: 0, soldAcc: 0, soldConsoles: 0, soldCGames: 0, soldCAcc: 0, consoleRevenue: 0, addonRevenue: 0, revenue: 0, built: 0, lost: 0, stockouts: 0, hustles: 0, play: 0, offline: 0 },
       ach: {},
       seen: {},
       aAcc: 0,
+      ib: {}, // consoles sold per platform: your installed base
       pcRel: 0.9, // recent quality of the PCs this shop sells; decides which games can run
       rate: { rev: 0, up: 0 },
       settings: { theme: 'auto' },
@@ -75,6 +76,7 @@
     s.settings = Object.assign(base.settings, raw.settings || {});
     if (!isFinite(s.pcRel)) s.pcRel = 0.9;
     s.freeHires = isFinite(raw.freeHires) ? raw.freeHires : 0;
+    s.ib = Object.assign({}, raw.ib || {});
     s.lastAway = raw.lastAway || null;
     s.mgr = raw.mgr || null; s.mgrCfg = raw.mgrCfg || {}; s.mgrPool = raw.mgrPool || {}; s.mAcc = raw.mAcc || {}; s.vel = raw.vel || {};
     if (CS.M) CS.M.init(s);
@@ -126,7 +128,7 @@
     const lv = (id) => s.up[id] || 0;
     let lambda = 0.06, serve = 0.25, restock = 0, build = 0, buildMult = 1, serveMult = 1;
     let cap = 12, disc = 0, night = 4, bench = 2, loyal = 0, upkeep = 0, upsell = 0;
-    let aisleGame = false, aisleAcc = false, office = false;
+    let aisleGame = false, aisleAcc = false, aisleConsole = false, office = false;
     CS.UPGRADES.forEach((u) => {
       const L = lv(u.id);
       if (!L) return;
@@ -144,6 +146,7 @@
         case 'loyal': loyal += u.per * L; break;
         case 'office': office = true; break;
         case 'aisle_game': aisleGame = true; break;
+        case 'aisle_console': aisleConsole = true; break;
         case 'aisle_acc': aisleAcc = true; break;
         case 'attach': upsell += u.per * L; break;
       }
@@ -170,6 +173,7 @@
       workshop: lv('workshop') > 0,
       aisleGame,
       aisleAcc,
+      aisleConsole,
       office,
       upsell,
       achCount,
@@ -217,7 +221,9 @@
     return bpInfo({ parts, markup }, d);
   }
 
+  const isAddon = (k) => k === 'game' || k === 'acc' || k === 'cgame' || k === 'cacc';
   function itemSize(key) { // shelf spaces per unit: a PC is 1, small items less
+    if (CS.Con && (key[0] === 'c' || key[0] === 'x' || key[0] === 'y')) return CS.Con.size(key);
     if (key[0] === 'g' || key[0] === 'a') {
       const a = CS.ADDON_BY_ID[key.slice(2)];
       return a ? CS.GROUP_BY_ID[a.group].size : 1;
@@ -278,6 +284,7 @@
         cost: base * (1 - a.m) * (1 - d.disc), stock, buyable, target: s.target[key] || 0, capF, req,
       });
     });
+    if (CS.Con) CS.Con.addItems(s, d, out);
     if (CS.M) CS.M.decorate(s, d, out);
     return out;
   }
@@ -287,7 +294,8 @@
     if (!it.buyable) return 0;
     const room = Math.floor((d.cap - slotsUsed(s) + 1e-9) / (it.size || 1));
     const afford = Math.floor(s.cash / it.cost);
-    const k = Math.max(0, Math.min(n, room, afford));
+    let k = Math.max(0, Math.min(n, room, afford));
+    if (it.allocCap != null) k = Math.min(k, Math.max(0, it.allocCap - it.stock)); // launch allocation
     if (!k) return 0;
     s.cash -= k * it.cost;
     s.stock[it.key] = (s.stock[it.key] || 0) + k;
@@ -366,10 +374,12 @@
     s.cash += rev;
     if (it.kind === 'game') s.stats.soldGames += k;
     else if (it.kind === 'acc') s.stats.soldAcc += k;
+    else if (it.kind === 'console' || it.kind === 'cgame' || it.kind === 'cacc') CS.Con.stat(s, it, k, rev);
     else s.stats.sold += k;
     if (it.kind === 'game' || it.kind === 'acc') s.stats.addonRevenue += rev;
     s.stats.revenue += rev;
     if (CS.M) CS.M.noteSale(s, it.key, k);
+    if (CS.Con) CS.Con.noteSale(s, it, k);
     if (rep) {
       rep.sold[it.key] = (rep.sold[it.key] || 0) + k;
       rep.names[it.key] = it.name;
@@ -397,7 +407,7 @@
       s.aAcc = Math.min(Math.max(6, d.restock * dt * 2), (s.aAcc || 0) + d.restock * dt);
       for (const it of items) {
         if (it.kind === 'bp' || it.managed || !it.buyable || it.stock >= it.target) continue;
-        const addon = it.kind === 'game' || it.kind === 'acc'; // ordered by the case, not unit by unit
+        const addon = isAddon(it.kind); // ordered by the case, not unit by unit
         const budget = addon ? s.aAcc : s.rAcc;
         if (budget < 1) continue;
         const want = addon ? Math.min(it.pack, it.target - it.stock) : Math.min(Math.floor(budget), it.target - it.stock);
@@ -463,7 +473,8 @@
     if (soldN > 0) s.pcRel += (soldW / soldN - s.pcRel) * Math.min(1, soldN * 0.05);
 
     // games & accessories: every shopper may add on, PC buyers twice as likely
-    const attach = (1 + (served > 0 ? Math.min(1, pcExp / served) : 0)) * (1 + d.upsell) * ADDON_SCALE;
+    const pcShare = served > 0 ? Math.min(1, pcExp / served) : 0;
+    const attach = (1 + pcShare) * (1 + d.upsell) * ADDON_SCALE;
     const addLive = served > 0 ? items.filter((i) => (i.kind === 'game' || i.kind === 'acc') && i.stock > 0) : [];
     if (addLive.length) {
       CS.GROUPS.forEach((grp) => {
@@ -489,6 +500,12 @@
     }
 
     if (CS.M) CS.M.tick(s, d, items, dt);
+
+    // consoles, console games and accessories (their own demand model and platform market)
+    if (CS.Con) {
+      revenue += CS.Con.sell(s, d, items, Math.min(d.lambda, d.serve), pcShare, dt, rep, events);
+      CS.Con.tick(s, dt);
+    }
 
     // safety net: never let the shop get stuck broke with empty shelves
     if (!live.length && s.stats.play - (s.bailAt || -1e9) > 600) { // at most one bailout per 10 minutes of play
@@ -588,6 +605,7 @@
     // a hard-sold PC buyer is likely to add on something from each aisle
     const extras = [];
     CS.GROUPS.forEach((grp) => {
+      if (grp.kind !== 'game' && grp.kind !== 'acc') return;
       const gi = all.filter((i) => i.group === grp.id && i.stock > 0);
       if (!gi.length) return;
       const ref = grp.ref * Math.pow(grp.grow, d.y - 1993);
@@ -634,7 +652,7 @@
     const out = {};
     items.forEach((it) => {
       const grp = it.group ? CS.GROUP_BY_ID[it.group] : null;
-      const ref = grp ? grp.ref * Math.pow(grp.grow, d.y - 1993) : undefined;
+      const ref = it.ref || (grp ? grp.ref * Math.pow(grp.grow, d.y - 1993) : undefined);
       let v = 0;
       SEG.forEach((seg) => { v += seg.share * itemWeight(seg, it.rel, it.price, d.y, ref) * (it.capF == null ? 1 : it.capF); });
       out[it.key] = v;
@@ -677,7 +695,7 @@
   const dateStr = (y) => MONTHS[Math.min(11, Math.floor((y % 1) * 12))] + ' ' + Math.floor(y);
 
   CS.E = {
-    SEG, K, ADDON_SCALE, itemWeight, popularityMap, infl, refPrice, newState, migrate, serialize, deserialize, yearOf, eraAt, eventsAt, derive,
+    SEG, K, ADDON_SCALE, isAddon, sellUnits, itemWeight, popularityMap, infl, refPrice, newState, migrate, serialize, deserialize, yearOf, eraAt, eventsAt, derive,
     partAvail, partRel, partPrice, bpInfo, designInfo, totalStock, getItems, buy, buyUnits, setTarget,
     upLevel, upCost, upUnlocked, buyUp, createBp, deleteBp, step, advance, offline, hustle, newProducts,
     newReport, checkAch, dateStr, pendingTokens, nextTokenAt, tokenAt, prestige, tokenCost, buyTokenUp, tl,

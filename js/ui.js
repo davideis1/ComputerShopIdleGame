@@ -233,7 +233,7 @@
     const defs = [
       ['cust', 'Customers / min'], ['serve', 'Checkout capacity / min'], ['sell', 'Revenue / min'],
       ['rest', 'Auto-restock / min'], ['up', 'Wages & rent / min'], ['lost', 'Walk-outs (busy)'],
-      ['sold', 'Computers sold'], ['built', 'Computers built'], ['games', 'Games sold'], ['acc', 'Accessories sold'],
+      ['sold', 'Computers sold'], ['built', 'Computers built'], ['games', 'Games sold'], ['acc', 'Accessories sold'], ['cons', 'Consoles sold'], ['cgm', 'Console games sold'],
     ];
     const grid = $('#statGrid');
     shopRefs = { cells: {} };
@@ -341,6 +341,8 @@
     setText(c.built, num(S.stats.built));
     setText(c.games, num(S.stats.soldGames));
     setText(c.acc, num(S.stats.soldAcc));
+    setText(c.cons, num(S.stats.soldConsoles || 0));
+    setText(c.cgm, num((S.stats.soldCGames || 0) + (S.stats.soldCAcc || 0)));
 
     renderAdvisor(d, items);
 
@@ -358,7 +360,7 @@
   /* ---------- STOCK tab ---------- */
   /* ---------- list filters (remembered per browser) ---------- */
   const FILT_KEY = 'csig-filters';
-  const FILT = { cat: { age: 'all', shelf: 'all', sort: 'new', group: 'all', q: '' }, bp: { f: 'all', sort: 'new' }, up: { f: 'all' }, hq: { f: 'all' }, tro: { f: 'all' } };
+  const FILT = { cat: { age: 'all', shelf: 'all', sort: 'new', group: 'all', q: '', ctype: 'all', plat: 'all' }, bp: { f: 'all', sort: 'new' }, up: { f: 'all' }, hq: { f: 'all' }, tro: { f: 'all' } };
   try { const o = JSON.parse(localStorage.getItem(FILT_KEY) || '{}'); Object.keys(FILT).forEach((k) => Object.assign(FILT[k], o[k] || {})); } catch (e) { /* defaults */ }
   const fget = (path) => { const [a, b] = path.split('.'); return FILT[a][b]; };
   function fset(path, v) {
@@ -374,7 +376,7 @@
       if (document.activeElement !== el && el.value !== fget(el.dataset.flt)) el.value = fget(el.dataset.flt);
     });
   }
-  const isCurrent = (it) => it.buyable && (it.kind === 'game' ? it.age <= 1.5 : it.kind === 'acc' ? it.age <= 4 : it.age <= 2);
+  const isCurrent = (it) => it.buyable && (it.kind === 'game' || it.kind === 'cgame' ? it.age <= 1.5 : it.kind === 'acc' || it.kind === 'cacc' ? it.age <= 4 : it.kind === 'console' ? it.age <= 3 : it.age <= 2);
   const CAT_SORTS = {
     new: (a, b) => a.age - b.age || a.price - b.price,
     pop: (a, b) => (popNorm[b.key] || 0) - (popNorm[a.key] || 0),
@@ -391,13 +393,16 @@
     $('#tab-catalog').innerHTML = `
       <div class="panel"><div class="title"><span>Stock Room</span><span id="catCap" class="num"></span></div>
         <div class="pbody">
-          <div class="chips" id="catChips"><button data-act="catfilter" data-f="pre" class="on">🖥️ Computers</button><button data-act="catfilter" data-f="game">💿 Games</button><button data-act="catfilter" data-f="acc">🖱️ Accessories</button></div>
+          <div class="chips" id="catChips"><button data-act="catfilter" data-f="pre" class="on">🖥️ Computers</button><button data-act="catfilter" data-f="game">💿 Games</button><button data-act="catfilter" data-f="acc">🖱️ Accessories</button><button data-act="catfilter" data-f="con">🎮 Consoles</button></div>
           <div class="bar"><i id="catBar"></i></div>
           <div class="ftools">
             <div class="frow"><small>Age</small>${chipRow('cat.age', [['all', 'All'], ['current', 'Current'], ['old', 'Older']])}</div>
             <div class="frow"><small>Shelf</small>${chipRow('cat.shelf', [['all', 'All'], ['stocked', 'In stock'], ['empty', 'Not stocked']])}</div>
             <div class="frow">${selectEl('cat.sort', [['new', 'Newest first'], ['pop', 'Most popular'], ['profit', 'Profit per sale'], ['margin', 'Margin %'], ['cheap', 'Price: low to high'], ['pricey', 'Price: high to low'], ['stock', 'Most in stock'], ['name', 'Name A–Z']], 'Sort')}
               <label class="fsel" id="grpSel"><small>Group</small><select data-flt="cat.group" id="grpSelect"></select></label></div>
+            <div class="frow" id="conSel" hidden>
+              <label class="fsel"><small>Show</small><select data-flt="cat.ctype"><option value="all">Everything</option><option value="console">Consoles</option><option value="cgame">Console games</option><option value="cacc">Console accessories</option></select></label>
+              <label class="fsel"><small>Platform</small><select data-flt="cat.plat" id="platSelect"></select></label></div>
             <input type="text" data-flt="cat.q" placeholder="Search name or brand…" id="catSearch" autocomplete="off">
           </div>
           <div class="field"><label><span>Pricing policy (all retail items)</span><b id="priceLbl"></b></label>
@@ -405,6 +410,7 @@
           <small id="clerkNote"></small>
         </div></div>
       <div id="catNotice"></div>
+      <div class="panel" id="conMarket" hidden><div class="title">Console market</div><div class="pbody" id="conMarketBody"></div></div>
       <div class="empty-note" id="catEmpty" hidden>Nothing matches these filters.</div>
       <div class="list two" id="catList"></div>`;
     $('#priceAdj').addEventListener('input', (e) => { S.priceAdj = +e.target.value / 100; });
@@ -412,8 +418,9 @@
   function ageTag(it) {
     if (!it.buyable) return 'Clearance';
     if (it.age < 0.7) return 'New!';
-    if (it.kind === 'game') return it.age > 1.5 ? 'Bargain bin' : 'Current';
-    if (it.kind === 'acc') return it.age > 4 ? 'Older model' : 'Current';
+    if (it.kind === 'game' || it.kind === 'cgame') return it.age > 1.5 ? 'Bargain bin' : 'Current';
+    if (it.kind === 'acc' || it.kind === 'cacc') return it.age > 4 ? 'Older model' : 'Current';
+    if (it.kind === 'console') return it.limited ? 'Launch' : it.age > 3 ? 'Older model' : 'Current';
     if (it.age > 4) return 'Old stock';
     if (it.age > 2) return 'Aging';
     return 'Current';
@@ -447,14 +454,17 @@
   let popNorm = {};
   function updateItemCard(n, it, d, clerk) {
     setText(n.nm, (it.brand ? it.brand + ' ' : '') + it.name);
-    const addon = it.kind === 'game' || it.kind === 'acc';
-    setText(n.sub, addon ? (it.kind === 'acc' ? CS.GROUP_BY_ID[it.group].name + ' · ' : 'PC game · ') + it.def.year : it.def.year + ' model');
+    const addon = E.isAddon(it.kind);
+    const con = it.kind === 'console' || it.kind === 'cgame' || it.kind === 'cacc';
+    setText(n.sub, it.kind === 'console' ? it.brand + ' · ' + it.def.year : it.kind === 'cgame' ? 'Game · ' + it.def.year : it.kind === 'cacc' ? CS.GROUP_BY_ID[it.group].name + ' · ' + it.def.year : addon ? (it.kind === 'acc' ? CS.GROUP_BY_ID[it.group].name + ' · ' : 'PC game · ') + it.def.year : it.def.year + ' model');
     setText(n.age, ageTag(it));
     n.age.classList.toggle('new', it.age < 0.7 && it.buyable);
-    setText(n.perf, (addon ? 'Hype ' : 'Performance ') + Math.round(it.rel * 100) + '%');
+    setText(n.perf, (it.kind === 'console' ? 'Appeal ' : addon ? 'Hype ' : 'Performance ') + Math.round(it.rel * 100) + '%');
     setText(n.pop, '🔥 Demand ' + Math.round(((popNorm[it.key] || 0) * 100)) + '%');
-    n.extra.hidden = it.kind !== 'game';
+    n.extra.hidden = !(it.kind === 'game' || con);
     if (it.kind === 'game') setText(n.extra, it.capF >= 0.95 ? '✅ Runs on your PCs' : it.capF >= 0.5 ? '⚠️ Marginal on your PCs' : '🚫 Too demanding for your PCs');
+    else if (it.kind === 'console') setText(n.extra, it.limited ? '🔥 Launch frenzy · max ' + it.allocCap + ' per order window' : it.hype > 0.3 ? '🔥 Still hot' : (CS.PLAT_BY_ID[it.plat].hand ? '🕹️ Handheld' : '🎮 Home console'));
+    else if (con) setText(n.extra, '👥 ' + Math.round((it.owners || 0) * 100) + '% of shoppers own ' + CS.PLAT_BY_ID[it.plat].name);
     if (addon && n.buy2.dataset.n !== String(it.pack)) { n.buy2.dataset.n = String(it.pack); setText(n.buy2, '+' + it.pack); }
     setText(n.pp, money(it.price));
     setText(n.cc, money(it.cost));
@@ -469,6 +479,12 @@
       else if (b.dataset.act === 'tgt') setDis(b, !clerk || !it.buyable);
     });
   }
+  const STATUS_LABEL = { launching: '🔥 Launching', peak: '⭐ Peak', fading: '↘ Fading', legacy: '🕰️ Legacy' };
+  function renderConMarket(d) {
+    const rows = CS.Con.market(S, d).filter((m) => m.share > 0.004 || m.base > 0.5).slice(0, 9);
+    setHtml($('#conMarketBody'), '<small>Console games and accessories sell to people who own that platform. The more of its consoles you sell, the more of your shoppers (and repeat buyers) own one.</small>' +
+      rows.map((m) => `<div class="cmrow"><span class="cmn">${esc(m.plat.name)}</span><span class="cmst">${STATUS_LABEL[m.status] || ''}</span><div class="bar cmbar" title="Share of shoppers who own it"><i style="width:${Math.min(100, m.share * 400)}%"></i></div><span class="cmv num">${(m.share * 100).toFixed(0)}% own · your base ${num(m.base)} · loyalty ${Math.round(m.loyalty * 100)}%</span></div>`).join(''));
+  }
   function renderCatalog(d, items) {
     const total = E.totalStock(S);
     setText($('#catCap'), total + ' / ' + d.cap + ' shelf spaces');
@@ -479,11 +495,12 @@
     const clerk = (S.up.clerk || 0) + (S.up.warehouse || 0) + (S.up.robot || 0) > 0;
     setText($('#clerkNote'), clerk ? 'Higher prices = more profit per sale but fewer buyers. Lower prices attract bargain hunters.' : 'Hire a Stock Clerk in Upgrades to unlock auto-restocking.');
     $$('#catChips button').forEach((b) => b.classList.toggle('on', b.dataset.f === catFilter));
-    const unlocked = catFilter === 'pre' || (catFilter === 'game' ? d.aisleGame : d.aisleAcc);
-    const aisle = CS.UP_BY_ID[catFilter === 'game' ? 'aisle_games' : 'aisle_acc'];
+    const unlocked = catFilter === 'pre' || (catFilter === 'game' ? d.aisleGame : catFilter === 'con' ? d.aisleConsole : d.aisleAcc);
+    const aisle = CS.UP_BY_ID[catFilter === 'game' ? 'aisle_games' : catFilter === 'con' ? 'aisle_console' : 'aisle_acc'];
     setHtml($('#catNotice'), unlocked ? '' : `<div class="panel"><div class="pbody"><b>${aisle.icon} ${esc(aisle.name)}</b><div>${esc(aisle.desc)}</div><button class="primary" data-act="up" data-id="${aisle.id}" ${S.cash < aisle.base ? 'disabled' : ''}>Open for ${money(aisle.base)}</button></div></div>`);
     // filters & sorting
-    const kindItems = items.filter((i) => i.kind === catFilter);
+    const kindsFor = { pre: ['pre'], game: ['game'], acc: ['acc'], con: ['console', 'cgame', 'cacc'] }[catFilter];
+    const kindItems = items.filter((i) => kindsFor.includes(i.kind));
     const pop = E.popularityMap(kindItems, d);
     const maxPop = {}; // demand is compared within a group (a keyboard against other keyboards)
     kindItems.forEach((i) => { const g = i.group || ''; maxPop[g] = Math.max(maxPop[g] || 1e-9, pop[i.key]); });
@@ -495,6 +512,14 @@
       if (gs._sig !== sig) { gs._sig = sig; gs.innerHTML = '<option value="all">All groups</option>' + CS.GROUPS.filter((g) => g.kind === 'acc').map((g) => `<option value="${g.id}">${g.icon} ${esc(g.name)}</option>`).join(''); }
     }
     $('#grpSel').hidden = catFilter !== 'acc';
+    $('#conSel').hidden = catFilter !== 'con';
+    $('#conMarket').hidden = catFilter !== 'con' || !d.aisleConsole;
+    if (catFilter === 'con') {
+      const ps = $('#platSelect');
+      const sig = CS.PLATFORMS.filter((p) => p.year <= d.y).map((p) => p.id).join();
+      if (ps._sig !== sig) { ps._sig = sig; ps.innerHTML = '<option value="all">All platforms</option>' + CS.PLATFORMS.filter((p) => p.year <= d.y).map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join(''); }
+      renderConMarket(d);
+    }
     const F = FILT.cat, q = F.q.trim().toLowerCase();
     const sort = CAT_SORTS[F.sort] || CAT_SORTS.new;
     const list = kindItems.filter((i) => {
@@ -503,6 +528,8 @@
       if (F.shelf === 'stocked' && !(i.stock > 0 || i.target > 0)) return false;
       if (F.shelf === 'empty' && (i.stock > 0 || i.target > 0)) return false;
       if (catFilter === 'acc' && F.group !== 'all' && i.group !== F.group) return false;
+      if (catFilter === 'con' && F.ctype !== 'all' && i.kind !== F.ctype) return false;
+      if (catFilter === 'con' && F.plat !== 'all' && i.plat !== F.plat) return false;
       if (q && !(i.brand + ' ' + i.name).toLowerCase().includes(q)) return false;
       return true;
     }).sort((a, b) => (b.buyable - a.buyable) || sort(a, b, pop));
@@ -533,6 +560,7 @@
       { k: 'maxPrice', t: 'num', l: 'Max unit price ($, 0 = no limit)', min: 0 },
       { k: 'blocked', t: 'chips', l: 'Never buy from (tap to block)', hide: ['bp'] },
       { k: 'groups', t: 'chips', l: 'Only these groups (none selected = all)', only: ['acc'] },
+      { k: 'platforms', t: 'chips', l: 'Only these platforms (none selected = all)', only: ['con'] },
     ] },
     { grp: 'Trends & pricing', ctl: [
       { k: 'sensitivity', t: 'range', l: 'Trend sensitivity', min: 0, max: 100, step: 5, f: (v) => (v < 34 ? 'slow & steady' : v < 67 ? 'moderate' : 'quick to react') },
@@ -550,6 +578,7 @@
     if (!brandCache[cat]) {
       const set = new Set();
       if (cat === 'pre') CS.PRODUCTS.forEach((p) => set.add(p.brand));
+      else if (cat === 'con') CS.PLATFORMS.forEach((p) => set.add(p.maker));
       else CS.ADDONS.filter((a) => a.kind === cat).forEach((a) => set.add(a.brand));
       brandCache[cat] = Array.from(set).sort();
     }
@@ -612,7 +641,8 @@
         box.appendChild(node(`<div class="mgSkill" data-skill="${sk.id}"><div><b>${sk.icon} ${sk.name}</b> <small class="sklv"></small><div class="bar"><i></i></div><small>${esc(sk.desc)}</small></div><button class="small" data-act="mgtrain" data-cat="${c.id}" data-skill="${sk.id}"></button></div>`));
       });
       // chips
-      const bl = $('[data-mc="' + mcId(c.id, 'blocked') + '"]'), gr = $('[data-mc="' + mcId(c.id, 'groups') + '"]');
+      const bl = $('[data-mc="' + mcId(c.id, 'blocked') + '"]'), gr = $('[data-mc="' + mcId(c.id, 'groups') + '"]'), pf = $('[data-mc="' + mcId(c.id, 'platforms') + '"]');
+      if (pf) pf.innerHTML = CS.PLATFORMS.map((p) => `<button data-act="mcchip" data-mc="${mcId(c.id, 'platforms')}" data-v="${p.id}">${esc(p.name)}</button>`).join('');
       if (bl) bl.innerHTML = brandsOf(c.id).map((b) => `<button data-act="mcchip" data-mc="${mcId(c.id, 'blocked')}" data-v="${esc(b)}">${esc(b)}</button>`).join('');
       if (gr) gr.innerHTML = CS.GROUPS.filter((g) => g.kind === 'acc').map((g) => `<button data-act="mcchip" data-mc="${mcId(c.id, 'groups')}" data-v="${g.id}">${g.icon} ${esc(g.name)}</button>`).join('');
     });
@@ -650,7 +680,7 @@
       if (!mg) {
         const need = $('.mgNeed', mgEl);
         need.hidden = avail;
-        if (!avail) setText(need, c.id === 'bp' ? 'Needs the Build Workshop.' : c.id === 'game' ? 'Needs the Software Aisle.' : 'Needs the Accessories Wall.');
+        if (!avail) setText(need, c.id === 'bp' ? 'Needs the Build Workshop.' : c.id === 'game' ? 'Needs the Software Aisle.' : c.id === 'con' ? 'Needs the Console Corner.' : 'Needs the Accessories Wall.');
         const cands = avail ? M.candidates(S, c.id) : [];
         syncList($('.mgCands', mgEl), cands.map((x, i) => Object.assign({ idx: i }, x)), (x) => x.name, candCard, (cn, x) => {
           const tr = CS.MGR_TRAITS[x.trait];
@@ -898,7 +928,7 @@
       case 'build': return '+' + num(v) + ' PCs/s';
       case 'cap': return '+' + v + ' shelf spaces';
       case 'disc': return '-' + (v * 100).toFixed(1) + '% costs';
-      case 'aisle_game': case 'aisle_acc': case 'office': return '';
+      case 'aisle_game': case 'aisle_acc': case 'aisle_console': case 'office': return '';
       case 'loyal': return '+' + Math.round(v * 100) + '% customers';
       case 'night': return '+' + v + 'h offline';
       case 'serveMult': case 'buildMult': return '+' + Math.round(v * 100) + '%';
@@ -1087,6 +1117,8 @@
       <tr><td>Computers built</td><td>${num(st.built)}</td></tr>
       <tr><td>Games sold</td><td>${num(st.soldGames)}</td></tr>
       <tr><td>Accessories sold</td><td>${num(st.soldAcc)}</td></tr>
+      <tr><td>Consoles sold</td><td>${num(st.soldConsoles || 0)}</td></tr>
+      <tr><td>Console games & accessories sold</td><td>${num((st.soldCGames || 0) + (st.soldCAcc || 0))}</td></tr>
       <tr><td>Hustles</td><td>${num(st.hustles)}</td></tr>
       <tr><td>Franchises opened</td><td>${num(S.meta.resets)}</td></tr>
       <tr><td>Offline limit</td><td>${d.offlineCap / 3600}h</td></tr></table>`);
@@ -1374,7 +1406,7 @@
       const agg = {};
       events.forEach((ev) => {
         if (ev.bailout) { toast('🏦 Out of cash! The bank lent you <b>' + money(ev.bailout) + '</b> to restock.'); return; }
-        const addon = ev.it.kind === 'game' || ev.it.kind === 'acc';
+        const addon = E.isAddon(ev.it.kind);
         const key = addon ? 'addons' : ev.it.key;
         const a = agg[key] || (agg[key] = { name: addon ? 'Games & accessories' : ev.it.name, k: 0, rev: 0, addon });
         a.k += ev.k; a.rev += ev.rev;
