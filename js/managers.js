@@ -16,6 +16,14 @@
     { id: 'game', name: 'PC Games', icon: '💿', kinds: ['game'], needs: 'aisleGame', tab: 'game' },
     { id: 'acc', name: 'Accessories', icon: '🖱️', kinds: ['acc'], needs: 'aisleAcc', tab: 'acc' },
     { id: 'con', name: 'Consoles', icon: '🎮', kinds: ['console', 'cgame', 'cacc'], needs: 'aisleConsole', tab: 'con' },
+    // not a stock buyer: designs custom-PC blueprints from market demand (see designTick)
+    { id: 'design', name: 'PC Designer', icon: '📐', kinds: [], needs: 'workshop', tab: 'pre', designer: true,
+      skillNames: { forecast: 'Market sense', negotiate: 'Engineering', logistics: 'Throughput' },
+      skillDescs: {
+        forecast: 'Reads the market. Lv2 lets the designer set prices automatically, Lv4 waits out parts that are about to be replaced.',
+        negotiate: '+1% quality on every custom PC you build per level.',
+        logistics: 'Faster design cycles and more concepts considered each round.',
+      } },
   ];
   const CAT = {};
   CS.MGR_CATS.forEach((c) => (CAT[c.id] = c));
@@ -49,7 +57,35 @@
     margin: { label: 'Margin hunter', desc: 'Only stocks products with healthy margins.', cfg: { priority: 'margin', coverage: 2.5, safety: 15, sensitivity: 50, testSize: 2, mdOn: false, minMargin: 25, age: 'current' } },
   };
 
-  const defaults = (cat) => ({
+  /* ---------- PC designer ---------- */
+  const DESIGN_EVERY = 150; // seconds between design rounds at Throughput 0
+  // part tier per slot for each concept ('I' = integrated graphics, 'F' = free OS where allowed)
+  const ARCH = {
+    office: { name: 'Office', t: { case: 'Budget', cpu: 'Budget', ram: 'Budget', storage: 'Budget', gpu: 'I', os: 'Standard' } },
+    budget: { name: 'Budget', t: { case: 'Budget', cpu: 'Budget', ram: 'Budget', storage: 'Budget', gpu: 'Budget', os: 'F' } },
+    value: { name: 'Value', t: { case: 'Budget', cpu: 'Standard', ram: 'Standard', storage: 'Budget', gpu: 'Budget', os: 'Standard' } },
+    standard: { name: 'Standard', t: { case: 'Standard', cpu: 'Standard', ram: 'Standard', storage: 'Standard', gpu: 'Standard', os: 'Standard' } },
+    gamer: { name: 'Gamer', t: { case: 'Standard', cpu: 'Standard', ram: 'Standard', storage: 'Standard', gpu: 'Premium', os: 'Standard' } },
+    creator: { name: 'Creator', t: { case: 'Standard', cpu: 'Premium', ram: 'Premium', storage: 'Premium', gpu: 'Standard', os: 'Standard' } },
+    power: { name: 'Power', t: { case: 'Standard', cpu: 'Premium', ram: 'Premium', storage: 'Premium', gpu: 'Premium', os: 'Standard' } },
+    flagship: { name: 'Flagship', t: { case: 'Premium', cpu: 'Premium', ram: 'Premium', storage: 'Premium', gpu: 'Premium', os: 'Premium' } },
+  };
+  const ARCH_ORDER = ['standard', 'value', 'gamer', 'budget', 'power', 'office', 'creator', 'flagship'];
+  CS.DESIGN_ARCH = ARCH;
+  CS.DESIGN_PRESETS = {
+    demand: { label: 'Follow demand', desc: 'Designs whatever the model says will earn the most.', cfg: { tiers: ['Budget', 'Standard', 'Premium'], diversity: 0.85, maxDesigns: 4 } },
+    budget: { label: 'Bargain bin', desc: 'Affordable machines for the volume crowd.', cfg: { tiers: ['Budget', 'Standard'], diversity: 0.85, maxDesigns: 3 } },
+    premium: { label: 'High end', desc: 'Standard and Premium parts only, for enthusiasts.', cfg: { tiers: ['Standard', 'Premium'], diversity: 0.85, maxDesigns: 3 } },
+    range: { label: 'Full range', desc: 'Spreads designs across the price ladder.', cfg: { tiers: ['Budget', 'Standard', 'Premium'], diversity: 0.4, maxDesigns: 6 } },
+  };
+  const designDefaults = () => ({
+    on: true, preset: 'demand', tiers: ['Budget', 'Standard', 'Premium'], diversity: 0.85, maxDesigns: 4, reserveSlots: 0,
+    priceMode: 'auto', fixedMarkup: 0.6, minMarkup: 0.25, maxMarkup: 1.5, minMargin: 0, maxBuildCost: 0,
+    allowIgp: true, allowFree: true, refreshAge: 3, autoRetire: true, setTargets: true, coverage: 3, reserveCash: 0,
+    namePrefix: '', log: true, pins: {},
+  });
+
+  const defaults = (cat) => cat === 'design' ? designDefaults() : ({
     on: true, preset: 'balanced', priority: 'balanced',
     coverage: { pre: 3, bp: 3, game: 4, acc: 5, con: 4 }[cat], safety: 20, maxSkus: cat === 'acc' ? 14 : cat === 'con' ? 12 : 6,
     reserveCash: 0, maxOrderPct: 50, maxSpacePct: { pre: 60, bp: 30, game: 20, acc: 30, con: 25 }[cat],
@@ -81,7 +117,7 @@
 
   /* ---------- hooks used by the engine ---------- */
   function derive(s, d) {
-    const out = { office: d.office, cats: {}, wages: 0, count: 0 };
+    const out = { office: d.office, cats: {}, wages: 0, count: 0, designBonus: 0 };
     const infl = wageInfl(d.y);
     const wageF = Math.max(0.2, 1 - 0.08 * E.tl(s, 't_mgr_wage')); // HQ: Loyalty Bonuses
     CS.MGR_CATS.forEach((c) => {
@@ -97,6 +133,7 @@
       };
       out.wages += mg.wage * infl * wageF;
       out.count++;
+      if (c.designer && cfg.on && d.workshop) out.designBonus = 0.01 * eff.negotiate;
     });
     return out;
   }
@@ -321,6 +358,156 @@
     for (const k in s.vel) if (now - s.vel[k].t > 7200) delete s.vel[k];
   }
 
+  /* ---------- the designer's round ---------- */
+  const markupGrid = (lo, hi, step) => { const o = []; for (let m = lo; m <= hi + 1e-9; m += step) o.push(Math.round(m * 100) / 100); return o; };
+  const newestPart = (slot, tier, y) => CS.PARTS.filter((p) => p.slot === slot && !p.rolling && p.tier === tier && E.partAvail(p, y)).sort((a, b) => b.year - a.year)[0];
+
+  function conceptParts(arch, cfg, y) {
+    const parts = {};
+    for (const sl of CS.SLOTS) {
+      let want = ARCH[arch].t[sl.id], p = null;
+      if (want === 'I') p = cfg.allowIgp ? CS.PART_BY_ID.gpu_igp : null;
+      else if (want === 'F') p = cfg.allowFree ? CS.PART_BY_ID.os_free : null;
+      if (want === 'I') want = 'Budget';
+      if (want === 'F') want = 'Standard';
+      if (!p) {
+        if (!cfg.tiers.includes(want) && !(sl.id === 'os' || sl.id === 'case')) {
+          // the allowed tier closest to the one the concept asks for
+          const order = ['Budget', 'Standard', 'Premium'];
+          const allowed = order.filter((x) => cfg.tiers.includes(x));
+          if (!allowed.length) return null;
+          want = allowed.reduce((a, b) => (Math.abs(order.indexOf(b) - order.indexOf(want)) < Math.abs(order.indexOf(a) - order.indexOf(want)) ? b : a));
+        }
+        p = newestPart(sl.id, want, y);
+      }
+      if (!p) return null;
+      parts[sl.id] = p.id;
+    }
+    return parts;
+  }
+  const partsKey = (parts) => CS.SLOTS.map((sl) => parts[sl.id]).join('|');
+
+  /** Modelled profit per second of a PC lineup (same demand model the shop sells with). */
+  function lineupProfit(set, d, served) {
+    const rates = modelRates(set, d, served, 0.6);
+    let sum = 0;
+    for (const i of set) sum += (rates[i.key] || 0) * (i.price - i.cost);
+    return { sum, rates };
+  }
+  const virt = (key, info, markup, name) => ({ key, kind: 'bp', name, rel: info.rel, cost: info.cost, price: info.cost * (1 + markup), canBuild: true, stock: 0, target: 0 });
+
+  function bestMarkup(cand, base, d, served, cfg, grid) {
+    let best = null;
+    const before = lineupProfit(base, d, served).sum;
+    for (const mk of grid) {
+      if (cfg.minMargin > 0 && (mk / (1 + mk)) * 100 < cfg.minMargin) continue;
+      const it = Object.assign({}, cand, { price: cand.cost * (1 + mk) });
+      const gain = lineupProfit(base.concat([it]), d, served).sum - before;
+      if (!best || gain > best.gain) best = { markup: mk, gain, rate: 0 };
+    }
+    return best;
+  }
+
+  function designTick(s, d, items, mg, cfg, m) {
+    const now = s.stats.play;
+    const eff = m.eff, L = eff.logistics;
+    const served = Math.max(0.05, Math.min(d.lambda, d.serve));
+    const own = s.bps.filter((b) => b.by === 'designer');
+    const grid = markupGrid(Math.max(0, cfg.minMarkup), Math.max(cfg.minMarkup, cfg.maxMarkup), Math.max(0.05, 0.25 - 0.02 * L));
+    const autoPrice = cfg.priceMode === 'auto' && eff.forecast >= 2;
+    const ageOf = (b) => d.y - Math.max.apply(null, CS.SLOTS.filter((sl) => !CS.PART_BY_ID[b.parts[sl.id]].rolling).map((sl) => CS.PART_BY_ID[b.parts[sl.id]].year));
+
+    // 1. retire designs that are discontinued or stale
+    const bpItem = (b) => items.find((i) => i.key === 'b:' + b.id);
+    own.forEach((b) => {
+      const it = bpItem(b);
+      const dead = it && !it.canBuild;
+      const stale = ageOf(b) > cfg.refreshAge;
+      if (!dead && !(stale && s.bps.length >= d.benchSlots - cfg.reserveSlots)) return;
+      b.target = 0;
+      if (cfg.autoRetire && !(s.stock['b:' + b.id] > 0)) {
+        if (cfg.pins[b.id] === 'pin') return;
+        E.deleteBp(s, b.id);
+        note(mg, cfg, now, 'ret' + b.id, '🗑️ Retired ' + b.name + (dead ? ' (parts discontinued)' : ' (' + ageOf(b).toFixed(1) + ' years old)') + '.', 60);
+      } else if (dead) note(mg, cfg, now, 'sell' + b.id, '⏳ ' + b.name + ' is discontinued. Selling off the last units.', 900);
+    });
+
+    // 2. the lineup the designs compete in
+    const live = s.bps.filter((b) => b.by === 'designer' && bpItem(b) && bpItem(b).canBuild);
+    const market = items.filter((i) => (i.kind === 'pre' && (i.stock > 0 || i.target > 0)) || (i.kind === 'bp' && i.canBuild && !live.some((b) => 'b:' + b.id === i.key) && (i.stock > 0 || i.target > 0)));
+    const lineup = () => market.concat(live.map((b) => { const it = bpItem(b); return it ? Object.assign({}, it, { price: E.bpInfo(b, d).price }) : null; }).filter(Boolean));
+
+    // 3. keep prices tuned to the market
+    if (autoPrice) {
+      live.forEach((b) => {
+        if (cfg.pins[b.id] === 'pin') return;
+        const others = lineup().filter((i) => i.key !== 'b:' + b.id);
+        const info = E.bpInfo(b, d);
+        const best = bestMarkup(virt('b:' + b.id, info, 0, b.name), others, d, served, cfg, grid);
+        if (best && Math.abs(best.markup - b.markup) >= 0.05) {
+          const next = Math.round((b.markup + (best.markup - b.markup) * 0.5) * 100) / 100; // ease toward the target
+          note(mg, cfg, now, 'px' + b.id, '🏷️ Repriced ' + b.name + ' to +' + Math.round(next * 100) + '% markup.', 600);
+          b.markup = clamp(next, 0, 2);
+        }
+      });
+    }
+
+    // 4. design something new if there is room and it earns its keep
+    const free = d.benchSlots - cfg.reserveSlots - s.bps.length;
+    let created = null, bestCand = null;
+    const waitGen = eff.forecast >= 4 && CS.PARTS.some((p) => !p.rolling && p.year > d.y && p.year <= d.y + 0.3);
+    if (live.length < cfg.maxDesigns && free > 0 && !waitGen) {
+      const base = lineup();
+      const before = lineupProfit(base, d, served).sum;
+      const have = new Set(s.bps.map((b) => partsKey(b.parts)));
+      const cnt = Math.min(ARCH_ORDER.length, 3 + Math.floor(L / 2));
+      const ownedArch = new Set(live.map((b) => b.arch));
+      ARCH_ORDER.slice(0, cnt).forEach((a) => {
+        const parts = conceptParts(a, cfg, d.y);
+        if (!parts || have.has(partsKey(parts))) return;
+        const info = E.bpInfo({ parts, markup: 0 }, d);
+        if (cfg.maxBuildCost && info.cost > cfg.maxBuildCost) return;
+        const cand = virt('b:new', info, 0, a);
+        const mks = autoPrice ? grid : [clamp(cfg.fixedMarkup, 0, 2)];
+        const best = bestMarkup(cand, base, d, served, cfg, mks);
+        if (!best) return;
+        const fee = designFee(info.cost);
+        let gain = best.gain * (ownedArch.has(a) ? cfg.diversity : 1);
+        if (gain <= before * 0.02 + 1e-9) return;
+        if (!bestCand || gain > bestCand.gain) bestCand = { a, parts, markup: best.markup, gain, fee, info };
+      });
+      if (bestCand && s.cash - cfg.reserveCash >= bestCand.fee) {
+        const nm = ((cfg.namePrefix ? cfg.namePrefix + ' ' : '') + ARCH[bestCand.a].name + ' ' + Math.floor(d.y) + '-' + (s.bpSeq)).slice(0, 28);
+        const r = E.createBp(s, nm, bestCand.parts, bestCand.markup);
+        if (r.ok) {
+          s.cash -= bestCand.fee;
+          r.bp.by = 'designer'; r.bp.arch = bestCand.a; r.bp.born = now;
+          mg.stats.ordered++; mg.stats.spent += bestCand.fee;
+          created = r.bp;
+          live.push(r.bp);
+          note(mg, cfg, now, 'new' + r.bp.id, '📐 Designed ' + nm + ' (' + ARCH[bestCand.a].name + ', +' + Math.round(bestCand.markup * 100) + '% markup, design fee $' + Math.round(bestCand.fee) + ').', 5);
+        }
+      } else if (bestCand) note(mg, cfg, now, 'fee', '💸 Next design (' + ARCH[bestCand.a].name + ') needs $' + Math.round(bestCand.fee) + ' for the design fee.', 900);
+      else if (!live.length) note(mg, cfg, now, 'none', '🤔 No design beats the current lineup yet.', 1800);
+    } else if (waitGen && live.length < cfg.maxDesigns) note(mg, cfg, now, 'wait', '⏳ A new parts generation is imminent. Holding off on new designs.', 1800);
+    else if (free <= 0 && live.length < cfg.maxDesigns) note(mg, cfg, now, 'slots', '🪑 No free blueprint slots. Buy a Design Bench or free one up.', 1800);
+
+    // 5. plan: how many of each to keep on the shelf
+    const hasBuyer = d.mgr.cats.bp && d.mgr.cats.bp.on;
+    const rates = lineupProfit(lineup(), d, served).rates;
+    const plan = [];
+    live.forEach((b) => {
+      const v = rates['b:' + b.id] || 0;
+      const target = Math.ceil(v * cfg.coverage * 60 * 1.2);
+      if (cfg.setTargets && !hasBuyer && cfg.pins[b.id] !== 'pin') b.target = v * cfg.coverage * 60 * 1.2 < 0.4 ? 0 : target;
+      plan.push({ k: 'b:' + b.id, name: b.name, t: hasBuyer ? (b.target || 0) : (cfg.setTargets ? b.target : 0), v: v * 60, tr: null, why: ARCH[b.arch] ? ARCH[b.arch].name : 'design' });
+    });
+    mg.plan = plan;
+    mg.planT = now;
+    mg.stance = '';
+  }
+  function designFee(cost) { return 12 * cost; }
+
   function tick(s, d, items, dt) {
     if (!d.mgr || !d.mgr.count) return;
     CS.MGR_CATS.forEach((c) => {
@@ -328,6 +515,13 @@
       if (!m || !m.on) return;
       const mg = s.mgr[c.id];
       mg.tAcc = (mg.tAcc || 0) + dt;
+      if (c.designer) {
+        if (mg.tAcc >= DESIGN_EVERY / (1 + 0.25 * m.eff.logistics) || mg.planT == null) {
+          mg.tAcc = 0;
+          designTick(s, d, items, mg, cfgOf(s, c.id), m);
+        }
+        return;
+      }
       if (mg.tAcc >= DECIDE_EVERY || mg.planT == null) {
         mg.tAcc = 0;
         decide(s, d, items, c, mg, cfgOf(s, c.id), m);
@@ -340,7 +534,7 @@
     if (!d.mgr || !d.mgr.count) return 0;
     let spent = 0;
     CS.MGR_CATS.forEach((c) => {
-      if (c.id === 'bp') return; // custom PCs are built by technicians; the manager only plans how many
+      if (c.id === 'bp' || c.designer) return; // custom PCs are built by technicians; the manager only plans how many
       const m = d.mgr.cats[c.id];
       if (!m || !m.on) return;
       const mg = s.mgr[c.id], cfg = cfgOf(s, c.id);
@@ -412,7 +606,7 @@
     if (!s.mgrCfg[catId]) { // first hire in this category: start from the trait's favourite preset
       const cfg = defaults(catId);
       s.mgrCfg[catId] = cfg;
-      applyPreset(s, catId, CS.MGR_TRAITS[c.trait].preset || 'balanced');
+      applyPreset(s, catId, CAT[catId].designer ? 'demand' : CS.MGR_TRAITS[c.trait].preset || 'balanced');
     }
     cfgOf(s, catId).on = true;
     (s.mgr[catId].log).unshift({ t: s.stats.play, txt: '👋 ' + c.name + ' joins as ' + CAT[catId].name + ' buyer.' });
@@ -449,9 +643,10 @@
     return true;
   }
   function applyPreset(s, catId, presetId) {
-    const p = CS.MGR_PRESETS[presetId];
+    const p = (CAT[catId].designer ? CS.DESIGN_PRESETS : CS.MGR_PRESETS)[presetId];
     if (!p) return;
     const cfg = cfgOf(s, catId);
+    if (CAT[catId].designer) { Object.assign(cfg, JSON.parse(JSON.stringify(p.cfg)), { preset: presetId }); return; }
     const base = defaults(catId);
     const o = Object.assign({}, p.cfg);
     if (o.coverage == null) o.coverage = base.coverage;
@@ -462,8 +657,16 @@
     const cfg = cfgOf(s, catId);
     if (!(key in cfg) || key === 'pins') return;
     cfg[key] = val;
-    if (key !== 'on' && key !== 'preset' && key !== 'log' && key !== 'reserveCash' && key !== 'maxOrderPct' && key !== 'maxSpacePct' && key !== 'maxSkus' && key !== 'blocked' && key !== 'groups' && key !== 'maxPrice' && key !== 'maxAge' && key !== 'anticipate' && key !== 'preBuy') cfg.preset = 'custom';
+    if (key !== 'on' && key !== 'preset' && key !== 'log' && key !== 'reserveCash' && key !== 'maxOrderPct' && key !== 'maxSpacePct' && key !== 'maxSkus' && key !== 'blocked' && key !== 'groups' && key !== 'maxPrice' && key !== 'maxAge' && key !== 'anticipate' && key !== 'preBuy' && !CAT[catId].designer) cfg.preset = 'custom';
+    if (CAT[catId].designer && ['tiers', 'diversity', 'maxDesigns'].includes(key)) cfg.preset = 'custom';
     if (key === 'preset') applyPreset(s, catId, val);
+  }
+  /** Hand an auto-designed blueprint over to the player (the designer leaves it alone). */
+  function takeOver(s, bpId) {
+    const b = s.bps.find((x) => x.id === bpId);
+    if (!b) return false;
+    delete b.by; delete b.arch;
+    return true;
   }
   function setPin(s, catId, key, mode) {
     const cfg = cfgOf(s, catId);
@@ -474,7 +677,7 @@
 
   CS.M = {
     init, derive, decorate, noteSale, velocity, tick, restock, candidates, hire, fire, refresh, train, applyPreset, setCfg, setPin,
-    cfgOf, defaults, bonusFor, refreshCost, trainCost, available, effSkills, wageFor, MAX_LEVEL, wageInfl, DECIDE_EVERY,
+    designFee, takeOver, cfgOf, defaults, bonusFor, refreshCost, trainCost, available, effSkills, wageFor, MAX_LEVEL, wageInfl, DECIDE_EVERY,
   };
   if (typeof module !== 'undefined') module.exports = CS;
 })(typeof window !== 'undefined' ? window : globalThis);

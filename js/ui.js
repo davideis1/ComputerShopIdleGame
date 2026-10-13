@@ -573,6 +573,37 @@
     ] },
     { grp: 'Reports', ctl: [{ k: 'log', t: 'toggle', l: 'Keep a notebook of decisions' }] },
   ];
+  const DESIGN_SPEC = [
+    { grp: 'Strategy', ctl: [
+      { k: 'preset', t: 'select', l: 'Preset', o: () => Object.entries(CS.DESIGN_PRESETS).map(([v, p]) => [v, p.label]).concat([['custom', 'Custom (your own settings)']]) },
+      { k: 'maxDesigns', t: 'range', l: 'Designs to keep at once', min: 1, max: 'bench', step: 1, f: (v) => v },
+      { k: 'reserveSlots', t: 'range', l: 'Keep blueprint slots free for me', min: 0, max: 'bench', step: 1, f: (v) => (v ? v + ' slot' + (v > 1 ? 's' : '') : 'none') },
+      { k: 'tiers', t: 'chips', l: 'Part tiers to use (tap to toggle)' },
+      { k: 'diversity', t: 'range', l: 'Appetite for a second design of the same kind', min: 0, max: 1, step: 0.05, f: (v) => (v >= 0.85 ? 'happy to' : v >= 0.5 ? 'sometimes' : 'avoid') },
+    ] },
+    { grp: 'Pricing', ctl: [
+      { k: 'priceMode', t: 'select', l: 'Pricing', o: [['auto', 'Follow the market (needs Market sense 2)'], ['fixed', 'Fixed markup']] },
+      { k: 'fixedMarkup', t: 'range', l: 'Fixed markup', min: 0, max: 1.5, step: 0.05, f: (v) => '+' + Math.round(v * 100) + '%' },
+      { k: 'minMarkup', t: 'range', l: 'Lowest markup to try', min: 0, max: 1.5, step: 0.05, f: (v) => '+' + Math.round(v * 100) + '%' },
+      { k: 'maxMarkup', t: 'range', l: 'Highest markup to try', min: 0, max: 2, step: 0.05, f: (v) => '+' + Math.round(v * 100) + '%' },
+      { k: 'minMargin', t: 'range', l: 'Minimum margin', min: 0, max: 60, step: 5, f: (v) => (v ? v + '%' : 'any') },
+      { k: 'maxBuildCost', t: 'num', l: 'Max build cost per PC ($, 0 = no limit)', min: 0 },
+    ] },
+    { grp: 'Parts & stock', ctl: [
+      { k: 'allowIgp', t: 'toggle', l: 'Use integrated graphics in cheap designs' },
+      { k: 'allowFree', t: 'toggle', l: 'Use the free OS in budget designs' },
+      { k: 'setTargets', t: 'toggle', l: 'Set auto-build targets (unless a Custom Builds buyer is on duty)' },
+      { k: 'coverage', t: 'range', l: 'Stock cover', min: 0.5, max: 20, step: 0.5, f: (v) => v + ' min of sales' },
+      { k: 'reserveCash', t: 'num', l: 'Never pay a design fee below ($)', min: 0 },
+      { k: 'refreshAge', t: 'range', l: 'Replace designs older than', min: 1, max: 6, step: 0.5, f: (v) => v + ' years (when slots are needed)' },
+      { k: 'autoRetire', t: 'toggle', l: 'Delete obsolete designs once sold out' },
+    ] },
+    { grp: 'Reports', ctl: [
+      { k: 'namePrefix', t: 'text', l: 'Name prefix for new designs', maxlength: 12 },
+      { k: 'log', t: 'toggle', l: 'Keep a notebook of decisions' },
+    ] },
+  ];
+  const specFor = (cat) => (CS.MGR_CATS.find((c) => c.id === cat).designer ? DESIGN_SPEC : MC_SPEC);
   const brandCache = {};
   function brandsOf(cat) {
     if (!brandCache[cat]) {
@@ -599,6 +630,7 @@
       case 'select': return lab(`<select ${id}></select>`);
       case 'range': return lab(`<input type="range" ${id} min="${c.min}" step="${c.step}">`);
       case 'num': return lab(`<input type="text" inputmode="numeric" ${id}>`);
+      case 'text': return lab(`<input type="text" maxlength="${c.maxlength || 20}" data-txt="1" ${id}>`);
       case 'toggle': return `<label class="check mc" data-row="${mcId(cat, c.k)}"><input type="checkbox" ${id}> <span>${esc(c.l)}</span><small class="mcreq"></small></label>`;
       case 'chips': return lab(`<div class="chips mcchips" ${id}></div>`);
     }
@@ -613,7 +645,7 @@
           <div class="grid" id="bySum"></div>
           <div class="row mgAll"><button class="small" data-act="mgcollapseall" data-v="1">Collapse all</button><button class="small" data-act="mgcollapseall" data-v="0">Expand all</button></div></div></div>`;
     CS.MGR_CATS.forEach((c) => {
-      html += `<div class="panel mgr" id="mg-${c.id}" data-cat="${c.id}"><div class="title"><span>${c.icon} ${esc(c.name)} buyer</span><span class="mgTitleR"><span class="mgName"></span><button class="small mgtoggle" data-act="mgcollapse" data-cat="${c.id}" aria-label="Collapse or expand ${esc(c.name)} buyer">▾</button></span></div><div class="mgSummary" hidden></div><div class="pbody">
+      html += `<div class="panel mgr" id="mg-${c.id}" data-cat="${c.id}"><div class="title"><span>${c.icon} ${esc(c.name)}${c.designer ? '' : ' buyer'}</span><span class="mgTitleR"><span class="mgName"></span><button class="small mgtoggle" data-act="mgcollapse" data-cat="${c.id}" aria-label="Collapse or expand ${esc(c.name)}">▾</button></span></div><div class="mgSummary" hidden></div><div class="pbody">
         <div class="mgVacant">
           <div class="alert warn mgNeed" hidden></div>
           <div class="list mgCands"></div>
@@ -624,8 +656,8 @@
           <div class="grid mgStats"></div>
           <div class="alert mgStance" hidden></div>
           <h4 class="mgh">Skills</h4><div class="mgSkills"></div>
-          <h4 class="mgh">This week's plan</h4><div class="mgPlan"></div>`;
-      MC_SPEC.forEach((g) => {
+          <h4 class="mgh">${c.designer ? 'Current designs' : "This week's plan"}</h4><div class="mgPlan"></div>`;
+      specFor(c.id).forEach((g) => {
         const ctls = g.ctl.filter((x) => (!x.hide || !x.hide.includes(c.id)) && (!x.only || x.only.includes(c.id)));
         if (!ctls.length) return;
         html += `<details class="mgd"${g.grp === "Strategy" ? " open" : ""}><summary>${esc(g.grp)}</summary><div class="mgdb">${ctls.map((x) => ctlHtml(c.id, x)).join('')}</div></details>`;
@@ -645,12 +677,15 @@
     // skills rows
     CS.MGR_CATS.forEach((c) => {
       const box = $('#mg-' + c.id + ' .mgSkills');
-      CS.MGR_SKILLS.forEach((sk) => {
-        box.appendChild(node(`<div class="mgSkill" data-skill="${sk.id}"><div><b>${sk.icon} ${sk.name}</b> <small class="sklv"></small><div class="bar"><i></i></div><small>${esc(sk.desc)}</small></div><button class="small" data-act="mgtrain" data-cat="${c.id}" data-skill="${sk.id}"></button></div>`));
+      CS.MGR_SKILLS.forEach((sk0) => {
+        const sk = Object.assign({}, sk0, { name: (c.skillNames || {})[sk0.id] || sk0.name, desc: (c.skillDescs || {})[sk0.id] || sk0.desc });
+        box.appendChild(node(`<div class="mgSkill" data-skill="${sk.id}"><div><b>${sk.icon} ${esc(sk.name)}</b> <small class="sklv"></small><div class="bar"><i></i></div><small>${esc(sk.desc)}</small></div><button class="small" data-act="mgtrain" data-cat="${c.id}" data-skill="${sk.id}"></button></div>`));
       });
       // chips
       const bl = $('[data-mc="' + mcId(c.id, 'blocked') + '"]'), gr = $('[data-mc="' + mcId(c.id, 'groups') + '"]'), pf = $('[data-mc="' + mcId(c.id, 'platforms') + '"]');
       if (pf) pf.innerHTML = CS.PLATFORMS.map((p) => `<button data-act="mcchip" data-mc="${mcId(c.id, 'platforms')}" data-v="${p.id}">${esc(p.name)}</button>`).join('');
+      const tc = $('[data-mc="' + mcId(c.id, 'tiers') + '"]');
+      if (tc) tc.innerHTML = ['Budget', 'Standard', 'Premium'].map((x) => `<button data-act="mcchip" data-mc="${mcId(c.id, 'tiers')}" data-v="${x}">${x}</button>`).join('');
       if (bl) bl.innerHTML = brandsOf(c.id).map((b) => `<button data-act="mcchip" data-mc="${mcId(c.id, 'blocked')}" data-v="${esc(b)}">${esc(b)}</button>`).join('');
       if (gr) gr.innerHTML = CS.GROUPS.filter((g) => g.kind === 'acc').map((g) => `<button data-act="mcchip" data-mc="${mcId(c.id, 'groups')}" data-v="${g.id}">${g.icon} ${esc(g.name)}</button>`).join('');
     });
@@ -673,7 +708,7 @@
     const rs = shopRefs.by;
     let n = 0, ordered = 0, saved = 0;
     CS.MGR_CATS.forEach((c) => { const mg = S.mgr[c.id]; if (mg) { n++; ordered += mg.stats.ordered; saved += mg.stats.saved; } });
-    setText(rs.mgrs, n + ' / 4'); setText(rs.orders, num(ordered)); setText(rs.saved, money(saved)); setText(rs.wages, money(d.mgr.wages * 60));
+    setText(rs.mgrs, n + ' / ' + CS.MGR_CATS.length); setText(rs.orders, num(ordered)); setText(rs.saved, money(saved)); setText(rs.wages, money(d.mgr.wages * 60));
     setText($('#byWages'), n ? 'Wages ' + money(d.mgr.wages * 60) + '/min' : '');
     const byKey = {};
     items.forEach((i) => (byKey[i.key] = i));
@@ -700,7 +735,7 @@
       if (!mg) {
         const need = $('.mgNeed', mgEl);
         need.hidden = avail;
-        if (!avail) setText(need, c.id === 'bp' ? 'Needs the Build Workshop.' : c.id === 'game' ? 'Needs the Software Aisle.' : c.id === 'con' ? 'Needs the Console Corner.' : 'Needs the Accessories Wall.');
+        if (!avail) setText(need, c.id === 'bp' || c.designer ? 'Needs the Build Workshop.' : c.id === 'game' ? 'Needs the Software Aisle.' : c.id === 'con' ? 'Needs the Console Corner.' : 'Needs the Accessories Wall.');
         const cands = avail ? M.candidates(S, c.id) : [];
         syncList($('.mgCands', mgEl), cands.map((x, i) => Object.assign({ idx: i }, x)), (x) => x.name, candCard, (cn, x) => {
           const tr = CS.MGR_TRAITS[x.trait];
@@ -708,7 +743,7 @@
           setText(cn.ic, tr.icon);
           setText(cn.nm, x.name + ' — ' + tr.name);
           setText(cn.tr, tr.desc);
-          setHtml(cn.st, CS.MGR_SKILLS.map((sk) => `<span>${sk.icon} ${x.skills[sk.id]}</span>`).join(''));
+          setHtml(cn.st, CS.MGR_SKILLS.map((sk) => `<span title="${esc((c.skillNames || {})[sk.id] || sk.name)}">${sk.icon} ${x.skills[sk.id]}</span>`).join(''));
           setText(cn.wg, 'Wage ' + money(x.wage * M.wageInfl(d.y) * 60) + '/min · signing bonus ' + money(bonus));
           cn.btn.dataset.cat = c.id; cn.btn.dataset.idx = String(x.idx);
           setText(cn.btn, bonus ? 'Hire for ' + money(bonus) : 'Hire (no signing bonus)');
@@ -726,11 +761,11 @@
       if (document.activeElement !== onBox) onBox.checked = !!cfg.on;
       const st = $('.mgStats', mgEl);
       if (!st._built) {
-        [['ord', 'Units ordered'], ['spent', 'Spent'], ['saved', 'Saved (deals)'], ['plan', 'Products planned']].forEach(([id, l]) => st.appendChild(node(`<div class="mini" data-s="${id}"><small>${l}</small><b class="num">–</b></div>`)));
+        (c.designer ? [['ord', 'Designs made'], ['spent', 'Design fees'], ['saved', 'Quality bonus'], ['plan', 'Active designs']] : [['ord', 'Units ordered'], ['spent', 'Spent'], ['saved', 'Saved (deals)'], ['plan', 'Products planned']]).forEach(([id, l]) => st.appendChild(node(`<div class="mini" data-s="${id}"><small>${l}</small><b class="num">–</b></div>`)));
         st._built = true;
       }
       const sv = (id, v) => setText($('[data-s=' + id + '] b', st), v);
-      sv('ord', num(mg.stats.ordered)); sv('spent', money(mg.stats.spent)); sv('saved', money(mg.stats.saved)); sv('plan', String(mg.plan.length));
+      sv('ord', num(mg.stats.ordered)); sv('spent', money(mg.stats.spent)); sv('saved', c.designer ? '+' + (m.eff.negotiate) + '%' : money(mg.stats.saved)); sv('plan', String(mg.plan.length));
       const stance = $('.mgStance', mgEl);
       stance.hidden = !(cfg.on && mg.stance);
       if (!stance.hidden) { stance.className = 'alert mgStance warn'; setText(stance, mg.stance === 'prebuy' ? '🛒 Buying ahead of a price spike.' : '⏳ Holding back while prices are inflated.'); }
@@ -751,26 +786,28 @@
         return `<div class="mgp"><span class="mgpn">${esc(p.name)}</span><span class="mgpv num">${it ? it.stock : 0} / ${p.t}</span><span class="mgpt">${trendArrow(p.tr)} ${esc(p.why)} · ${p.v.toFixed(p.v < 10 ? 1 : 0)}/min</span></div>`;
       }).join('') : (cfg.on ? '<div class="empty-note">Nothing worth stocking yet. Loosen the filters or wait for new products.</div>' : '')));
       // controls
-      MC_SPEC.forEach((g) => g.ctl.forEach((x) => {
+      specFor(c.id).forEach((g) => g.ctl.forEach((x) => {
         const sel = '[data-mc="' + mcId(c.id, x.k) + '"]';
         const el = $(sel, mgEl);
         if (!el) return;
         const row = el.closest('.mc');
         const v = cfg[x.k];
         const locked = x.req && m.eff[x.req[0]] < x.req[1];
-        if (row) { const rq = $('.mcreq', row); setText(rq, locked ? '🔒 Needs ' + CS.MGR_SKILLS.find((s) => s.id === x.req[0]).name + ' ' + x.req[1] : ''); }
+        if (row) { const rq = $('.mcreq', row); setText(rq, locked ? '🔒 Needs ' + ((c.skillNames || {})[x.req[0]] || CS.MGR_SKILLS.find((s) => s.id === x.req[0]).name) + ' ' + x.req[1] : ''); }
         if (x.t === 'select') {
           const opts = typeof x.o === 'function' ? x.o() : x.o;
           const sig = opts.map((o) => o[0]).join();
           if (el._sig !== sig) { el._sig = sig; el.innerHTML = opts.map(([val, lb]) => `<option value="${val}">${esc(lb)}</option>`).join(''); }
           if (document.activeElement !== el && el.value !== String(v)) el.value = String(v);
         } else if (x.t === 'range') {
-          const max = x.max === 'skus' ? m.maxSkus : x.max;
+          const max = x.max === 'skus' ? m.maxSkus : x.max === 'bench' ? d.benchSlots : x.max;
           el.max = String(max);
           if (document.activeElement !== el) el.value = String(Math.min(v, max));
           setText($('.mcv', row), x.f(Math.min(v, max)));
         } else if (x.t === 'num') {
           if (document.activeElement !== el) el.value = String(v || 0);
+        } else if (x.t === 'text') {
+          if (document.activeElement !== el) el.value = v || '';
         } else if (x.t === 'toggle') {
           el.checked = !!v && !locked; setDis(el, locked);
         } else if (x.t === 'chips') {
@@ -857,7 +894,7 @@
     const el = node(`<div class="card" data-id="${bp.id}" data-key="b:${bp.id}">
       <div class="icon">🛠️</div>
       <div class="info"><b class="nm"></b><small class="spec"></small>
-        <div class="tags"><span class="tag t-perf"></span><span class="tag t-warn" hidden>⚠ Parts discontinued</span></div>
+        <div class="tags"><span class="tag t-perf"></span><span class="tag t-warn" hidden>⚠ Parts discontinued</span><span class="tag t-auto" hidden>📐 Auto-designed</span></div>
         <div class="nums"><span>Cost <b class="cc num"></b></span><span>Price <b class="pp num"></b></span><span>Profit <b class="pf num good"></b></span></div>
         <div>In stock: <b class="stk num"></b></div>
         <div class="field"><label><span>Markup</span><b class="mkl"></b></label><input type="range" class="mk" min="0" max="150" step="5" data-bp="${bp.id}"></div>
@@ -865,10 +902,11 @@
       <div class="acts">
         <div class="stepper"><span class="lbl">Auto-build to</span><button data-act="tgt" data-d="-1">−</button><b class="tg num">0</b><button data-act="tgt" data-d="1">+</button></div>
         <div class="mgrow" hidden><span class="mginfo"></span><button class="small" data-act="mgpin"></button><button class="small" data-act="mgskip"></button></div>
+        <button data-act="bpTake" data-id="${bp.id}" class="small" hidden>Take over</button>
         <button data-act="bpDel" data-id="${bp.id}" class="small">Delete</button>
       </div></div>`);
     const r = (s) => $(s, el);
-    return { el, stepper: r('.stepper'), mgrow: r('.mgrow'), mginfo: r('.mginfo'), mgpin: r('[data-act=mgpin]'), mgskip: r('[data-act=mgskip]'), nm: r('.nm'), spec: r('.spec'), perf: r('.t-perf'), warn: r('.t-warn'), cc: r('.cc'), pp: r('.pp'), pf: r('.pf'), stk: r('.stk'), tg: r('.tg'), mk: r('.mk'), mkl: r('.mkl'), del: r('[data-act=bpDel]'), btns: $$('[data-act=tgt]', el) };
+    return { el, stepper: r('.stepper'), mgrow: r('.mgrow'), mginfo: r('.mginfo'), mgpin: r('[data-act=mgpin]'), mgskip: r('[data-act=mgskip]'), nm: r('.nm'), spec: r('.spec'), perf: r('.t-perf'), warn: r('.t-warn'), auto: r('.t-auto'), take: r('[data-act=bpTake]'), cc: r('.cc'), pp: r('.pp'), pf: r('.pf'), stk: r('.stk'), tg: r('.tg'), mk: r('.mk'), mkl: r('.mkl'), del: r('[data-act=bpDel]'), btns: $$('[data-act=tgt]', el) };
   }
   function renderWorkshop(d, items) {
     const wsl = $('#wsLocked'), wsm = $('#wsMain');
@@ -896,6 +934,7 @@
       setText(n.spec, CS.SLOTS.map((sl) => CS.PART_BY_ID[bp.parts[sl.id]].name).join(' · '));
       setText(n.perf, 'Performance ' + Math.round(it.rel * 100) + '%');
       n.warn.hidden = it.canBuild;
+      n.auto.hidden = n.take.hidden = bp.by !== 'designer';
       setText(n.cc, money(it.cost)); setText(n.pp, money(it.price));
       setText(n.pf, money(it.price - it.cost));
       setText(n.stk, String(it.stock)); setText(n.tg, String(it.target));
@@ -1093,6 +1132,30 @@
   }
 
   /* ---------- MENU tab ---------- */
+  /* ---------- version & change log ---------- */
+  const VER = BOOT.version || { major: 1, minor: 0, build: 0 };
+  const verStr = () => VER.major + '.' + VER.minor + '.' + VER.build;
+  const SEEN_KEY = 'csig-seen-build';
+  const getSeen = () => { try { const v = localStorage.getItem(SEEN_KEY); return v == null ? null : +v; } catch (e) { return null; } };
+  const setSeen = (b) => { try { localStorage.setItem(SEEN_KEY, String(b)); } catch (e) { /* ignore */ } };
+  function changelogHtml(entries) {
+    return entries.map((e) => `<h4 class="mgh">${esc(e.title)} <small>v${VER.major}.${VER.minor}.${esc(e.build)} · ${esc(e.date || '')}</small></h4><ul class="clog">${(e.changes || []).map((c) => `<li>${esc(c)}</li>`).join('')}</ul>`).join('');
+  }
+  /** After an update: list what changed since the last build this device saw. */
+  function maybeShowWhatsNew(playedBefore) {
+    const log = (BOOT.changelog || []).filter((e) => typeof e.build === 'number');
+    const seen = getSeen();
+    setSeen(VER.build);
+    if (!log.length || seen === VER.build) return;
+    let fresh = seen == null ? (playedBefore ? log.slice(0, 1) : []) : log.filter((e) => e.build > seen);
+    fresh = fresh.slice(0, 5);
+    if (!fresh.length) return;
+    const open = () => {
+      if (!$('#modal').hidden && $('#modal').innerHTML) { setTimeout(open, 1500); return; } // wait for the welcome-back report
+      modal("What's new — v" + verStr(), changelogHtml(fresh), [{ label: 'Got it', cls: 'primary' }]);
+    };
+    setTimeout(open, 800);
+  }
   function buildMenu() {
     $('#tab-menu').innerHTML = `
       <div class="panel"><div class="title">Shop Settings</div><div class="pbody">
@@ -1115,7 +1178,8 @@
         </div></div></div>
       <div class="panel"><div class="title">Statistics</div><div class="pbody" id="statsBody"></div></div>
       <div class="panel"><div class="title"><span>Trophies</span><span id="achCount"></span></div><div class="pbody"><div id="troTools">${chipRow('tro.f', [['all', 'All'], ['earned', 'Earned'], ['locked', 'Locked']])}</div><div id="achBody"></div></div></div>
-      <div class="panel"><div class="title">About</div><div class="pbody"><small>Idle computer shop, 1993 → today. Every brand and product name is a made-up parody; this game is not affiliated with or endorsed by any real company. Offline progress is capped by your shop's Night Lock-Up, and the calendar crawls at 1/20 speed while you are away.</small></div></div>`;
+      <div class="panel"><div class="title"><span>About</span><span class="num" id="verLbl"></span></div><div class="pbody"><div class="menu-btns"><button data-act="changelog">📰 What's new</button></div><small>Idle computer shop, 1993 → today. Every brand and product name is a made-up parody; this game is not affiliated with or endorsed by any real company. Offline progress is capped by your shop's Night Lock-Up, and the calendar crawls at 1/20 speed while you are away.</small></div></div>`;
+    setText($('#verLbl'), 'v' + verStr());
     $('#nameIn').addEventListener('input', (e) => { S.name = e.target.value.slice(0, 30) || 'Mega Byte Computers'; });
     $('#themeSel').addEventListener('change', (e) => { saveSettings({ theme: e.target.value }); applyTheme(true); });
     $('#optTicker').addEventListener('change', (e) => saveSettings({ showTicker: e.target.checked }));
@@ -1304,6 +1368,8 @@
         else toast(esc(r.err));
         break;
       }
+      case 'changelog': modal("What's new — v" + verStr(), changelogHtml((BOOT.changelog || []).filter((e) => typeof e.build === 'number').slice(0, 8)), [{ label: 'Close' }]); break;
+      case 'bpTake': if (M.takeOver(S, t.dataset.id)) toast('✋ ' + esc((S.bps.find((b) => b.id === t.dataset.id) || {}).name || 'Blueprint') + ' is yours now.'); break;
       case 'bpDel': if (!E.deleteBp(S, t.dataset.id)) toast('Sell the remaining stock first.'); break;
       case 'save': save().then(() => toast(sync.state === 'ok' ? '☁️ Saved to your account' : '⚠️ Saved on this device only; server unreachable')); break;
       case 'logout': save().then(() => $('#logoutForm').submit()); break;
@@ -1322,6 +1388,7 @@
     if (t.type === 'checkbox') v = t.checked;
     else if (t.type === 'range') v = parseFloat(t.value);
     else if (t.tagName === 'SELECT') v = t.value;
+    else if (t.dataset.txt) v = String(t.value).replace(/[^\w \-']/g, '').slice(0, 12);
     else v = Math.max(0, parseFloat(String(t.value).replace(/[^0-9.]/g, '')) || 0);
     M.setCfg(S, cat, k, v);
     if (k === 'preset' || k === 'on') render(true);
@@ -1489,6 +1556,7 @@
       nextHeadline();
       $('#tickerText').addEventListener('animationiteration', nextHeadline);
       switchTab('shop');
+      maybeShowWhatsNew(S.stats.play > 120);
       setInterval(tick, 250);
       setInterval(save, 15000);
       document.addEventListener('visibilitychange', () => {

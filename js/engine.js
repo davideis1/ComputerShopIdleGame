@@ -181,6 +181,7 @@
     if (CS.M) {
       out.mgr = CS.M.derive(s, out);
       out.upkeep += out.mgr.wages;
+      out.customBonus += out.mgr.designBonus || 0;
     }
     return out;
   }

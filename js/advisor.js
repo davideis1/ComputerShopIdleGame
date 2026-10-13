@@ -228,13 +228,16 @@
 
     // buyers
     if (d.office && CS.M) {
-      const unstaffed = CS.MGR_CATS.filter((c) => !s.mgr[c.id] && CS.M.available(d, c.id));
+      const unstaffed = CS.MGR_CATS.filter((c) => !c.designer && !s.mgr[c.id] && CS.M.available(d, c.id));
       if (unstaffed.length) add(46, 'info', '👔', 'No buyer for ' + unstaffed.map((c) => c.name).join(', ') + '. A buyer sets stock levels and orders for you.');
+      const dz = CS.MGR_CATS.find((c) => c.designer);
+      if (dz && !s.mgr.design && CS.M.available(d, 'design') && s.bps.length < d.benchSlots) add(44, 'info', '📐', 'Hire a PC Designer (Buyers tab): it designs custom-PC blueprints from market demand, prices them and retires obsolete ones.');
+      if (s.mgr.design && s.mgrCfg.design.on && s.bps.length >= d.benchSlots && s.bps.filter((b) => b.by === 'designer').length < s.mgrCfg.design.maxDesigns) add(52, 'info', '🪑', 'The PC Designer has no free blueprint slots. Buy a Design Bench so it can add designs.');
       CS.MGR_CATS.forEach((c) => {
         const mg = s.mgr[c.id];
-        if (mg && !s.mgrCfg[c.id].on) add(54, 'warn', '😴', c.name + ' buyer ' + mg.name + ' is off duty and still being paid.');
+        if (mg && !s.mgrCfg[c.id].on) add(54, 'warn', '😴', c.name + (c.designer ? ' ' : ' buyer ') + mg.name + ' is off duty and still being paid.');
         const l = mg && mg.log && mg.log.find((x) => /budget reached/.test(x.txt) && s.stats.play - x.t < 600);
-        if (l) add(68, 'warn', '💸', c.name + ' buyer is held back by the cash reserve / order limit. Loosen it, or earn more.');
+        if (l) add(68, 'warn', '💸', c.name + ' is held back by the cash reserve / order limit. Loosen it, or earn more.');
       });
     }
 

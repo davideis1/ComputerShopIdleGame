@@ -333,3 +333,5 @@ details.mgd summary { cursor: pointer; padding: 10px; font-weight: 700; min-heig
 .mgr.collapsed .pbody { display: none; }
 .mgSummary { padding: 8px 10px; font-size: 13px; }
 .mgAll { gap: 6px; } .mgAll button { flex: 1 1 100px; }
+.tag.t-auto { background: #c8e6ff; color: #000; }
+.clog { margin: 4px 0 8px 18px; padding: 0; } .clog li { margin: 2px 0; }

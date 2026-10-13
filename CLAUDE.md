@@ -1,0 +1,58 @@
+# CLAUDE.md — Computer Shop Idle Game
+
+Working notes for this project. **Keep this file up to date**: add a line to the Change log whenever a feature merges, and update the relevant section when architecture, balance numbers or conventions change.
+
+## What this is
+An idle shop game (desktop + mobile): run a computer shop from 1993 to today. Parody brand/product names only (never real ones). Start with name-brand prebuilts, later design and build custom PCs, sell games/accessories, consoles, hire buyers, franchise for tokens. Saving and offline progress are hard requirements. Hosted on PHP + MariaDB (user's host).
+
+## Repo & workflow
+- GitHub: `davideis1/ComputerShopIdleGame`, default branch **`Main`** (not master). Always branch off latest `origin/Main`.
+- Work on a feature branch, push, open a **draft** PR against `Main`. If a stacked PR's base merges and its branch is deleted, GitHub closes it — rebase onto `Main` and open a new PR.
+- Commit trailers: `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>` and `Claude-Session: <session url>`. PR bodies end with the "Generated with Claude Code" line + session URL.
+- The user likes: a quick summary at the end, an offer to subscribe to the PR for review comments.
+
+## Layout
+- `index.php` — game shell (script order matters: data, addons, engine, consoles, managers, advisor, ui). `login/register/logout/account.php`, `inc/` (shared PHP: db, session, CSRF).
+- `api/` — `load.php`, `save.php` (rev-checked), `settings.php`, `reset.php`. `sql/` schema, `tools/install.php` applies it.
+- `js/data.js` parts/products/upgrades/HQ token upgrades/achievements/events. `js/addons.js` games & accessories. `js/engine.js` core simulation. `js/consoles.js` console gaming. `js/managers.js` buyers + PC Designer. `js/advisor.js` Shop Advisor. `js/ui.js` all rendering.
+- `sw.js` service worker caches static assets only (bump `CACHE` when assets change shape). `style.css`, `manifest.json`, `icon.svg`.
+- `tools/` headless checks: `sim.js` (balance bot), `mgr-check.js`, `design-check.js`, `console-check.js`, `advisor-check.js`, `custom-check.js`, `api-smoke.js` (needs php server + DB). Playwright e2e scripts live in the session scratchpad (not committed); they drive the real UI against `php -S 127.0.0.1:8124`.
+
+## Architecture notes
+- **Client-side simulation**: vanilla JS, step-based; the same `step()` runs online and for offline catch-up (server time used for offline duration). State is a plain object (`E.newState/serialize/deserialize`); engine modules attach via `CS.*` hooks (`CS.M`, `CS.Con`, `CS.Advisor`).
+- **Saves**: server is source of truth with a `rev` check; `last_tab` column exempts same-tab reloads from conflict prompts; localStorage keeps a backup. Game data (parts, products…) stays in JS files — moving it into the DB was considered and deliberately skipped.
+- **Calendar**: 420 s per game year (slowed from the original).
+- **Demand model**: 3 customer segments (budget .45 / main .40 / enthusiast .15) via `E.itemWeight(seg, rel, price, y, ref)`; purchase probability `min(.95, 1-exp(-tot/K))`, `K=0.8`; add-on attach scaled by `ADDON_SCALE=0.6`; games gated by PC capability (`pcRel`); console platform market shares + installed base; launch hype/allocation. Managers and the Designer reuse the same model (`modelRates`) to forecast.
+- **Economy balance**: per-era payback derivation; add-ons and consoles each ~11–17% of revenue; token curve `floor(4*sqrt(R/2e8) - 3)`. Re-run `node tools/sim.js` after touching economy numbers.
+- **Franchise/HQ**: reset to claim Franchise Tokens (late game), spend on persistent HQ upgrades (`t_*` ids, including buyer upgrades `t_mgr*`).
+- **Managers** (`js/managers.js`): categories `pre, bp, game, acc, con` + `design`. Skills forecast/negotiate/logistics, traits, presets, per-category cfg, velocity EMAs, `decide()` every 15 s, own order budget, wages in upkeep, pins/skips from the Stock tab, notebook log.
+- **PC Designer** (`design` category, `designTick`): picks among 8 concepts using modelled profit gain over the current lineup; auto-prices (Market sense ≥2), sets targets when no Custom Builds buyer, retires obsolete designs, design fee = 12× unit cost; Engineering adds `0.01*level` to `customBonus`. Blueprints it creates carry `bp.by='designer'` (Workshop shows tag + "Take over").
+
+## Versioning & change log popup
+- `version.json` (`major.minor.build`): the build number auto-increments on **every commit** via `.githooks/pre-commit` -> `tools/bump-version.js`. Enable once per clone: `git config core.hooksPath .githooks` (the hook does nothing if not enabled; run `node tools/bump-version.js` by hand before a deploy). Bump `major`/`minor` by hand for big releases. If two branches both bump, resolve the `version.json` conflict by taking the higher build and bumping again.
+- `changelog.json`: player-facing release notes, newest first. **For every feature/fix, add an entry with `"build": "next"`**; the hook stamps it with the real build number and date on commit. Friendly wording, one short line per change.
+- `index.php` injects both files into `window.CSIG` (`version`, `changelog`). `maybeShowWhatsNew` in `js/ui.js` pops up entries newer than `localStorage['csig-seen-build']` (max 5) after launch, waits for the welcome-back report to close, and shows only the latest entry to existing players on first run. Menu -> About shows the version and a "What's new" button.
+
+## Gotchas
+- Restock/build accumulators must be capped with `Math.max(6, rate*dt*2)`, not a fixed small number, or fast shops stall.
+- UI lists use `syncList` keyed diffing; only disable `tgt` buttons on cards (pin/skip buttons are separate).
+- Number formatting rollover (`num()` must not print "1000K").
+- Closed `<details>` hide controls from Playwright — open them in tests; wait for init after reloads.
+- Sandbox: MariaDB/php servers die between turns. Restart: `mysqld_safe --bind-address=127.0.0.1 &`, `php -S 127.0.0.1:8124 -t . &`, then `php tools/install.php`. Clean smoke users with `DELETE FROM users WHERE username LIKE "smoke%"`.
+
+## Change log (newest first)
+Developer-facing log; the player-facing one is `changelog.json`.
+- **#12 (open draft)** also: version number + auto-increment hook, What's new popup.
+- **#12 (open draft)** PC Designer buyer; `tools/design-check.js`; Advisor hints; Buyers stat `n / 6`; this file.
+- **#11** Collapsible buyer panels (state in localStorage).
+- **#10** Console gaming: consoles, console games/accessories, generations with launch events, Console Corner upgrade, Stock filter, Consoles buyer.
+- **#9** Shop Advisor box on the shop summary (upgrade suggestions + insights).
+- **#8** HQ buyer upgrades (`t_mgr*`).
+- **#7/#6** Purchasing managers (one per category, many settings).
+- **#5** List filters (current vs old, popularity, etc.).
+- **#3** (replaced stacked #4) Games & accessories; slower calendar; Franchise Tokens/HQ.
+- **#2/#1** Balance pass; PHP + MariaDB accounts, saves, settings; game core.
+
+## Ideas / not done
+- Game data in the database (decided to skip for now).
+- Balance pass on the economy with the Designer active (only checked for sanity, not tuned).

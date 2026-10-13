@@ -1,0 +1,4 @@
+#!/bin/sh
+# Auto-increment the build number on every commit (see tools/bump-version.js).
+root=$(git rev-parse --show-toplevel)
+node "$root/tools/bump-version.js" && git add "$root/version.json" "$root/changelog.json"

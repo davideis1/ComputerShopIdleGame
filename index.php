@@ -21,6 +21,8 @@ $boot = [
     'elapsed' => $row ? max(0, time() - (int) $row['server_saved_at']) : 0,
     'settings' => load_settings((int) $user['id']),
     'base' => base_url(),
+    'version' => json_decode((string) @file_get_contents(__DIR__ . '/version.json'), true) ?: ['major' => 1, 'minor' => 0, 'build' => 0],
+    'changelog' => json_decode((string) @file_get_contents(__DIR__ . '/changelog.json'), true) ?: [],
 ];
 // JSON_HEX_* keeps user-entered text (shop name, blueprint names) from breaking out of the script tag.
 $bootJson = json_encode($boot, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_PARTIAL_OUTPUT_ON_ERROR);
