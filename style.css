@@ -324,3 +324,12 @@ details.mgd summary { cursor: pointer; padding: 10px; font-weight: 700; min-heig
 .cmrow .cmst { text-align: right; font-size: 12px; }
 .cmrow .cmbar { grid-column: 1 / -1; }
 .cmrow .cmv { grid-column: 1 / -1; font-size: 12px; color: var(--muted); }
+
+/* Collapsible buyers */
+.mgr .title { gap: 8px; }
+.mgTitleR { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.mgTitleR .mgName { font-weight: 400; font-size: 12px; opacity: .9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mgtoggle { min-height: 28px; min-width: 32px; padding: 2px 6px; }
+.mgr.collapsed .pbody { display: none; }
+.mgSummary { padding: 8px 10px; font-size: 13px; }
+.mgAll { gap: 6px; } .mgAll button { flex: 1 1 100px; }

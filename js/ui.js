@@ -584,6 +584,13 @@
     }
     return brandCache[cat];
   }
+  const MGCOL_KEY = 'csig-mgcol';
+  const mgCol = {};
+  try { Object.assign(mgCol, JSON.parse(localStorage.getItem(MGCOL_KEY) || '{}')); } catch (e) { /* defaults: all open */ }
+  function setMgCol(cat, v) {
+    mgCol[cat] = !!v;
+    try { localStorage.setItem(MGCOL_KEY, JSON.stringify(mgCol)); } catch (e) { /* ignore */ }
+  }
   const mcId = (cat, k) => cat + ':' + k;
   function ctlHtml(cat, c) {
     const id = `data-mc="${mcId(cat, c.k)}"`;
@@ -602,10 +609,11 @@
       <div class="panel" id="byLocked"><div class="title">Purchasing Office</div><div class="pbody" id="byLockedBody"></div></div>
       <div id="byMain" class="tab" hidden>
         <div class="panel"><div class="title"><span>Purchasing Office</span><span id="byWages" class="num"></span></div><div class="pbody">
-          <small>Hire a buyer for each product category. They watch sales trends, decide what to stock and how much, and place the orders themselves. Tune how each one works below, and pin or skip individual products from the Stock tab.</small>
-          <div class="grid" id="bySum"></div></div></div>`;
+          <small>Hire a buyer for each product category. They watch sales trends, decide what to stock and how much, and place the orders themselves. Tune how each one works below (collapse a buyer with its arrow to compare them), and pin or skip individual products from the Stock tab.</small>
+          <div class="grid" id="bySum"></div>
+          <div class="row mgAll"><button class="small" data-act="mgcollapseall" data-v="1">Collapse all</button><button class="small" data-act="mgcollapseall" data-v="0">Expand all</button></div></div></div>`;
     CS.MGR_CATS.forEach((c) => {
-      html += `<div class="panel mgr" id="mg-${c.id}" data-cat="${c.id}"><div class="title"><span>${c.icon} ${esc(c.name)} buyer</span><span class="mgName"></span></div><div class="pbody">
+      html += `<div class="panel mgr" id="mg-${c.id}" data-cat="${c.id}"><div class="title"><span>${c.icon} ${esc(c.name)} buyer</span><span class="mgTitleR"><span class="mgName"></span><button class="small mgtoggle" data-act="mgcollapse" data-cat="${c.id}" aria-label="Collapse or expand ${esc(c.name)} buyer">▾</button></span></div><div class="mgSummary" hidden></div><div class="pbody">
         <div class="mgVacant">
           <div class="alert warn mgNeed" hidden></div>
           <div class="list mgCands"></div>
@@ -677,6 +685,18 @@
       const vac = $('.mgVacant', mgEl), stf = $('.mgStaffed', mgEl);
       vac.hidden = !!mg; stf.hidden = !mg;
       setText($('.mgName', mgEl), mg ? mg.name : 'Vacant');
+      const col = !!mgCol[c.id];
+      mgEl.classList.toggle('collapsed', col);
+      setText($('.mgtoggle', mgEl), col ? '▸' : '▾');
+      const sum = $('.mgSummary', mgEl);
+      sum.hidden = !col;
+      if (col) {
+        if (!mg) setText(sum, avail ? 'No one hired yet. Expand to see candidates.' : '🔒 Not available yet.');
+        else {
+          const cf = M.cfgOf(S, c.id), tr0 = CS.MGR_TRAITS[mg.trait];
+          setText(sum, tr0.icon + ' ' + (cf.on ? 'On duty' : '😴 Off duty') + ' · ' + mg.plan.length + ' product' + (mg.plan.length === 1 ? '' : 's') + ' planned · ordered ' + num(mg.stats.ordered) + ' · saved ' + money(mg.stats.saved) + (mg.stance ? (mg.stance === 'prebuy' ? ' · 🛒 buying ahead' : ' · ⏳ holding back') : ''));
+        }
+      }
       if (!mg) {
         const need = $('.mgNeed', mgEl);
         need.hidden = avail;
@@ -1255,6 +1275,8 @@
       case 'catfilter': catFilter = t.dataset.f; break;
       case 'mghire': { const r = M.hire(S, t.dataset.cat, +t.dataset.idx); if (!r.ok) toast(esc(r.err)); else { toast('👔 Hired!'); announceAch(E.checkAch(S)); } break; }
       case 'mgrefresh': M.refresh(S, t.dataset.cat); break;
+      case 'mgcollapse': setMgCol(t.dataset.cat, !mgCol[t.dataset.cat]); break;
+      case 'mgcollapseall': CS.MGR_CATS.forEach((c) => setMgCol(c.id, t.dataset.v === '1')); break;
       case 'mgtrain': M.train(S, t.dataset.cat, t.dataset.skill); break;
       case 'mgfire': confirmFire(t.dataset.cat); break;
       case 'mgpin': case 'mgskip': {
