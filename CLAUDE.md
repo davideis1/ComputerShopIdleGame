@@ -28,6 +28,11 @@ An idle shop game (desktop + mobile): run a computer shop from 1993 to today. Pa
 - **Managers** (`js/managers.js`): categories `pre, bp, game, acc, con` + `design`. Skills forecast/negotiate/logistics, traits, presets, per-category cfg, velocity EMAs, `decide()` every 15 s, own order budget, wages in upkeep, pins/skips from the Stock tab, notebook log.
 - **PC Designer** (`design` category, `designTick`): picks among 8 concepts using modelled profit gain over the current lineup; auto-prices (Market sense ≥2), sets targets when no Custom Builds buyer, retires obsolete designs, design fee = 12× unit cost; Engineering adds `0.01*level` to `customBonus`. Blueprints it creates carry `bp.by='designer'` (Workshop shows tag + "Take over").
 
+## Versioning & change log popup
+- `version.json` (`major.minor.build`): the build number auto-increments on **every commit** via `.githooks/pre-commit` -> `tools/bump-version.js`. Enable once per clone: `git config core.hooksPath .githooks` (the hook does nothing if not enabled; run `node tools/bump-version.js` by hand before a deploy). Bump `major`/`minor` by hand for big releases. If two branches both bump, resolve the `version.json` conflict by taking the higher build and bumping again.
+- `changelog.json`: player-facing release notes, newest first. **For every feature/fix, add an entry with `"build": "next"`**; the hook stamps it with the real build number and date on commit. Friendly wording, one short line per change.
+- `index.php` injects both files into `window.CSIG` (`version`, `changelog`). `maybeShowWhatsNew` in `js/ui.js` pops up entries newer than `localStorage['csig-seen-build']` (max 5) after launch, waits for the welcome-back report to close, and shows only the latest entry to existing players on first run. Menu -> About shows the version and a "What's new" button.
+
 ## Gotchas
 - Restock/build accumulators must be capped with `Math.max(6, rate*dt*2)`, not a fixed small number, or fast shops stall.
 - UI lists use `syncList` keyed diffing; only disable `tgt` buttons on cards (pin/skip buttons are separate).
@@ -36,6 +41,8 @@ An idle shop game (desktop + mobile): run a computer shop from 1993 to today. Pa
 - Sandbox: MariaDB/php servers die between turns. Restart: `mysqld_safe --bind-address=127.0.0.1 &`, `php -S 127.0.0.1:8124 -t . &`, then `php tools/install.php`. Clean smoke users with `DELETE FROM users WHERE username LIKE "smoke%"`.
 
 ## Change log (newest first)
+Developer-facing log; the player-facing one is `changelog.json`.
+- **#12 (open draft)** also: version number + auto-increment hook, What's new popup.
 - **#12 (open draft)** PC Designer buyer; `tools/design-check.js`; Advisor hints; Buyers stat `n / 6`; this file.
 - **#11** Collapsible buyer panels (state in localStorage).
 - **#10** Console gaming: consoles, console games/accessories, generations with launch events, Console Corner upgrade, Stock filter, Consoles buyer.
