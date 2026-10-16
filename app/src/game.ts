@@ -13,10 +13,4 @@ export function tick(s: GameState, dt: number) {
   return events;
 }
 
-/** Offline catch-up uses the same simulation in bulk (see E.offline). */
-export const offline = (s: GameState, seconds: number) => E.offline(s, seconds);
-
-export const dateLabel = (s: GameState) => {
-  const d = E.derive(s);
-  return { year: Math.floor(d.y), d };
-};
+export const year = (s: GameState): number => Math.floor(E.derive(s).y);
