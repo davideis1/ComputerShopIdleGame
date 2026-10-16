@@ -21,3 +21,12 @@ export function num(n: number): string {
   return s + SUF[i];
 }
 export const money = (n: number) => (n < 0 ? '-$' : '$') + num(Math.abs(n) < 1000 ? Math.round(Math.abs(n)) : Math.abs(n));
+
+/** Seconds as "1h 5m" / "3m 20s" / "45s" (ported from js/ui.js). */
+export function dur(sec: number): string {
+  sec = Math.round(sec);
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60);
+  if (h) return h + 'h ' + m + 'm';
+  if (m) return m + 'm ' + (sec % 60) + 's';
+  return sec + 's';
+}

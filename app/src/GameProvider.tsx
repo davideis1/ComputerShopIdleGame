@@ -12,6 +12,8 @@ type Ctx = {
   toast: string | null; // latest achievement / notice, clears itself
   hustleResult: HustleResult | null;
   hustle: () => void;
+  notify: (text: string) => void; // show a banner on whichever tab is open
+  saveNow: () => Promise<void>;
   prestige: () => number; // sell up and open a new franchise; returns the tokens gained (0 if none ready)
   away: Away;
   dismissAway: () => void;
@@ -126,6 +128,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return r.gain;
   }, [say]);
 
+  const saveNow = useCallback(async () => {
+    if (!game.current) return;
+    await saveGame(game.current);
+    sinceSave.current = 0;
+    say('💾 Saved on this device');
+  }, [say]);
+
   const reset = useCallback(async () => {
     log.current = [];
     await clearGame();
@@ -137,7 +146,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   if (!ready) return null;
   return (
-    <GameContext.Provider value={{ game: game.current, frame, refresh, log: log.current, toast, hustleResult, hustle, prestige, away, dismissAway: () => setAway(null), reset }}>
+    <GameContext.Provider value={{ game: game.current, frame, refresh, log: log.current, toast, hustleResult, hustle, prestige, notify: say, saveNow, away, dismissAway: () => setAway(null), reset }}>
       {children}
     </GameContext.Provider>
   );
