@@ -7,6 +7,7 @@ An idle shop game (desktop + mobile): run a computer shop from 1993 to today. Pa
 
 ## Repo & workflow
 - GitHub: `davideis1/ComputerShopIdleGame`, default branch **`Main`** (not master). Always branch off latest `origin/Main`.
+- **Native app work lives on the long-lived `native-mobile` branch** (React Native + Expo, iOS first, then Android). Feature branches for the app branch off `native-mobile` and their PRs target `native-mobile`, not `Main`. Periodically merge `Main` into `native-mobile` so web fixes carry over. Web-only work still branches off `Main`.
 - Work on a feature branch, push, open a **draft** PR against `Main`. If a stacked PR's base merges and its branch is deleted, GitHub closes it — rebase onto `Main` and open a new PR.
 - Commit trailers: `Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>` and `Claude-Session: <session url>`. PR bodies end with the "Generated with Claude Code" line + session URL.
 - The user likes: a quick summary at the end, an offer to subscribe to the PR for review comments.
@@ -39,6 +40,9 @@ An idle shop game (desktop + mobile): run a computer shop from 1993 to today. Pa
 - Number formatting rollover (`num()` must not print "1000K").
 - Closed `<details>` hide controls from Playwright — open them in tests; wait for init after reloads.
 - Sandbox: MariaDB/php servers die between turns. Restart: `mysqld_safe --bind-address=127.0.0.1 &`, `php -S 127.0.0.1:8124 -t . &`, then `php tools/install.php`. Clean smoke users with `DELETE FROM users WHERE username LIKE "smoke%"`.
+
+## Native app plan (`native-mobile`)
+React Native (Expo) app reusing the simulation: `engine.js`, `data.js`, `addons.js`, `consoles.js`, `managers.js`, `advisor.js` move into a DOM-free shared `core/` module (imports instead of `CS.*` globals); only `ui.js` is rewritten as native components. Backend stays PHP + MariaDB; needs bearer-token auth + CORS, an in-app delete-account endpoint, and a capped device-clock fallback for offline catch-up. Keep `tools/sim.js` and the `*-check.js` scripts working against `core/`.
 
 ## Change log (newest first)
 Developer-facing log; the player-facing one is `changelog.json`.
