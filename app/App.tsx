@@ -1,6 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef, useState } from 'react';
-import { SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { newGame, tick, dateLabel, GameState } from './src/game';
 
 const money = (n: number) => '$' + Math.round(n).toLocaleString('en-US');
@@ -25,6 +26,7 @@ export default function App() {
   const s = game.current;
   const { year } = dateLabel(s);
   return (
+    <SafeAreaProvider>
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>{s.name || 'Computer Shop'}</Text>
       <View style={styles.card}>
@@ -37,6 +39,7 @@ export default function App() {
       </View>
       <StatusBar style="light" />
     </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 
