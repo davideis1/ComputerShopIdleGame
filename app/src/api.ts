@@ -16,7 +16,12 @@ async function post<T>(path: string, body: object, token?: string | null, timeou
   const timer = setTimeout(() => ctl.abort(), timeoutMs);
   try {
     const headers: Record<string, string> = { 'content-type': 'application/json' };
-    if (token) headers.authorization = 'Bearer ' + token;
+    if (token) {
+      headers.authorization = 'Bearer ' + token;
+      // Some shared hosts (IONOS included) drop the Authorization header before PHP sees it. X-Api-Token gets through,
+      // and the server accepts either, so we send both.
+      headers['x-api-token'] = token;
+    }
     const r = await fetch(`${API_BASE}/api/${path}`, { method: 'POST', headers, body: JSON.stringify(body), signal: ctl.signal });
     let j: any = null;
     try { j = await r.json(); } catch { /* not JSON (a proxy error page, say) */ }
