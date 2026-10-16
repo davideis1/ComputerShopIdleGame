@@ -39,7 +39,7 @@ The mobile app talks to the same `save.php` / `load.php` / `settings.php` / `res
 | `api/auth_logout.php` | `{all?}` | revokes this token (or all of the account's tokens) |
 | `api/auth_delete.php` | `{password, confirm: "DELETE"}` | permanently deletes the account (required by the App Store) |
 
-Send `Authorization: Bearer <token>` on every other call (`X-Api-Token: <token>` also works, for hosts that strip `Authorization`; `.htaccess` already forwards it on Apache). No CSRF token is needed with a bearer token. Tokens last 180 days from last use, at most 10 per account (the oldest is dropped), and are revoked on logout or account deletion. Apps are not browsers, so no CORS headers are needed.
+Send the token on every other call as `Authorization: Bearer <token>` and/or `X-Api-Token: <token>`; the server accepts either. Some hosts drop `Authorization` before PHP sees it (IONOS shared hosting does, even with the `.htaccess` rule), so the app sends both. No CSRF token is needed with a bearer token. Tokens last 180 days from last use, at most 10 per account (the oldest is dropped), and are revoked on logout or account deletion. Apps are not browsers, so no CORS headers are needed.
 
 ## Local development
 ```
