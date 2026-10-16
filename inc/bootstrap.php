@@ -284,14 +284,19 @@ function login_blocked(string $username): bool
     return (int) $st->fetchColumn() >= (int) cfg('login_max_per_ip', 30);
 }
 
+/** Throttling records (username + IP) are only needed for a short window; drop anything older than a day, now and then. */
+function sweep_attempts(): void
+{
+    if (mt_rand(1, 20) === 1) {
+        db()->prepare('DELETE FROM login_attempts WHERE attempted_at < ?')->execute([time() - 86400]);
+    }
+}
+
 function login_failed(string $username): void
 {
-    $pdo = db();
-    $pdo->prepare('INSERT INTO login_attempts (username, ip, attempted_at) VALUES (?, ?, ?)')
+    db()->prepare('INSERT INTO login_attempts (username, ip, attempted_at) VALUES (?, ?, ?)')
         ->execute([$username, client_ip_bin(), time()]);
-    if (mt_rand(1, 20) === 1) { // occasional cleanup
-        $pdo->prepare('DELETE FROM login_attempts WHERE attempted_at < ?')->execute([time() - 86400]);
-    }
+    sweep_attempts();
 }
 
 /** Sign-ups per IP per hour (the API is open to anyone with the URL, so keep scripted account spam in check). */
@@ -306,6 +311,7 @@ function register_noted(): void
 {
     db()->prepare("INSERT INTO login_attempts (username, ip, attempted_at) VALUES ('@register', ?, ?)")
         ->execute([client_ip_bin(), time()]);
+    sweep_attempts();
 }
 
 /* ---------- settings ---------- */
