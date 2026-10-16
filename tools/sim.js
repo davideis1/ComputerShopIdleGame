@@ -1,8 +1,8 @@
 /* Headless balance check:  node tools/sim.js [minutes]
    A simple bot plays the economy so we can see how cash/income progress by year. */
-require('../js/data.js');
-require('../js/addons.js');
-require('../js/engine.js');
+require('../core/data.js');
+require('../core/addons.js');
+require('../core/engine.js');
 const CS = globalThis.CS;
 const E = CS.E;
 

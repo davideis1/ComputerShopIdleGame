@@ -1,6 +1,6 @@
 /* Console gaming sanity check:  node tools/console-check.js
    Coverage of the catalogue by year, platform market shares, installed-base effect on game sales, launch allocation. */
-require('../js/data.js'); require('../js/addons.js'); require('../js/engine.js'); require('../js/consoles.js'); require('../js/managers.js');
+require('../core/data.js'); require('../core/addons.js'); require('../core/engine.js'); require('../core/consoles.js'); require('../core/managers.js');
 const CS = globalThis.CS, E = CS.E, Con = CS.Con;
 const fmt = (n) => (n >= 1e6 ? (n / 1e6).toFixed(2) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'K' : n.toFixed(0));
 console.log('platforms', CS.PLATFORMS.length, '| consoles', CS.CONSOLES.length, '| games', CS.CGAMES.length, '| accessories', CS.CACCS.length);

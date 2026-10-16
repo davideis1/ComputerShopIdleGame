@@ -1,5 +1,5 @@
 /* Caches static assets only. Pages and /api/ always go to the network (they are per-user). */
-const CACHE = 'csig-v3';
+const CACHE = 'csig-v4';
 const STATIC = /\.(?:js|css|svg|json)$/;
 self.addEventListener('install', (e) => { self.skipWaiting(); });
 self.addEventListener('activate', (e) => {

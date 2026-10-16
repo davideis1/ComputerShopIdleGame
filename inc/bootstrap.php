@@ -3,7 +3,7 @@
 // Written for PHP 7.4+ and MariaDB 10.3+ (PDO, no Composer needed).
 
 define('APP_ROOT', dirname(__DIR__));
-const GAME_END_CAL = 33.8;          // keep in sync with js/data.js (C.END_CAL)
+const GAME_END_CAL = 33.8;          // keep in sync with core/data.js (C.END_CAL)
 const MAX_STATE_BYTES = 400000;     // reject absurdly large saves
 
 $__cfgFile = __DIR__ . '/config.php';

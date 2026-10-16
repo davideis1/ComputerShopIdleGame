@@ -14,9 +14,10 @@ An idle shop game (desktop + mobile): run a computer shop from 1993 to today. Pa
 - The user likes: a quick summary at the end, an offer to subscribe to the PR for review comments.
 
 ## Layout
+- `core/` — DOM-free simulation, shared by web, Node tools and the React Native app (`require('./core')`). `js/` now holds only `ui.js`.
 - `index.php` — game shell (script order matters: data, addons, engine, consoles, managers, advisor, ui). `login/register/logout/account.php`, `inc/` (shared PHP: db, session, CSRF).
 - `api/` — `load.php`, `save.php` (rev-checked), `settings.php`, `reset.php`. `sql/` schema, `tools/install.php` applies it.
-- `js/data.js` parts/products/upgrades/HQ token upgrades/achievements/events. `js/addons.js` games & accessories. `js/engine.js` core simulation. `js/consoles.js` console gaming. `js/managers.js` buyers + PC Designer. `js/advisor.js` Shop Advisor. `js/ui.js` all rendering.
+- `core/data.js` parts/products/upgrades/HQ token upgrades/achievements/events. `core/addons.js` games & accessories. `core/engine.js` core simulation. `core/consoles.js` console gaming. `core/managers.js` buyers + PC Designer. `core/advisor.js` Shop Advisor. `js/ui.js` all rendering.
 - `sw.js` service worker caches static assets only (bump `CACHE` when assets change shape). `style.css`, `manifest.json`, `icon.svg`.
 - `tools/` headless checks: `sim.js` (balance bot), `mgr-check.js`, `design-check.js`, `console-check.js`, `advisor-check.js`, `custom-check.js`, `api-smoke.js` (needs php server + DB). Playwright e2e scripts live in the session scratchpad (not committed); they drive the real UI against `php -S 127.0.0.1:8124`.
 
@@ -27,7 +28,7 @@ An idle shop game (desktop + mobile): run a computer shop from 1993 to today. Pa
 - **Demand model**: 3 customer segments (budget .45 / main .40 / enthusiast .15) via `E.itemWeight(seg, rel, price, y, ref)`; purchase probability `min(.95, 1-exp(-tot/K))`, `K=0.8`; add-on attach scaled by `ADDON_SCALE=0.6`; games gated by PC capability (`pcRel`); console platform market shares + installed base; launch hype/allocation. Managers and the Designer reuse the same model (`modelRates`) to forecast.
 - **Economy balance**: per-era payback derivation; add-ons and consoles each ~11–17% of revenue; token curve `floor(4*sqrt(R/2e8) - 3)`. Re-run `node tools/sim.js` after touching economy numbers.
 - **Franchise/HQ**: reset to claim Franchise Tokens (late game), spend on persistent HQ upgrades (`t_*` ids, including buyer upgrades `t_mgr*`).
-- **Managers** (`js/managers.js`): categories `pre, bp, game, acc, con` + `design`. Skills forecast/negotiate/logistics, traits, presets, per-category cfg, velocity EMAs, `decide()` every 15 s, own order budget, wages in upkeep, pins/skips from the Stock tab, notebook log.
+- **Managers** (`core/managers.js`): categories `pre, bp, game, acc, con` + `design`. Skills forecast/negotiate/logistics, traits, presets, per-category cfg, velocity EMAs, `decide()` every 15 s, own order budget, wages in upkeep, pins/skips from the Stock tab, notebook log.
 - **PC Designer** (`design` category, `designTick`): picks among 8 concepts using modelled profit gain over the current lineup; auto-prices (Market sense ≥2), sets targets when no Custom Builds buyer, retires obsolete designs, design fee = 12× unit cost; Engineering adds `0.01*level` to `customBonus`. Blueprints it creates carry `bp.by='designer'` (Workshop shows tag + "Take over").
 
 ## Versioning & change log popup
@@ -47,6 +48,7 @@ React Native (Expo) app reusing the simulation: `engine.js`, `data.js`, `addons.
 
 ## Change log (newest first)
 Developer-facing log; the player-facing one is `changelog.json`.
+- **native-mobile-core (draft, targets `native-mobile`)** Simulation moved from `js/` to DOM-free `core/` (+ `core/index.js` loader for Node/React Native); tools, index.php, SW cache bumped; `custom-check` fixed (it was missing addons).
 - **#12 (open draft)** also: version number + auto-increment hook, What's new popup.
 - **#12 (open draft)** PC Designer buyer; `tools/design-check.js`; Advisor hints; Buyers stat `n / 6`; this file.
 - **#11** Collapsible buyer panels (state in localStorage).

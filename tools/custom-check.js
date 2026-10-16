@@ -1,6 +1,6 @@
 /* Compares the expected profit contribution of custom rigs vs. the best prebuilts per year.
    node tools/custom-check.js */
-require('../js/data.js'); require('../js/engine.js');
+require('../core');
 const CS = globalThis.CS, E = CS.E;
 function parts(d, tiers) {
   const o = {};

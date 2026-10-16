@@ -57,7 +57,7 @@ jobs:
           base="${{ vars.SITE_URL }}"
           code() { curl -s -o /dev/null -w '%{http_code}' "$1"; }
           [ "$(code $base/login.php)" = 200 ] || { echo "login.php not 200"; exit 1; }
-          [ "$(code $base/js/engine.js)" = 200 ] || { echo "static asset not 200"; exit 1; }
+          [ "$(code $base/core/engine.js)" = 200 ] || { echo "static asset not 200"; exit 1; }
           for p in inc/bootstrap.php inc/config.php sql/schema.sql tools/install.php; do
             c=$(code $base/$p)
             [ "$c" = 403 ] || [ "$c" = 404 ] || { echo "$p exposed ($c)"; exit 1; }
