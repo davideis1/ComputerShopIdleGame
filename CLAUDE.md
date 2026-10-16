@@ -45,8 +45,15 @@ An idle shop game (desktop + mobile): run a computer shop from 1993 to today. Pa
 ## Native app plan (`native-mobile`)
 React Native (Expo) app reusing the simulation: `engine.js`, `data.js`, `addons.js`, `consoles.js`, `managers.js`, `advisor.js` move into a DOM-free shared `core/` module (imports instead of `CS.*` globals); only `ui.js` is rewritten as native components. Backend stays PHP + MariaDB; needs bearer-token auth + CORS, an in-app delete-account endpoint, and a capped device-clock fallback for offline catch-up. Keep `tools/sim.js` and the `*-check.js` scripts working against `core/`.
 
+### `app/` (Expo, SDK 58, TypeScript)
+- Run: `cd app && npm install && npx expo start --ios`. Checks: `npx tsc --noEmit`, `npx expo-doctor`, `npx expo export --platform ios` (proves Metro + Hermes can bundle `core/`).
+- `metro.config.js` watches `../core` and aliases it as `@core`; `src/game.ts` is the typed-ish wrapper over `CS.E`; `src/core.d.ts` declares the untyped module. Add packages with `npx expo install <pkg>` (SDK-compatible versions). Expo APIs change per SDK, so check https://docs.expo.dev/versions/ before using one.
+- Bundle ids: `com.davideis1.computershopidle` (iOS + Android) — placeholder, change before the first store build.
+- Not yet done: navigation (Expo Router vs. tab state), save/load, auth, real screens. Simulator launch (Expo Go) was not verified in the sandbox; the scaffold only proved typecheck + bundle.
+
 ## Change log (newest first)
 Developer-facing log; the player-facing one is `changelog.json`.
+- **native-mobile-expo (draft, targets `native-mobile-core`/`native-mobile`)** `app/` Expo scaffold: Metro reads `core/`, live-ticking proof screen.
 - **native-mobile-core (draft, targets `native-mobile`)** Simulation moved from `js/` to DOM-free `core/` (+ `core/index.js` loader for Node/React Native); tools, index.php, SW cache bumped; `custom-check` fixed (it was missing addons).
 - **#12 (open draft)** also: version number + auto-increment hook, What's new popup.
 - **#12 (open draft)** PC Designer buyer; `tools/design-check.js`; Advisor hints; Buyers stat `n / 6`; this file.
