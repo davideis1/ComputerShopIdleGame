@@ -20,6 +20,7 @@ export default function RootLayout() {
         <Tabs.Screen name="index" options={{ title: 'Shop' }} />
         <Tabs.Screen name="stock" options={{ title: 'Stock' }} />
         <Tabs.Screen name="upgrades" options={{ title: 'Upgrades' }} />
+        <Tabs.Screen name="workshop" options={{ title: 'Workshop' }} />
         <Tabs.Screen name="buyers" options={{ title: 'Buyers' }} />
         <Tabs.Screen name="menu" options={{ title: 'Menu' }} />
       </Tabs>

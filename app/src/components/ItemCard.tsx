@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ageTag, extraTag, Item, perfLabel, subtitle } from '@/stock';
+import { MgrRow } from '@/components/MgrRow';
 import { colors, money } from '@/theme';
 
 type Props = {
@@ -10,6 +11,8 @@ type Props = {
   canBuy: boolean;
   onBuy: (n: number | 'max') => void;
   onTarget: (dir: 1 | -1) => void;
+  onPin: () => void;
+  onSkip: () => void;
 };
 
 function Btn({ label, onPress, disabled }: { label: string; onPress: () => void; disabled?: boolean }) {
@@ -20,7 +23,7 @@ function Btn({ label, onPress, disabled }: { label: string; onPress: () => void;
   );
 }
 
-export const ItemCard = memo(function ItemCard({ it, pop, clerk, canBuy, onBuy, onTarget }: Props) {
+export const ItemCard = memo(function ItemCard({ it, pop, clerk, canBuy, onBuy, onTarget, onPin, onSkip }: Props) {
   const extra = extraTag(it);
   const profit = it.price - it.cost;
   return (
@@ -56,14 +59,17 @@ export const ItemCard = memo(function ItemCard({ it, pop, clerk, canBuy, onBuy, 
         <Btn label="Max" onPress={() => onBuy('max')} disabled={!canBuy} />
       </View>
 
-      <View style={styles.stepper}>
-        <Text style={styles.sub}>{clerk ? 'Auto-restock to' : '🔒 Needs Stock Clerk'}</Text>
-        <View style={styles.row}>
-          <Btn label="−" onPress={() => onTarget(-1)} disabled={!clerk || !it.buyable} />
-          <Text style={styles.target}>{it.target}</Text>
-          <Btn label="+" onPress={() => onTarget(1)} disabled={!clerk || !it.buyable} />
+      {it.mgrCat && <MgrRow it={it} onPin={onPin} onSkip={onSkip} />}
+      {!it.managed && (
+        <View style={styles.stepper}>
+          <Text style={styles.sub}>{clerk ? 'Auto-restock to' : '🔒 Needs Stock Clerk'}</Text>
+          <View style={styles.row}>
+            <Btn label="−" onPress={() => onTarget(-1)} disabled={!clerk || !it.buyable} />
+            <Text style={styles.target}>{it.target}</Text>
+            <Btn label="+" onPress={() => onTarget(1)} disabled={!clerk || !it.buyable} />
+          </View>
         </View>
-      </View>
+      )}
     </View>
   );
 });

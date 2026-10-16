@@ -14,7 +14,7 @@ export const CATS: { id: Cat; label: string }[] = [
   { id: 'acc', label: '🖱️ Accessories' },
   { id: 'con', label: '🎮 Consoles' },
 ];
-const KINDS: Record<Cat, string[]> = { pre: ['pre', 'bp'], game: ['game'], acc: ['acc'], con: ['console', 'cgame', 'cacc'] };
+const KINDS: Record<Cat, string[]> = { pre: ['pre'], game: ['game'], acc: ['acc'], con: ['console', 'cgame', 'cacc'] };
 const AISLE: Record<Exclude<Cat, 'pre'>, { id: string; flag: string }> = {
   game: { id: 'aisle_games', flag: 'aisleGame' },
   acc: { id: 'aisle_acc', flag: 'aisleAcc' },
@@ -43,7 +43,6 @@ export function subtitle(it: Item): string {
     case 'cacc': return (grp ? grp.name : 'Accessory') + ' · ' + it.def.year;
     case 'acc': return (grp ? grp.name : 'Accessory') + ' · ' + it.def.year;
     case 'game': return 'PC game · ' + it.def.year;
-    case 'bp': return 'Your design';
     default: return it.def.year + ' model';
   }
 }

@@ -3,6 +3,7 @@ import { FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } fr
 import { ItemCard } from '@/components/ItemCard';
 import { useGame } from '@/GameProvider';
 import { E } from '@/game';
+import { togglePin } from '@/workshop';
 import { Age, buildStockView, canBuy, Cat, CATS, Filters, Item, Shelf, SORTS, SortId, stepTarget } from '@/stock';
 import { colors, money } from '@/theme';
 
@@ -97,6 +98,8 @@ export default function Stock() {
           canBuy={canBuy(s, item, room)}
           onBuy={(n) => act(() => E.buy(s, item.key, n))}
           onTarget={(dir) => act(() => stepTarget(s, item, dir))}
+          onPin={() => act(() => togglePin(s, item, 'pin'))}
+          onSkip={() => act(() => togglePin(s, item, 'skip'))}
         />
       )}
     />
