@@ -1,4 +1,5 @@
 [
+  {"build":"next","title":"Era themes in the app","changes":["The app now changes look with the era: Windoze 95, Bliss, Flat and RGB. Pick one yourself in Menu → Look."]},
   {"build":8,"date":"2026-10-13","title":"PC Designer & change log","changes":["New hire in the Buyers tab: the PC Designer studies demand and designs custom-PC blueprints for you, prices them to the market and retires old ones.","Auto-designed blueprints are tagged in the Workshop; tap Take over to manage one yourself.","The game now shows its version number (Menu → About) and pops up what changed after each update."]},
   {"build":7,"date":"2026-10-12","title":"Collapsible buyers","changes":["Collapse any buyer panel to compare them easily. Your choice is remembered."]},
   {"build":6,"date":"2026-10-11","title":"Console gaming","changes":["Consoles, console games and accessories, with console generations and launch events.","Console Corner upgrade, a Consoles filter in the Stock tab and a Consoles buyer."]},

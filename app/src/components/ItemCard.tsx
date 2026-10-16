@@ -1,8 +1,8 @@
 import { memo } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { ageTag, extraTag, Item, perfLabel, subtitle } from '@/stock';
 import { MgrRow } from '@/components/MgrRow';
-import { colors, money } from '@/theme';
+import { colors, money, theme, themed } from '@/theme';
 
 type Props = {
   it: Item;
@@ -74,8 +74,8 @@ export const ItemCard = memo(function ItemCard({ it, pop, clerk, canBuy, onBuy, 
   );
 });
 
-const styles = StyleSheet.create({
-  card: { backgroundColor: colors.card, borderRadius: 12, padding: 14, gap: 10 },
+const styles = themed(() => ({
+  card: { ...theme.box, padding: 14, gap: 10 },
   head: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   icon: { fontSize: 30 },
   name: { color: colors.text, fontSize: 16, fontWeight: '700' },
@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
   stockBox: { alignItems: 'flex-end' },
   stockNum: { color: colors.text, fontSize: 22, fontWeight: '700' },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  tag: { color: colors.dim, backgroundColor: colors.bg, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, fontSize: 12, overflow: 'hidden' },
+  tag: { color: colors.dim, backgroundColor: colors.inset, borderRadius: Math.min(6, theme.radius), paddingHorizontal: 8, paddingVertical: 3, fontSize: 12, overflow: 'hidden' },
   tagNew: { color: colors.text, backgroundColor: colors.accent },
   nums: { flexDirection: 'row', justifyContent: 'space-between' },
   num: { color: colors.dim, fontSize: 13 },
@@ -91,8 +91,8 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   stepper: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   target: { color: colors.text, fontSize: 16, fontWeight: '700', minWidth: 36, textAlign: 'center' },
-  btn: { backgroundColor: colors.accent, borderRadius: 8, paddingVertical: 9, paddingHorizontal: 14, minWidth: 48, alignItems: 'center' },
+  btn: { backgroundColor: colors.accent, borderRadius: Math.min(8, theme.radius), paddingVertical: 9, paddingHorizontal: 14, minWidth: 48, alignItems: 'center' },
   btnOff: { opacity: 0.35 },
   btnDown: { opacity: 0.7 },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-});
+}));

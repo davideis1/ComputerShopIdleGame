@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useAuth } from '@/AuthProvider';
 import { AccountPanel } from '@/components/AccountPanel';
 import { useGame } from '@/GameProvider';
 import { buildMenuView, setShopName, TRO_FILTERS, TroFilter } from '@/menu';
-import { colors } from '@/theme';
+import { colors, theme, themed, THEME_IDS, THEME_LABELS } from '@/theme';
 
 function Panel({ title, right, children }: { title: string; right?: string; children: React.ReactNode }) {
   return (
@@ -60,6 +60,20 @@ export default function Menu() {
         />
       </Panel>
 
+      <Panel title="Look">
+        <Text style={styles.label}>Visual theme</Text>
+        <View style={styles.chips}>
+          {['auto', ...THEME_IDS].map((t) => {
+            const on = (s.settings?.theme || 'auto') === t;
+            return (
+              <Pressable key={t} onPress={() => { s.settings = { ...s.settings, theme: t }; refresh(); }} style={[styles.chip, on && styles.chipOn]}>
+                <Text style={[styles.chipText, on && { color: colors.onAccent }]}>{t === 'auto' ? 'Follow the era' : THEME_LABELS[t as keyof typeof THEME_LABELS]}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </Panel>
+
       <AccountPanel />
 
       <Panel title="Statistics">
@@ -110,28 +124,28 @@ export default function Menu() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   content: { padding: 16, paddingBottom: 40, gap: 12 },
-  panel: { backgroundColor: colors.card, borderRadius: 12, padding: 14, gap: 10 },
+  panel: { ...theme.box, padding: 14, gap: 10 },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
   title: { color: colors.text, fontSize: 16, fontWeight: '700' },
   sub: { color: colors.dim, fontSize: 12 },
   body: { color: colors.dim, fontSize: 14, lineHeight: 20 },
   label: { color: colors.text, fontSize: 14 },
-  input: { backgroundColor: colors.bg, color: colors.text, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 10, fontSize: 16 },
+  input: { backgroundColor: colors.inset, color: colors.text, borderRadius: Math.min(8, theme.radius), paddingHorizontal: 10, paddingVertical: 10, fontSize: 16 },
   row: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
   rowLabel: { color: colors.dim, fontSize: 14, flex: 1 },
   rowVal: { color: colors.text, fontSize: 14, fontWeight: '700' },
   chips: { flexDirection: 'row', gap: 8 },
-  chip: { backgroundColor: colors.bg, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 7 },
+  chip: { backgroundColor: colors.inset, borderRadius: Math.min(16, theme.radius), paddingHorizontal: 12, paddingVertical: 7 },
   chipOn: { backgroundColor: colors.accent },
   chipText: { color: colors.dim, fontSize: 13, fontWeight: '600' },
-  trophy: { flexDirection: 'row', gap: 12, alignItems: 'center', backgroundColor: colors.bg, borderRadius: 10, padding: 10 },
+  trophy: { flexDirection: 'row', gap: 12, alignItems: 'center', backgroundColor: colors.inset, borderRadius: Math.min(10, theme.radius), padding: 10 },
   locked: { opacity: 0.55 },
   trophyIcon: { fontSize: 22 },
   trophyName: { color: colors.text, fontSize: 14, fontWeight: '700' },
   btnRow: { flexDirection: 'row', gap: 10 },
-  btn: { flex: 1, backgroundColor: colors.accent, borderRadius: 8, paddingVertical: 11, alignItems: 'center' },
+  btn: { flex: 1, backgroundColor: colors.accent, borderRadius: Math.min(8, theme.radius), paddingVertical: 11, alignItems: 'center' },
   danger: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.danger },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-});
+}));

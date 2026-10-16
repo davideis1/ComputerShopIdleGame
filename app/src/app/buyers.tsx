@@ -1,10 +1,10 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 import { useGame } from '@/GameProvider';
 import {
   buildBuyersView, CatView, CtlView, fire, hire, openOffice, refreshCands, setCfg, severance, toggleChip, train,
 } from '@/buyers';
-import { colors, money } from '@/theme';
+import { colors, money, theme, themed } from '@/theme';
 
 /* ---------- small building blocks ---------- */
 function Btn({ label, onPress, disabled, kind }: { label: string; onPress: () => void; disabled?: boolean; kind?: 'danger' | 'quiet' }) {
@@ -246,25 +246,25 @@ export default function Buyers() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   content: { padding: 16, paddingBottom: 40, gap: 12 },
-  panel: { backgroundColor: colors.card, borderRadius: 12, padding: 14, gap: 10 },
+  panel: { ...theme.box, padding: 14, gap: 10 },
   panelHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
   panelTitle: { color: colors.text, fontSize: 16, fontWeight: '700', flexShrink: 1 },
   body: { color: colors.dim, fontSize: 14, lineHeight: 20 },
   sub: { color: colors.dim, fontSize: 12 },
   h: { color: colors.text, fontSize: 14, fontWeight: '700' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  mini: { backgroundColor: colors.bg, borderRadius: 10, padding: 10, width: '48.5%' },
+  mini: { backgroundColor: colors.inset, borderRadius: Math.min(10, theme.radius), padding: 10, width: '48.5%' },
   miniVal: { color: colors.text, fontSize: 17, fontWeight: '700' },
-  alert: { backgroundColor: '#3a2f16', borderRadius: 10, padding: 10 },
+  alert: { backgroundColor: '#3a2f16', borderRadius: Math.min(10, theme.radius), padding: 10 },
   alertText: { color: colors.text, fontSize: 13 },
-  cand: { backgroundColor: colors.bg, borderRadius: 10, padding: 12, gap: 5 },
+  cand: { backgroundColor: colors.inset, borderRadius: Math.min(10, theme.radius), padding: 12, gap: 5 },
   candName: { color: colors.text, fontSize: 15, fontWeight: '700' },
   skills: { color: colors.text, fontSize: 14 },
   skill: { flexDirection: 'row', gap: 10, alignItems: 'center' },
-  planRow: { flexDirection: 'row', gap: 10, alignItems: 'center', backgroundColor: colors.bg, borderRadius: 8, padding: 8 },
-  group: { backgroundColor: colors.bg, borderRadius: 10, padding: 12 },
+  planRow: { flexDirection: 'row', gap: 10, alignItems: 'center', backgroundColor: colors.inset, borderRadius: Math.min(8, theme.radius), padding: 8 },
+  group: { backgroundColor: colors.inset, borderRadius: Math.min(10, theme.radius), padding: 12 },
   groupHead: { flexDirection: 'row', justifyContent: 'space-between' },
   ctl: { gap: 6 },
   ctlHead: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
@@ -272,16 +272,16 @@ const styles = StyleSheet.create({
   ctlVal: { color: colors.accent, fontSize: 13, fontWeight: '700' },
   toggleRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   stepRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  track: { flex: 1, height: 6, backgroundColor: colors.bg, borderRadius: 3, overflow: 'hidden' },
+  track: { flex: 1, height: 6, backgroundColor: colors.inset, borderRadius: Math.min(3, theme.radius), overflow: 'hidden' },
   fill: { height: 6, backgroundColor: colors.accent },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  chip: { backgroundColor: colors.card, borderRadius: 14, paddingHorizontal: 11, paddingVertical: 6 },
+  chip: { backgroundColor: colors.card, borderRadius: Math.min(14, theme.radius), paddingHorizontal: 11, paddingVertical: 6 },
   chipOn: { backgroundColor: colors.accent },
   chipText: { color: colors.dim, fontSize: 12, fontWeight: '600' },
-  input: { backgroundColor: colors.card, color: colors.text, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 8, fontSize: 15 },
-  btn: { backgroundColor: colors.accent, borderRadius: 8, paddingVertical: 9, paddingHorizontal: 14, alignItems: 'center' },
+  input: { backgroundColor: colors.card, color: colors.text, borderRadius: Math.min(8, theme.radius), paddingHorizontal: 10, paddingVertical: 8, fontSize: 15 },
+  btn: { backgroundColor: colors.accent, borderRadius: Math.min(8, theme.radius), paddingVertical: 9, paddingHorizontal: 14, alignItems: 'center' },
   btnQuiet: { backgroundColor: '#2d3b52' },
   btnDanger: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.danger },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   off: { opacity: 0.35 },
-});
+}));

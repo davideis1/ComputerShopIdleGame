@@ -1,12 +1,13 @@
+import { StyleSheet as RNStyleSheet } from 'react-native';
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { MgrRow } from '@/components/MgrRow';
 import { useGame } from '@/GameProvider';
 import {
   BP_FILTERS, BP_SORTS, BpFilter, BpRow, BpSort, buildWorkshop, buildWorkshopView, deleteBlueprint, Design, newDesign,
   saveBlueprint, setMarkup, SlotView, stepBpTarget, takeOver, togglePin,
 } from '@/workshop';
-import { colors, money } from '@/theme';
+import { colors, money, theme, themed } from '@/theme';
 
 function Btn({ label, onPress, disabled, quiet }: { label: string; onPress: () => void; disabled?: boolean; quiet?: boolean }) {
   return (
@@ -212,28 +213,28 @@ export default function Workshop() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   content: { padding: 16, paddingBottom: 40, gap: 12 },
-  panel: { backgroundColor: colors.card, borderRadius: 12, padding: 14, gap: 10 },
+  panel: { ...theme.box, padding: 14, gap: 10 },
   panelTitle: { color: colors.text, fontSize: 16, fontWeight: '700' },
   section: { color: colors.text, fontSize: 18, fontWeight: '700', marginTop: 6 },
   body: { color: colors.dim, fontSize: 14, lineHeight: 20 },
   sub: { color: colors.dim, fontSize: 12 },
   empty: { color: colors.dim, textAlign: 'center', marginVertical: 12 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  mini: { backgroundColor: colors.bg, borderRadius: 10, padding: 10, width: '48.5%' },
+  mini: { backgroundColor: colors.inset, borderRadius: Math.min(10, theme.radius), padding: 10, width: '48.5%' },
   miniVal: { color: colors.text, fontSize: 17, fontWeight: '700' },
   chips: { gap: 8, paddingVertical: 2 },
-  chip: { backgroundColor: colors.card, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 7 },
+  chip: { backgroundColor: colors.card, borderRadius: Math.min(16, theme.radius), paddingHorizontal: 12, paddingVertical: 7 },
   chipOn: { backgroundColor: colors.accent },
   chipText: { color: colors.dim, fontSize: 13, fontWeight: '600' },
-  card: { backgroundColor: colors.card, borderRadius: 12, padding: 14, gap: 10 },
+  card: { ...theme.box, padding: 14, gap: 10 },
   head: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   icon: { fontSize: 28 },
   name: { color: colors.text, fontSize: 16, fontWeight: '700' },
   stock: { color: colors.text, fontSize: 22, fontWeight: '700' },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  tag: { color: colors.dim, backgroundColor: colors.bg, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, fontSize: 12, overflow: 'hidden' },
+  tag: { color: colors.dim, backgroundColor: colors.inset, borderRadius: Math.min(6, theme.radius), paddingHorizontal: 8, paddingVertical: 3, fontSize: 12, overflow: 'hidden' },
   tagWarn: { color: '#e8b04a' },
   nums: { flexDirection: 'row', justifyContent: 'space-between' },
   num: { color: colors.dim, fontSize: 13 },
@@ -243,14 +244,14 @@ const styles = StyleSheet.create({
   stepVal: { color: colors.text, fontSize: 16, fontWeight: '700', minWidth: 52, textAlign: 'center' },
   field: { gap: 6 },
   ctlLabel: { color: colors.text, fontSize: 14 },
-  input: { backgroundColor: colors.bg, color: colors.text, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 9, fontSize: 15 },
-  pickerHead: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.bg, borderRadius: 8, padding: 10 },
-  optList: { backgroundColor: colors.bg, borderRadius: 8, overflow: 'hidden' },
-  opt: { paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.card },
+  input: { backgroundColor: colors.inset, color: colors.text, borderRadius: Math.min(8, theme.radius), paddingHorizontal: 10, paddingVertical: 9, fontSize: 15 },
+  pickerHead: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.inset, borderRadius: Math.min(8, theme.radius), padding: 10 },
+  optList: { backgroundColor: colors.inset, borderRadius: Math.min(8, theme.radius), overflow: 'hidden' },
+  opt: { paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: RNStyleSheet.hairlineWidth, borderBottomColor: colors.card },
   optOn: { backgroundColor: colors.accent },
   optText: { color: colors.dim, fontSize: 13 },
-  btn: { backgroundColor: colors.accent, borderRadius: 8, paddingVertical: 9, paddingHorizontal: 14, alignItems: 'center' },
+  btn: { backgroundColor: colors.accent, borderRadius: Math.min(8, theme.radius), paddingVertical: 9, paddingHorizontal: 14, alignItems: 'center' },
   btnQuiet: { backgroundColor: '#2d3b52' },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   off: { opacity: 0.35 },
-});
+}));

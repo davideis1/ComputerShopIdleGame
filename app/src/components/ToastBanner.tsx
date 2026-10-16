@@ -1,7 +1,7 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useGame } from '@/GameProvider';
-import { colors } from '@/theme';
+import { colors, theme, themed } from '@/theme';
 
 /** Achievement / notice banner, shown above whichever tab is open. */
 export function ToastBanner() {
@@ -15,8 +15,8 @@ export function ToastBanner() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   wrap: { position: 'absolute', left: 16, right: 16, zIndex: 10 },
-  box: { backgroundColor: colors.accent, borderRadius: 10, padding: 12 },
+  box: { backgroundColor: colors.accent, borderRadius: Math.min(10, theme.radius), padding: 12 },
   text: { color: '#fff', fontWeight: '700', fontSize: 13 },
-});
+}));

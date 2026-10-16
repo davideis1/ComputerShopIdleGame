@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useAuth } from '@/AuthProvider';
 import { useGame, SyncStatus } from '@/GameProvider';
 import { AuthModal } from '@/components/AuthModal';
-import { colors } from '@/theme';
+import { colors, theme, themed } from '@/theme';
 
 const statusLine = (s: SyncStatus, at: number | null): string => {
   const when = at ? new Date(at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
@@ -105,23 +105,23 @@ function DeleteModal({ visible, onClose }: { visible: boolean; onClose: () => vo
   );
 }
 
-const styles = StyleSheet.create({
-  panel: { backgroundColor: colors.card, borderRadius: 12, padding: 14, gap: 10 },
+const styles = themed(() => ({
+  panel: { ...theme.box, padding: 14, gap: 10 },
   title: { color: colors.text, fontSize: 16, fontWeight: '700' },
   body: { color: colors.dim, fontSize: 14, lineHeight: 20 },
   strong: { color: colors.text, fontWeight: '700' },
   sub: { color: colors.dim, fontSize: 12, lineHeight: 17 },
   warn: { color: '#e8b04a', fontSize: 13, lineHeight: 18 },
   row: { flexDirection: 'row', gap: 10 },
-  btn: { flex: 1, backgroundColor: colors.accent, borderRadius: 8, paddingVertical: 11, alignItems: 'center' },
+  btn: { flex: 1, backgroundColor: colors.accent, borderRadius: Math.min(8, theme.radius), paddingVertical: 11, alignItems: 'center' },
   quiet: { backgroundColor: '#2d3b52' },
   danger: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.danger },
   dangerFill: { backgroundColor: colors.danger },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   backdrop: { flex: 1, backgroundColor: '#000a' },
   center: { flexGrow: 1, justifyContent: 'center', padding: 20 },
-  sheet: { backgroundColor: colors.card, borderRadius: 14, padding: 20, gap: 12 },
-  input: { backgroundColor: colors.bg, color: colors.text, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 12, fontSize: 16 },
+  sheet: { backgroundColor: colors.card, borderRadius: Math.min(14, theme.radius), padding: 20, gap: 12 },
+  input: { backgroundColor: colors.inset, color: colors.text, borderRadius: Math.min(8, theme.radius), paddingHorizontal: 12, paddingVertical: 12, fontSize: 16 },
   error: { color: colors.danger, fontSize: 14 },
   dim: { color: colors.dim, textAlign: 'center', fontSize: 14 },
-});
+}));

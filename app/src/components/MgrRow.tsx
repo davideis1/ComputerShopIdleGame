@@ -1,6 +1,6 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { pinLabels } from '@/workshop';
-import { colors } from '@/theme';
+import { colors, theme, themed } from '@/theme';
 
 /** Shown on a card when a purchasing manager covers it: who sets the target, plus pin / skip. */
 export function MgrRow({ it, onPin, onSkip }: { it: any; onPin: () => void; onSkip: () => void }) {
@@ -16,10 +16,10 @@ export function MgrRow({ it, onPin, onSkip }: { it: any; onPin: () => void; onSk
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   wrap: { gap: 6 },
   info: { color: colors.dim, fontSize: 12 },
   row: { flexDirection: 'row', gap: 8 },
-  btn: { backgroundColor: '#2d3b52', borderRadius: 8, paddingVertical: 7, paddingHorizontal: 12 },
+  btn: { backgroundColor: '#2d3b52', borderRadius: Math.min(8, theme.radius), paddingVertical: 7, paddingHorizontal: 12 },
   text: { color: '#fff', fontSize: 12, fontWeight: '700' },
-});
+}));
