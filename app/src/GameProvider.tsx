@@ -12,6 +12,7 @@ type Ctx = {
   toast: string | null; // latest achievement / notice, clears itself
   hustleResult: HustleResult | null;
   hustle: () => void;
+  prestige: () => number; // sell up and open a new franchise; returns the tokens gained (0 if none ready)
   away: Away;
   dismissAway: () => void;
   reset: () => Promise<void>;
@@ -46,12 +47,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
     lines.forEach((l) => log.current.unshift({ id: ++logId.current, ...l }));
     if (log.current.length > 7) log.current.length = 7;
   }, []);
-  const announce = useCallback((ach: any[]) => {
-    if (!ach.length) return;
-    setToast('🏆 ' + ach[0].name + ' — ' + ach[0].desc + ' (+1% customers)');
+  const say = useCallback((text: string, ms = 4000) => {
+    setToast(text);
     if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(null), 4000);
+    toastTimer.current = setTimeout(() => setToast(null), ms);
   }, []);
+  const announce = useCallback((ach: any[]) => {
+    if (ach.length) say('🏆 ' + ach[0].name + ' — ' + ach[0].desc + ' (+1% customers)');
+  }, [say]);
   const [frame, force] = useState(0);
   const refresh = useCallback(() => force((n) => n + 1), []);
 
@@ -109,6 +112,20 @@ export function GameProvider({ children }: { children: ReactNode }) {
     force((n) => n + 1);
   }, [pushLog, announce]);
 
+  const prestige = useCallback(() => {
+    if (!game.current) return 0;
+    const r = E.prestige(game.current);
+    if (!r) return 0;
+    game.current = r.state;
+    log.current = [];
+    last.current = Date.now();
+    sinceSave.current = 0;
+    saveGame(game.current);
+    say('🎫 +' + r.gain + ' tokens! Opening your new franchise…', 6000);
+    force((n) => n + 1);
+    return r.gain;
+  }, [say]);
+
   const reset = useCallback(async () => {
     log.current = [];
     await clearGame();
@@ -120,7 +137,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   if (!ready) return null;
   return (
-    <GameContext.Provider value={{ game: game.current, frame, refresh, log: log.current, toast, hustleResult, hustle, away, dismissAway: () => setAway(null), reset }}>
+    <GameContext.Provider value={{ game: game.current, frame, refresh, log: log.current, toast, hustleResult, hustle, prestige, away, dismissAway: () => setAway(null), reset }}>
       {children}
     </GameContext.Provider>
   );
