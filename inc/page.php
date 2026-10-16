@@ -16,6 +16,8 @@ function page_head(string $title): void
 
 function page_foot(): void
 {
+    $b = h(base_url());
+    echo '<p class="legal"><small><a href="' . $b . '/privacy.php">Privacy policy</a> · <a href="' . $b . '/support.php">Support</a></small></p>';
     echo '</div></div></div></body></html>';
 }
 
