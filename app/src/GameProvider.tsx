@@ -4,7 +4,14 @@ import { E, GameState, newGame, tick } from './game';
 import { clearGame, loadGame, saveGame } from './storage';
 
 type Away = { elapsed: number; effective: number; capped: boolean; cash0: number; cash1: number } | null;
-type Ctx = { game: GameState; away: Away; dismissAway: () => void; reset: () => Promise<void> };
+type Ctx = {
+  game: GameState;
+  frame: number; // increments every tick so screens can re-render or throttle themselves
+  refresh: () => void; // call after mutating state from a tap so the UI updates immediately
+  away: Away;
+  dismissAway: () => void;
+  reset: () => Promise<void>;
+};
 
 const GameContext = createContext<Ctx | null>(null);
 export const useGame = () => {
@@ -24,7 +31,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const sinceSave = useRef(0);
   const [ready, setReady] = useState(false);
   const [away, setAway] = useState<Away>(null);
-  const [, force] = useState(0);
+  const [frame, force] = useState(0);
+  const refresh = useCallback(() => force((n) => n + 1), []);
 
   // Run real time that passed while the app was closed or backgrounded through the same offline code as the web build.
   const catchUp = useCallback((seconds: number) => {
@@ -74,7 +82,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   if (!ready) return null;
   return (
-    <GameContext.Provider value={{ game: game.current, away, dismissAway: () => setAway(null), reset }}>
+    <GameContext.Provider value={{ game: game.current, frame, refresh, away, dismissAway: () => setAway(null), reset }}>
       {children}
     </GameContext.Provider>
   );
