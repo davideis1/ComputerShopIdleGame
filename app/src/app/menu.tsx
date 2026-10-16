@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useAuth } from '@/AuthProvider';
+import { AccountPanel } from '@/components/AccountPanel';
 import { useGame } from '@/GameProvider';
 import { buildMenuView, setShopName, TRO_FILTERS, TroFilter } from '@/menu';
 import { colors } from '@/theme';
@@ -18,6 +20,7 @@ function Panel({ title, right, children }: { title: string; right?: string; chil
 
 export default function Menu() {
   const { game: s, frame, refresh, reset, saveNow } = useGame();
+  const { token } = useAuth();
   const [filter, setFilter] = useState<TroFilter>('all');
   const [name, setName] = useState<string | null>(null); // what's being typed, until the box loses focus
 
@@ -29,10 +32,17 @@ export default function Menu() {
   const confirmReset = () =>
     Alert.alert(
       'Erase everything?',
-      'This permanently deletes your shop and your Franchise Tokens, HQ upgrades and trophies, and starts over in 1993. (To restart a shop but keep your tokens, use Franchise HQ.)',
+      'This permanently deletes your shop' + (token ? ' (on this phone and in your account)' : '') + ' and your Franchise Tokens, HQ upgrades and trophies, and starts over in 1993. (To restart a shop but keep your tokens, use Franchise HQ.)',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Erase all', style: 'destructive', onPress: reset },
+        {
+          text: 'Erase all',
+          style: 'destructive',
+          onPress: async () => {
+            const r = await reset();
+            if (!r.ok) Alert.alert("Couldn't erase", r.message);
+          },
+        },
       ],
     );
 
@@ -49,6 +59,8 @@ export default function Menu() {
           onBlur={() => setName(null)}
         />
       </Panel>
+
+      <AccountPanel />
 
       <Panel title="Statistics">
         {v.stats.map((st) => (

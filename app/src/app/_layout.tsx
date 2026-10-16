@@ -1,13 +1,19 @@
 import { Tabs } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { useEffect } from 'react';
+import { AuthProvider, useAuth } from '@/AuthProvider';
 import { GameProvider, useGame } from '@/GameProvider';
+import { SyncConflictModal } from '@/components/SyncConflictModal';
 import { ToastBanner } from '@/components/ToastBanner';
 import { buyersVisible, hqVisible } from '@/franchise';
 import { colors } from '@/theme';
 
 function AppTabs() {
-  const { game } = useGame();
+  const { game, notify } = useGame();
+  const { notice, clearNotice } = useAuth();
+  // The server refused our login on its own (expired): say so once, wherever the player is.
+  useEffect(() => { if (notice) { notify(notice); clearNotice(); } }, [notice, notify, clearNotice]);
   // Same rules as the web nav: HQ appears once tokens matter, Buyers once the Purchasing Office is near.
   const showHQ = hqVisible(game);
   const showBuyers = buyersVisible(game);
@@ -34,6 +40,7 @@ function AppTabs() {
         <Tabs.Screen name="menu" options={{ title: 'Menu' }} />
       </Tabs>
       <ToastBanner />
+      <SyncConflictModal />
     </>
   );
 }
@@ -41,10 +48,12 @@ function AppTabs() {
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <GameProvider>
-        <StatusBar style="light" />
-        <AppTabs />
-      </GameProvider>
+      <AuthProvider>
+        <GameProvider>
+          <StatusBar style="light" />
+          <AppTabs />
+        </GameProvider>
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }
