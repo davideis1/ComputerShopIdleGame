@@ -30,12 +30,14 @@
     "USRobotics-ish": "Dialtone Robotics", "Blue Yeti-ish": "Icy Sasquatch", "Elgato-ish": "Stream Ferret",
     "Brother-ish": "Sibling Print", "Targus-ish": "Satchel & Co.", "Uplyft-ish": "Lofty Desk Co.", "Creative": "Soundcrest",
     "Xbux": "Obelisk", "PlayStatic": "Nimbus", // PC controllers made by the console brands
+    "Logitec": "Lodestar", "Microsaft": "Panewright", "Cherrie": "Clackwell", "Corsiar": "Cutlass", "Rayzer": "Sabre Labs", "Keycrown": "Tallkey", "ViewSonik": "Vistara", "Samsong": "Sonata", "Dall": "Marlowe", "ASOS": "Aperture", "Acre": "Peakline", "Altec Lansink": "Lancer Acoustics", "Turtle Beech": "Tortoise Grove", "SteelSeres": "Forgesound", "HyperZ": "Overdrive", "Sunny": "Daybreak", "QuickShot": "Fastfire", "Thrustmasterz": "Thrustwell", "Ioomega": "Cartridge Bros", "Kingstun": "Stonekeep", "Eastern Digital": "Orient Data", "Hayez": "Modemco", "Linksis": "Linkwise", "Netgeer": "Netcrew", "Hewlitt": "Hartwell", "Epsom": "Inkwell", "Cannon": "Sidearm", "Oculous": "Visorium", "Valv": "Gasket", "Metta": "Horizon Labs",
   };
 
   /* ---------- accessory products that were a real product name (old name -> new) ---------- */
   const ACC_NAMES = {
     "Quest 3-ish VR Headset": "Nebula 3 VR Headset", "360 Controller for PC": "Monolith Elite Controller for PC",
-    "One Controller": "Cairn Controller", "5 DualSense Controller": "Five DualPulse Controller",
+    "One Controller": "Cairn Controller",
+    "Copiloot Key Keyboard": "Assistant Key Keyboard", "IntelliMouse (with scroll wheel!)": "SmartMouse (with scroll wheel!)", "G15 Gaming Keyboard": "L15 Gaming Keyboard", "MX Mechanical Keyboard": "CX Mechanical Keyboard", "K70 RGB Keyboard": "C70 RGB Keyboard", "Huntsman Optical Keyboard": "Falconer Optical Keyboard", "DeathAdder Gaming Mouse": "Sandviper Gaming Mouse", "MX Masterful Mouse": "LX Masterful Mouse", "G Pro Wireless Mouse": "L Pro Wireless Mouse", "Viper Ultralight Mouse": "Gecko Ultralight Mouse", "SyncMaster 17\" LCD": "SyncPro 17\" LCD", "UltraSharp 22\" Widescreen": "CrispView 22\" Widescreen", "Predador 34\" Ultrawide": "Marauder 34\" Ultrawide", "Odyssee 4K 144Hz": "Voyager 4K 144Hz", "Sound Blister 16 Card": "Wave 16 Card", "Sound Blister Live! 5.1": "Wave Live! 5.1", "Z-5500 Surround Speakers": "S-5500 Surround Speakers", "Siberia Headset": "Tundra Headset", "Cloud II Headset": "Stratus II Headset", "Kraken Pro Headset": "Leviathan Pro Headset", "SideWinder Game Pad": "SideSlider Game Pad", "Rumblepad 2": "Quakepad 2", "G29 Racing Wheel": "L29 Racing Wheel", "QuickCam": "SnapCam", "QuickCam Pro 4000": "SnapCam Pro 4000", "Stream Dek": "Macro Pad", "DeskJot 500C": "DeskSpritz 500C", "PIXMA All-in-One": "PicMaker All-in-One", "EcoTank Ink-Tank Printer": "EcoFill Ink-Tank Printer", "Indexx VR Kit": "Pinnacle VR Kit", "Zipp 100 Drive": "Slab 100 Drive", "Passport 500GB External HDD": "Wayfarer 500GB External HDD", "5 DualSense Controller": "Five DualPulse Controller",
   };
 
   /* ---------- consoles (platform id -> [name, maker]) ---------- */
@@ -142,6 +144,8 @@
   const oldPlatforms = CS.PLATFORMS ? CS.PLATFORMS.map((p) => [p.name, PLATFORMS[p.id][0], p.maker, PLATFORMS[p.id][1]]) : [];
   const swap = oldPlatforms.slice().sort((a, b) => b[0].length - a[0].length); // longest first: "PlayStatic Portable" before "PlayStatic"
   const follow = (s) => { swap.forEach(([o, n]) => { if (s.indexOf(o) >= 0) s = s.split(o).join(n); }); return s; };
+  /* ---------- PC makers (prebuilt catalogue rows are renamed in data.js; this is for saved buyer settings) ---------- */
+  const PC_BRANDS = {"Compac": "Bytewell", "Packerd Bell": "Pickett Chime", "IBN": "Corvid", "Gatewhey": "Portico", "Dall": "Marlowe", "Ample": "Quince", "Sunny": "Daybreak", "eMachinez": "Pennybox", "Hewlitt-Pickard": "Hartwell-Pace", "Alienwear": "Outerworld", "Acre": "Peakline", "Azus": "Orion Tek", "Chromebooq": "Skyloop", "Microsaft": "Panewright", "Rayzer": "Sabre Labs", "MSY": "Maxxion", "Lenovoh": "Novaline", "Valv": "Gasket", "Envidia": "Verdant"};
   const makers = {}; oldPlatforms.forEach(([, , om, nm]) => (makers[om] = nm));
 
   CS.ADDONS.forEach((a) => {
@@ -159,12 +163,12 @@
 
   /** Old saves keep buyers' "never buy from" lists as brand names: carry them over to the new names. */
   function migrate(s) {
-    const by = { game: PUBLISHERS, acc: ACC_BRANDS, con: makers };
+    const by = { game: PUBLISHERS, acc: ACC_BRANDS, con: makers, pre: PC_BRANDS };
     Object.keys(s.mgrCfg || {}).forEach((cat) => {
       const cfg = s.mgrCfg[cat], map = by[cat];
       if (map && cfg && Array.isArray(cfg.blocked)) cfg.blocked = cfg.blocked.map((b) => map[b] || b);
     });
   }
-  CS.Names = { migrate, PUBLISHERS, ACC_BRANDS, ACC_NAMES, TITLES, PLATFORMS, makers };
+  CS.Names = { migrate, PUBLISHERS, ACC_BRANDS, ACC_NAMES, TITLES, PLATFORMS, makers, PC_BRANDS };
   if (typeof module !== 'undefined') module.exports = CS;
 })(typeof window !== 'undefined' ? window : globalThis);

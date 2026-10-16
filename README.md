@@ -1,6 +1,6 @@
 # Mega Byte Computers — an idle computer-shop game
 
-Run a computer shop from **1993 to today**. Start by reselling parody-branded prebuilts (Compac, Dall, Gatewhey, Ample…), then open a workshop and sell PCs you design yourself from parody parts (Intal, AMB, Envidia, Radian…).
+Run a computer shop from **1993 to today**. Start by reselling parody-branded prebuilts (Bytewell, Marlowe, Portico, Quince…), then open a workshop and sell PCs you design yourself from parody parts (Silicor, Aurum, Verdant, Arcadia…).
 
 Browser game (vanilla JS) with a PHP + MariaDB backend for accounts, saves and settings. Works on desktop and mobile, installable as a PWA.
 
@@ -67,4 +67,4 @@ node tools/api-token-smoke.js http://localhost:8000    # native-app token API ch
 
 ## Dev
 `node tools/sim.js [minutes] [franchises]` runs the engine headless with a simple bot for balance checks; `node tools/console-check.js` checks the console catalogue, market and installed-base effect; `node tools/advisor-check.js` prints the advisor's output for typical situations; `node tools/mgr-check.js [year]` exercises the purchasing managers; `node tools/custom-check.js` compares custom rigs against the best prebuilts per year.
-Game, console and publisher names are original; PC hardware makers are parodies of real companies. Nothing is affiliated with any real company. `node tools/names-check.js` guards the names (and that item ids never change).
+Game, console, publisher and hardware names are all original. Nothing is affiliated with any real company. `node tools/names-check.js` guards the names (and that item ids never change).
