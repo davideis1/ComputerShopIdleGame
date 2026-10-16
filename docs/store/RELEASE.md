@@ -3,21 +3,16 @@
 What is already done in the repo: icon and splash, bundle ID, versions, privacy manifest, privacy and support pages, in-app account
 deletion, EAS config (`app/eas.json`). What follows needs your accounts and cannot be done from the code.
 
-## 0. Risk to decide on first: parody names
-The game uses made-up names that are obvious parodies of real brands (Compac, Dall, Intal, Envidia, Nintendough, PlayStatic, Xbux, Pokemun...).
-Apple guideline 5.2 (Intellectual Property) can reject apps whose names or art read as another company's trademark, and review is
-done by a person looking at the screenshots. There is precedent for parody names in simulation games on the store, and the app already says
-"not affiliated with any real company" in About and in the privacy policy, but it is **not guaranteed to pass**. Cheapest mitigation:
-keep the screenshots on screens that show few brand names, include the disclaimer in the review notes (done in LISTING.md), and be ready
-to rename the most pointed ones if Apple asks. Google Play has similar rules (impersonation / IP).
+## 0. Naming risk (mostly resolved)
+Apple guideline 5.2 (Intellectual Property) can reject apps whose names read as another company's trademark, and review is done by a person looking at the screenshots.
+**Games, publishers and consoles now have original names** (`core/names.js`, from the `rename-games` branch; guarded by `tools/names-check.js`: no real trademark, no retired pun,
+no "-ish" marker, and no item id changes, so saves keep working). The real name "Geocities Web Page" was renamed too.
 
-### Names found in a scan of the game data
-A scan of all ~1,450 player-visible strings (products, parts, upgrades, events, headlines, add-ons, platforms) found these that are **not** disguised,
-which goes against the project rule of parody names only:
-- `core/data.js`, upgrade **"Geocities Web Page"**: a real (defunct) brand name used as is.
-- `core/addons.js`, game publishers **"Sega-ish"** and **"Nintendo-ish"** (and the game "Stardew-ish Valley"): real trademarks with a suffix.
-- Close spoofs that read very clearly as the original: "Grand Theft Auto-mobile", "Call of Duty-Free", plus the hardware parodies (Microsaft, Dall, Intal, Envidia, Windoze, Nintendough, PlayStatic, Xbux, Pokemun...).
-Renaming the undisguised ones is a one-line change each and is the cheapest way to cut the risk. Decide how far to go with the close spoofs.
+What is **left on purpose** is the PC hardware layer: the computer makers, parts and peripherals are one-letter parodies of real companies
+(Microsaft, Dall, Compac, Intal, Envidia, Logitec, Windoze, Corsiar...). They parody generic industry names rather than game franchises, and the app says
+"not affiliated with any real company" in About and in the privacy policy, but review is still a judgement call. If Apple objects, the fix uses the same mechanism:
+add display-name overrides in `core/names.js` (product and part brands are defined in `core/data.js`, so they need the same treatment to keep ids stable).
+The Stock and Workshop screenshots (06, 07) show these hardware brands; leave them out of the first submission to lower the risk.
 
 ## 1. Before you build
 1. **Contact address.** The privacy and support pages show a "no contact address" notice until you add one. On the server edit `inc/config.php`
