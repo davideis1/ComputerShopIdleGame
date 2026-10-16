@@ -11,6 +11,14 @@ done by a person looking at the screenshots. There is precedent for parody names
 keep the screenshots on screens that show few brand names, include the disclaimer in the review notes (done in LISTING.md), and be ready
 to rename the most pointed ones if Apple asks. Google Play has similar rules (impersonation / IP).
 
+### Names found in a scan of the game data
+A scan of all ~1,450 player-visible strings (products, parts, upgrades, events, headlines, add-ons, platforms) found these that are **not** disguised,
+which goes against the project rule of parody names only:
+- `core/data.js`, upgrade **"Geocities Web Page"**: a real (defunct) brand name used as is.
+- `core/addons.js`, game publishers **"Sega-ish"** and **"Nintendo-ish"** (and the game "Stardew-ish Valley"): real trademarks with a suffix.
+- Close spoofs that read very clearly as the original: "Grand Theft Auto-mobile", "Call of Duty-Free", plus the hardware parodies (Microsaft, Dall, Intal, Envidia, Windoze, Nintendough, PlayStatic, Xbux, Pokemun...).
+Renaming the undisguised ones is a one-line change each and is the cheapest way to cut the risk. Decide how far to go with the close spoofs.
+
 ## 1. Before you build
 1. **Contact address.** The privacy and support pages show a "no contact address" notice until you add one. On the server edit `inc/config.php`
    (it is never deployed or committed) and add `'contact_email' => 'you@example.com',`. Reload https://computershopidlegame.davideis.com/privacy.php to check.
