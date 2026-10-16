@@ -26,11 +26,6 @@ function flash_errors(array $errors): void
     }
 }
 
-function valid_username(string $u): bool
-{
-    return (bool) preg_match('/^[A-Za-z0-9_-]{3,20}$/', $u);
-}
-
 function csrf_field(): string
 {
     return '<input type="hidden" name="csrf" value="' . h(csrf_token()) . '">';
