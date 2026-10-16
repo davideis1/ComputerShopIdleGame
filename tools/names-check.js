@@ -30,7 +30,7 @@ const strings = new Set();
 })([CS.PRODUCTS, CS.PARTS, CS.UPGRADES, CS.TOKEN_UPGRADES, CS.EVENTS, CS.HEADLINES, CS.ACH, CS.ADDONS, CS.PLATFORMS, CS.CONSOLES, CS.CGAMES, CS.CACCS, CS.GROUPS, CS.ERAS], 0);
 
 // 2. forbidden: real marks, and the retired puns
-const REAL = ['Nintendo', 'Sega', 'Sony', 'PlayStation', 'Xbox', 'Atari', 'Rockstar', 'Blizzard', 'Valve', 'Bethesda', 'Activision', 'Ubisoft', 'Capcom',
+const REAL = ['Compaq', 'Gateway', 'Dell', 'Apple', 'Macintosh', 'MacBook', 'iMac', 'Microsoft', 'Windows', 'Intel', 'Pentium', 'Nvidia', 'GeForce', 'Radeon', 'Ryzen', 'Athlon', 'Kingston', 'Samsung', 'Logitech', 'Corsair', 'Seagate', 'Lenovo', 'Razer', 'Hewlett', 'Alienware', 'Surface', 'Nintendo', 'Sega', 'Sony', 'PlayStation', 'Xbox', 'Atari', 'Rockstar', 'Blizzard', 'Valve', 'Bethesda', 'Activision', 'Ubisoft', 'Capcom',
   'Konami', 'Namco', 'Mojang', 'Minecraft', 'Doom', 'Quake', 'Zelda', 'Mario', 'Metroid', 'Pokemon', 'Pokémon', 'Sonic', 'Tetris', 'Half-Life', 'Warcraft',
   'StarCraft', 'Diablo', 'Overwatch', 'Fallout', 'Skyrim', 'Elder Scrolls', 'Grand Theft Auto', 'Call of Duty', 'Halo', 'Forza', 'Gears of War', 'God of War',
   'Final Fantasy', 'Kingdom Hearts', 'Resident Evil', 'Metal Gear', "Assassin's Creed", 'Red Dead', 'Witcher', 'Cyberpunk 2077', 'Elden Ring', 'Dark Souls',
@@ -40,7 +40,7 @@ const REAL = ['Nintendo', 'Sega', 'Sony', 'PlayStation', 'Xbox', 'Atari', 'Rocks
   'Need for Speed', 'Guitar Hero', 'Battlefield', 'Burnout', 'Hitman', 'Advance Wars', 'Nintendogs', 'Brain Age', 'Monster Hunter', 'Phantasy Star',
   'Panzer Dragoon', 'Virtua Fighter', 'NiGHTS', 'Chrono Trigger', 'Alien vs Predator', 'Duke Nukem', 'Rayman', 'Age of Empires', "Baldur's Gate", 'Cuphead',
   'Dreamcast', 'GameCube', 'Game Boy', 'DualSense', 'Mega Drive', 'No Man', 'Rogue Legacy', 'Hello Games', 'Blue Yeti', 'Elgato', 'Targus', 'USRobotics'];
-const LEGACY = ['Nintendough', 'PlayStatic', 'Xbux', 'Seegah', 'Atarri', '3DOh', 'Game Boi', 'Pokemun', 'Soniq', 'Maria', 'Zalda', 'Haylo', 'Warkraft', 'Doomed',
+const LEGACY = ['Compac', 'Packerd', 'Gatewhey', 'Dall', 'Ample', 'Macintoss', 'MacBuck', 'iMack', 'Microsaft', 'Windoze', 'Intal', 'Pentum', 'Envidia', 'GoForce', 'Radian', 'Rizen', 'Athalon', 'Kingstun', 'Samsong', 'Logitec', 'Corsiar', 'Seagull', 'Linucks', 'Lenovoh', 'Rayzer', 'Hewlitt', 'Chromebooq', 'eMachinez', 'Alienwear', 'Surfaced', 'Pavillion', 'Cyrex', 'Matroxx', 'Voodude', 'Tridant', 'DeathAdder', 'Sound Blister', 'Quantam', 'Crucible', 'Netgeer', 'Linksis', 'Epsom', 'Cannon', 'Oculous', 'Thrustmasterz', 'SteelSeres', 'ViewSonik', 'Ioomega', 'Altec Lansink', 'Turtle Beech', 'HyperZ', 'Nintendough', 'PlayStatic', 'Xbux', 'Seegah', 'Atarri', '3DOh', 'Game Boi', 'Pokemun', 'Soniq', 'Maria', 'Zalda', 'Haylo', 'Warkraft', 'Doomed',
   'Quaked', 'Diablow', 'Lifespan', 'Skyrimm', 'Minecrafty', 'Overwatchful', 'Starfeld', 'Forzza', 'Kingdumb', 'Metroidal', 'Tekkin', 'Tetrus', 'Unchartered',
   'Bloodborn', 'Turismoo', 'Auto-mobile', 'Duty-Free', 'Warfare-house', 'Evile', 'Solidish', 'Redumption', 'Screed', 'Counter-Strife', 'Dork Souls', 'Elden Rung',
   'Soni\\b', 'Swatch', 'Wee\\b', 'Fantasia', 'Brawl Ultimate', 'Kombot', 'Jamm', 'FIFO', 'Maddon'];
