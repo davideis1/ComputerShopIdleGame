@@ -24,17 +24,30 @@ Lost password (there is no email): `php tools/reset_password.php <username> <new
 - Progress is client-authoritative (the server validates shape and ranges only). Fine for a single-player game; a leaderboard would need server-side verification.
 
 ### Database
-`users`, `saves` (one row per player: state JSON plus summary columns such as `game_years`, `cash`, `total_sold`), `save_backups` (newest 5, at most one per 10 min), `user_settings`, `login_attempts` (failed-login throttling). Restore a backup by hand:
+`users`, `saves` (one row per player: state JSON plus summary columns such as `game_years`, `cash`, `total_sold`), `save_backups` (newest 5, at most one per 10 min), `user_settings`, `login_attempts` (failed-login throttling, plus a per-IP sign-up count for the app API), `api_tokens` (native-app logins; only a SHA-256 of each token is stored). Restore a backup by hand:
 ```sql
 UPDATE saves s JOIN save_backups b ON b.id = 123 AND b.user_id = s.user_id SET s.state = b.state, s.rev = s.rev + 1;
 ```
+
+### Native app API
+The mobile app talks to the same `save.php` / `load.php` / `settings.php` / `reset.php` endpoints as the website, but signs in with a token instead of a cookie. All endpoints take and return JSON over POST.
+
+| Endpoint | Body | Result |
+|---|---|---|
+| `api/auth_register.php` | `{username, password, label?}` | `201 {ok, token, user}` (errors: `bad_username`, `bad_password`, `username_taken`, `registration_closed`, `too_many_attempts`) |
+| `api/auth_login.php` | `{username, password, label?}` | `{ok, token, user}` (`bad_credentials` 401, `too_many_attempts` 429) |
+| `api/auth_logout.php` | `{all?}` | revokes this token (or all of the account's tokens) |
+| `api/auth_delete.php` | `{password, confirm: "DELETE"}` | permanently deletes the account (required by the App Store) |
+
+Send `Authorization: Bearer <token>` on every other call (`X-Api-Token: <token>` also works, for hosts that strip `Authorization`; `.htaccess` already forwards it on Apache). No CSRF token is needed with a bearer token. Tokens last 180 days from last use, at most 10 per account (the oldest is dropped), and are revoked on logout or account deletion. Apps are not browsers, so no CORS headers are needed.
 
 ## Local development
 ```
 cp inc/config.sample.php inc/config.php   # point it at a local MariaDB
 php tools/install.php
 php -S localhost:8000
-node tools/api-smoke.js http://localhost:8000   # end-to-end backend checks
+node tools/api-smoke.js http://localhost:8000         # website (cookie) backend checks
+node tools/api-token-smoke.js http://localhost:8000    # native-app token API checks (add --throttle for the sign-up limit)
 ```
 
 ## Features

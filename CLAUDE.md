@@ -16,10 +16,10 @@ An idle shop game (desktop + mobile): run a computer shop from 1993 to today. Pa
 ## Layout
 - `core/` — DOM-free simulation, shared by web, Node tools and the React Native app (`require('./core')`). `js/` now holds only `ui.js`.
 - `index.php` — game shell (script order matters: data, addons, engine, consoles, managers, advisor, ui). `login/register/logout/account.php`, `inc/` (shared PHP: db, session, CSRF).
-- `api/` — `load.php`, `save.php` (rev-checked), `settings.php`, `reset.php`. `sql/` schema, `tools/install.php` applies it.
+- `api/` — `load.php`, `save.php` (rev-checked), `settings.php`, `reset.php`; native-app auth `auth_register.php`, `auth_login.php`, `auth_logout.php`, `auth_delete.php` (see README "Native app API"). `sql/` schema + `upgrade_*.sql`, `tools/install.php` applies them all (deploy runs it).
 - `core/data.js` parts/products/upgrades/HQ token upgrades/achievements/events. `core/addons.js` games & accessories. `core/engine.js` core simulation. `core/consoles.js` console gaming. `core/managers.js` buyers + PC Designer. `core/advisor.js` Shop Advisor. `js/ui.js` all rendering.
 - `sw.js` service worker caches static assets only (bump `CACHE` when assets change shape). `style.css`, `manifest.json`, `icon.svg`.
-- `tools/` headless checks: `sim.js` (balance bot), `mgr-check.js`, `design-check.js`, `console-check.js`, `advisor-check.js`, `custom-check.js`, `api-smoke.js` (needs php server + DB). Playwright e2e scripts live in the session scratchpad (not committed); they drive the real UI against `php -S 127.0.0.1:8124`.
+- `tools/` headless checks: `sim.js` (balance bot), `mgr-check.js`, `design-check.js`, `console-check.js`, `advisor-check.js`, `custom-check.js`, `api-smoke.js` (website/cookie API) and `api-token-smoke.js` (native token API) — both need a php server + DB. Playwright e2e scripts live in the session scratchpad (not committed); they drive the real UI against `php -S 127.0.0.1:8124`.
 
 ## Architecture notes
 - **Client-side simulation**: vanilla JS, step-based; the same `step()` runs online and for offline catch-up (server time used for offline duration). State is a plain object (`E.newState/serialize/deserialize`); engine modules attach via `CS.*` hooks (`CS.M`, `CS.Con`, `CS.Advisor`).
@@ -42,6 +42,8 @@ An idle shop game (desktop + mobile): run a computer shop from 1993 to today. Pa
 - Number formatting rollover (`num()` must not print "1000K").
 - Closed `<details>` hide controls from Playwright — open them in tests; wait for init after reloads.
 - Sandbox: MariaDB/php servers die between turns. Restart: `mysqld_safe --bind-address=127.0.0.1 &`, `php -S 127.0.0.1:8124 -t . &`, then `php tools/install.php`. Clean smoke users with `DELETE FROM users WHERE username LIKE "smoke%"`.
+- **API auth:** `api_guard()` accepts either the website's cookie + CSRF, or `Authorization: Bearer <token>` (no CSRF). A bearer token present but invalid is rejected, never silently downgraded to the cookie. Tokens are stored as SHA-256 only (`api_tokens`), 180-day sliding expiry, max 10 per user. Sign-ups through the API are limited per IP (`register_max_per_ip_hour`, default 5) using `login_attempts` rows with username `@register`.
+- **Testing the backend on a Mac without touching the dev DB:** `mariadb-install-db --datadir=<dir> --auth-root-authentication-method=normal`, then `mariadbd --datadir=<dir> --port=3399 --bind-address=127.0.0.1 --socket=/tmp/csig-test.sock` (macOS socket paths are limited to ~100 chars, so keep the socket in /tmp); copy the repo (minus `.git`, `app`, `node_modules`) to a scratch dir with its own `inc/config.php` (raise `register_max_per_ip_hour` and `login_max_per_ip` for repeated runs), run `php tools/install.php` and `php -S 127.0.0.1:8125`, then both smoke scripts.
 
 ## Native app plan
 React Native (Expo) app reusing the simulation: `engine.js`, `data.js`, `addons.js`, `consoles.js`, `managers.js`, `advisor.js` move into a DOM-free shared `core/` module (imports instead of `CS.*` globals); only `ui.js` is rewritten as native components. Backend stays PHP + MariaDB with bearer-token auth and an in-app delete-account endpoint (done, see README "Native app API"); no CORS needed (React Native is not a browser). Keep `tools/sim.js` and the `*-check.js` scripts working against `core/`.
