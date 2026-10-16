@@ -1,6 +1,6 @@
 import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
-import { E, GameState, newGame, tick } from './game';
+import { E, GameState, HustleResult, hustle as doHustle, LogLine, newGame, saleLines, tick } from './game';
 import { clearGame, loadGame, saveGame } from './storage';
 
 type Away = { elapsed: number; effective: number; capped: boolean; cash0: number; cash1: number } | null;
@@ -8,6 +8,10 @@ type Ctx = {
   game: GameState;
   frame: number; // increments every tick so screens can re-render or throttle themselves
   refresh: () => void; // call after mutating state from a tap so the UI updates immediately
+  log: LogLine[]; // newest first, last 7 sales
+  toast: string | null; // latest achievement / notice, clears itself
+  hustleResult: HustleResult | null;
+  hustle: () => void;
   away: Away;
   dismissAway: () => void;
   reset: () => Promise<void>;
@@ -31,6 +35,23 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const sinceSave = useRef(0);
   const [ready, setReady] = useState(false);
   const [away, setAway] = useState<Away>(null);
+  const log = useRef<LogLine[]>([]);
+  const logId = useRef(0);
+  const [toast, setToast] = useState<string | null>(null);
+  const [hustleResult, setHustleResult] = useState<HustleResult | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resultTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const pushLog = useCallback((lines: { text: string; amt: number }[]) => {
+    lines.forEach((l) => log.current.unshift({ id: ++logId.current, ...l }));
+    if (log.current.length > 7) log.current.length = 7;
+  }, []);
+  const announce = useCallback((ach: any[]) => {
+    if (!ach.length) return;
+    setToast('🏆 ' + ach[0].name + ' — ' + ach[0].desc + ' (+1% customers)');
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 4000);
+  }, []);
   const [frame, force] = useState(0);
   const refresh = useCallback(() => force((n) => n + 1), []);
 
@@ -61,7 +82,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
       last.current = now;
       if (dt <= 0) return;
       if (dt > 10) catchUp(dt); // JS timers were suspended (app was backgrounded)
-      else tick(game.current, dt);
+      else {
+        const { events, ach } = tick(game.current, dt);
+        if (events.length) pushLog(saleLines(events));
+        announce(ach);
+      }
       sinceSave.current += dt;
       if (sinceSave.current >= SAVE_EVERY_S) { sinceSave.current = 0; saveGame(game.current); }
       force((n) => n + 1);
@@ -70,9 +95,22 @@ export function GameProvider({ children }: { children: ReactNode }) {
       if (st !== 'active' && game.current) saveGame(game.current);
     });
     return () => { clearInterval(id); sub.remove(); };
-  }, [ready, catchUp]);
+  }, [ready, catchUp, pushLog, announce]);
+
+  const hustle = useCallback(() => {
+    if (!game.current) return;
+    const r = doHustle(game.current);
+    if (!r) return;
+    if (r.log) pushLog([r.log]);
+    announce(r.ach);
+    setHustleResult(r.result);
+    if (resultTimer.current) clearTimeout(resultTimer.current);
+    resultTimer.current = setTimeout(() => setHustleResult(null), 1500);
+    force((n) => n + 1);
+  }, [pushLog, announce]);
 
   const reset = useCallback(async () => {
+    log.current = [];
     await clearGame();
     game.current = newGame();
     last.current = Date.now();
@@ -82,7 +120,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   if (!ready) return null;
   return (
-    <GameContext.Provider value={{ game: game.current, frame, refresh, away, dismissAway: () => setAway(null), reset }}>
+    <GameContext.Provider value={{ game: game.current, frame, refresh, log: log.current, toast, hustleResult, hustle, away, dismissAway: () => setAway(null), reset }}>
       {children}
     </GameContext.Provider>
   );
