@@ -8,6 +8,7 @@ require('./data.js');
 require('./addons.js');
 require('./engine.js');
 require('./consoles.js');
+require('./names.js');
 require('./managers.js');
 require('./advisor.js');
 module.exports = globalThis.CS;

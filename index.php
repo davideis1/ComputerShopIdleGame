@@ -83,6 +83,7 @@ $v = static function (string $f): string { return (string) @filemtime(__DIR__ . 
 <script src="core/addons.js?v=<?= $v('core/addons.js') ?>"></script>
 <script src="core/engine.js?v=<?= $v('core/engine.js') ?>"></script>
 <script src="core/consoles.js?v=<?= $v('core/consoles.js') ?>"></script>
+<script src="core/names.js?v=<?= $v('core/names.js') ?>"></script>
 <script src="core/managers.js?v=<?= $v('core/managers.js') ?>"></script>
 <script src="core/advisor.js?v=<?= $v('core/advisor.js') ?>"></script>
 <script src="js/ui.js?v=<?= $v('js/ui.js') ?>"></script>

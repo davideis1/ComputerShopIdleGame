@@ -240,7 +240,7 @@
     // Marketing
     { id: 'ads_news', grp: 'Marketing', name: 'Classified Ads', icon: '📰', desc: '+0.03 customers/s', year: 1993, base: 250, grow: 1.22, max: 60, kind: 'lambda', per: 0.03 },
     { id: 'ads_tv', grp: 'Marketing', name: 'Late-Night Infomercials', icon: '📺', desc: '+0.07 customers/s', year: 1994, base: 2000, grow: 1.22, max: 60, kind: 'lambda', per: 0.07 },
-    { id: 'ads_web', grp: 'Marketing', name: 'Geocities Web Page', icon: '🌐', desc: '+0.15 customers/s', year: 1996, base: 8000, grow: 1.22, max: 60, kind: 'lambda', per: 0.15 },
+    { id: 'ads_web', grp: 'Marketing', name: 'Free Homepage Hosting', icon: '🌐', desc: '+0.15 customers/s', year: 1996, base: 8000, grow: 1.22, max: 60, kind: 'lambda', per: 0.15 },
     { id: 'ads_ecom', grp: 'Marketing', name: 'E-Commerce Checkout', icon: '🛒', desc: '+0.35 customers/s', year: 1999, base: 25000, grow: 1.22, max: 60, kind: 'lambda', per: 0.35 },
     { id: 'ads_seo', grp: 'Marketing', name: 'Search Engine Optimization', icon: '🔎', desc: '+0.9 customers/s', year: 2003, base: 80000, grow: 1.22, max: 60, kind: 'lambda', per: 0.9 },
     { id: 'ads_social', grp: 'Marketing', name: 'Social Media Presence', icon: '👍', desc: '+2.2 customers/s', year: 2009, base: 350000, grow: 1.22, max: 60, kind: 'lambda', per: 2.2 },
