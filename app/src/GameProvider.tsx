@@ -1,9 +1,15 @@
 import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
+import * as api from './api';
+import { useAuth } from './AuthProvider';
 import { E, GameState, HustleResult, hustle as doHustle, LogLine, newGame, saleLines, tick } from './game';
-import { clearGame, loadGame, saveGame } from './storage';
+import { clearGame, clearSyncMeta, deviceId, loadGame, loadSyncMeta, saveGame, saveSyncMeta } from './storage';
+import { brief, Brief, Decision, reconcile, SyncMeta } from './sync';
 
 type Away = { elapsed: number; effective: number; capped: boolean; cash0: number; cash1: number } | null;
+export type SyncStatus = 'off' | 'ok' | 'offline' | 'paused' | 'error';
+export type Conflict = { local: Brief; server: Brief } | null;
+type ResetResult = { ok: true } | { ok: false; message: string };
 type Ctx = {
   game: GameState;
   frame: number; // increments every tick so screens can re-render or throttle themselves
@@ -12,10 +18,17 @@ type Ctx = {
   toast: string | null; // latest achievement / notice, clears itself
   hustleResult: HustleResult | null;
   hustle: () => void;
+  notify: (text: string) => void; // show a banner on whichever tab is open
+  saveNow: () => Promise<void>;
   prestige: () => number; // sell up and open a new franchise; returns the tokens gained (0 if none ready)
   away: Away;
   dismissAway: () => void;
-  reset: () => Promise<void>;
+  reset: () => Promise<ResetResult>;
+  /** Cloud sync: 'off' when signed out, 'ok' / 'offline' / 'paused' (conflict postponed) / 'error' when signed in. */
+  sync: { status: SyncStatus; at: number | null };
+  conflict: Conflict; // set when this device and the cloud both changed: the player picks
+  resolveConflict: (choice: 'local' | 'server' | 'later') => void;
+  syncNow: () => Promise<void>;
 };
 
 const GameContext = createContext<Ctx | null>(null);
@@ -28,9 +41,18 @@ export const useGame = () => {
 const FRAME_MS = 250;
 const SAVE_EVERY_S = 15;
 const MIN_AWAY_S = 60; // shorter gaps are just ticked through
+const BOOT_LOAD_MS = 5000; // how long launch waits for the server before playing from the local save
 
-/** Owns the simulation: loads the save, catches up offline time, ticks, and autosaves. */
+type PendingServer = { state: GameState; rev: number; elapsed: number };
+
+/** Owns the simulation: loads the save, catches up offline time, ticks, autosaves, and syncs with the account. */
 export function GameProvider({ children }: { children: ReactNode }) {
+  const auth = useAuth();
+  const tokenRef = useRef<string | null>(null);
+  const userIdRef = useRef<number | null>(null);
+  tokenRef.current = auth.token;
+  userIdRef.current = auth.user ? auth.user.id : null;
+
   const game = useRef<GameState | null>(null);
   const last = useRef(Date.now());
   const sinceSave = useRef(0);
@@ -42,6 +64,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [hustleResult, setHustleResult] = useState<HustleResult | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resultTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // --- sync state
+  const meta = useRef<SyncMeta | null>(null);
+  const device = useRef('app');
+  const syncing = useRef(false);
+  const paused = useRef(false);
+  const pending = useRef<PendingServer | null>(null); // the cloud copy waiting on the player's choice
+  const [sync, setSync] = useState<Ctx['sync']>({ status: 'off', at: null });
+  const [conflict, setConflict] = useState<Conflict>(null);
+  const booted = useRef(false);
+  const prevToken = useRef<string | null | undefined>(undefined);
 
   const pushLog = useCallback((lines: { text: string; amt: number }[]) => {
     lines.forEach((l) => log.current.unshift({ id: ++logId.current, ...l }));
@@ -65,17 +98,175 @@ export function GameProvider({ children }: { children: ReactNode }) {
     if (rep.units > 0 || rep.upkeep > 0 || rep.built > 0) setAway(rep);
   }, []);
 
+  /* ---------- cloud sync ---------- */
+
+  const markSynced = useCallback(async (rev: number) => {
+    const uid = userIdRef.current;
+    if (uid == null) return;
+    meta.current = { userId: uid, rev, at: Date.now() };
+    await saveSyncMeta(meta.current);
+    setSync({ status: 'ok', at: Date.now() });
+  }, []);
+
+  /** The token was refused by the server: it expired or the account is gone. */
+  const signOut = auth.signOut;
+  const sessionLost = useCallback(() => { signOut(true); }, [signOut]);
+
+  /** Push this device's game to the account (revision-checked, like the website). */
+  const push = useCallback(async (force = false) => {
+    const t = tokenRef.current, g = game.current;
+    if (!t || !g || syncing.current || paused.current || (pending.current && !force)) return;
+    syncing.current = true;
+    try {
+      const r = await api.saveToServer(t, { state: E.serialize(g), rev: meta.current ? meta.current.rev : 0, tab: device.current, force });
+      if (r.ok) { await markSynced(r.data.rev); return; }
+      if (r.error === 'conflict') { await openConflict(); return; }
+      if (r.status === 401) { sessionLost(); return; }
+      setSync((s) => ({ status: r.network ? 'offline' : 'error', at: s.at }));
+    } finally {
+      syncing.current = false;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [markSynced, sessionLost]);
+
+  /** Fetch the cloud copy and ask the player which one to keep. */
+  const openConflict = useCallback(async () => {
+    const t = tokenRef.current;
+    if (!t || !game.current) return;
+    const r = await api.loadSave(t);
+    if (!r.ok) {
+      if (r.status === 401) sessionLost(); else setSync((s) => ({ status: r.network ? 'offline' : 'error', at: s.at }));
+      return;
+    }
+    if (!r.data.state) { meta.current = null; return; } // the cloud copy vanished: the next push will recreate it
+    const st: GameState = E.migrate(r.data.state);
+    pending.current = { state: st, rev: r.data.rev, elapsed: r.data.elapsed };
+    setConflict({ local: brief(game.current), server: brief(st) });
+  }, [sessionLost]);
+
+  /** Make the cloud copy this device's game (new phone, or the player chose it). */
+  const adoptServer = useCallback(async (p: PendingServer) => {
+    game.current = p.state;
+    log.current = [];
+    last.current = Date.now();
+    sinceSave.current = 0;
+    catchUp(p.elapsed);
+    await saveGame(game.current);
+    await markSynced(p.rev);
+    force((n) => n + 1);
+  }, [catchUp, markSynced]);
+
+  /** Apply a reconcile() decision while the game is running (after signing in, or "Sync now"). */
+  const applyDecision = useCallback(async (d: Decision) => {
+    switch (d.kind) {
+      case 'upload': meta.current = null; await push(); break;
+      case 'local': await markSynced(d.rev); await push(); break;
+      case 'server': await adoptServer({ state: d.state, rev: d.rev, elapsed: d.elapsed }); break;
+      case 'conflict': pending.current = { state: d.state, rev: d.rev, elapsed: d.elapsed }; setConflict({ local: d.local, server: d.server }); break;
+      default: break; // 'fresh'
+    }
+  }, [adoptServer, markSynced, push]);
+
+  /** Compare this device with the account from scratch. */
+  const reconcileNow = useCallback(async () => {
+    const t = tokenRef.current, uid = userIdRef.current;
+    if (!t || uid == null || !game.current) return;
+    const r = await api.loadSave(t);
+    if (!r.ok) {
+      if (r.status === 401) sessionLost(); else setSync((s) => ({ status: r.network ? 'offline' : 'error', at: s.at }));
+      return;
+    }
+    paused.current = false;
+    await applyDecision(reconcile(game.current, meta.current, uid, r.data));
+  }, [applyDecision, sessionLost]);
+
+  const resolveConflict = useCallback((choice: 'local' | 'server' | 'later') => {
+    const p = pending.current;
+    pending.current = null;
+    setConflict(null);
+    if (!p) return;
+    if (choice === 'server') { adoptServer(p); return; }
+    if (choice === 'local') {
+      meta.current = userIdRef.current != null ? { userId: userIdRef.current, rev: p.rev, at: Date.now() } : null;
+      push(true); // overwrite the cloud copy with this device's shop
+      return;
+    }
+    paused.current = true; // keep playing locally; "Sync now" in Menu -> Account asks again
+    setSync((s) => ({ status: 'paused', at: s.at }));
+  }, [adoptServer, push]);
+
+  const syncNow = useCallback(async () => {
+    if (!tokenRef.current || !game.current) return;
+    if (pending.current) { setConflict({ local: brief(game.current), server: brief(pending.current.state) }); return; }
+    if (paused.current || !meta.current || meta.current.userId !== userIdRef.current) { await reconcileNow(); return; }
+    await saveGame(game.current);
+    await push();
+  }, [push, reconcileNow]);
+
+  /* ---------- launch ---------- */
+
   useEffect(() => {
+    if (auth.status === 'loading' || booted.current) return;
+    booted.current = true;
     let alive = true;
-    loadGame().then((s) => {
+    (async () => {
+      device.current = await deviceId();
+      meta.current = await loadSyncMeta();
+      const local = await loadGame();
+      const t = tokenRef.current, uid = userIdRef.current;
+      let d: Decision | null = null;
+      if (t && uid != null) {
+        const r = await api.loadSave(t, BOOT_LOAD_MS);
+        if (r.ok) d = reconcile(local, meta.current, uid, r.data);
+        else if (r.status === 401) auth.signOut(true);
+        else setSync({ status: r.network ? 'offline' : 'error', at: null });
+      }
       if (!alive) return;
-      game.current = s ?? newGame();
-      if (s) catchUp((Date.now() - s.saved) / 1000); // negative (clock set back) is ignored by the MIN_AWAY_S guard
+
+      // Offline time: with the server in reach, never more than the server saw (a changed phone clock can't buy extra hours),
+      // and never more than the device saw (so offline play that was already simulated is not counted twice).
+      const deviceAway = local ? Math.max(0, (Date.now() - local.saved) / 1000) : 0;
+      if (d && d.kind === 'server') {
+        game.current = d.state;
+        catchUp(d.elapsed);
+        meta.current = { userId: uid!, rev: d.rev, at: Date.now() };
+        await saveSyncMeta(meta.current);
+        await saveGame(game.current);
+        setSync({ status: 'ok', at: Date.now() });
+      } else {
+        game.current = local ?? newGame();
+        catchUp(d && d.kind === 'local' && d.elapsed != null ? Math.min(d.elapsed, deviceAway) : deviceAway);
+        if (d && d.kind === 'local') { meta.current = { userId: uid!, rev: d.rev, at: Date.now() }; await saveSyncMeta(meta.current); setSync({ status: 'ok', at: Date.now() }); }
+        if (d && d.kind === 'upload') meta.current = null;
+        if (d && d.kind === 'conflict') {
+          pending.current = { state: d.state, rev: d.rev, elapsed: d.elapsed };
+          setConflict({ local: d.local, server: d.server });
+        }
+      }
       last.current = Date.now();
       setReady(true);
-    });
+      if (d && (d.kind === 'upload' || d.kind === 'local')) push();
+    })();
     return () => { alive = false; };
-  }, [catchUp]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth.status]);
+
+  // Signing in or out while the game is running.
+  useEffect(() => {
+    const prev = prevToken.current;
+    prevToken.current = auth.token;
+    if (!ready || prev === undefined || prev === auth.token) return;
+    if (auth.token) { reconcileNow(); return; }
+    // Signed out: keep `meta` (it records which account and revision this device last matched), so signing back in to the
+    // same account is a quiet revision comparison; a different account has a different id and is asked about instead.
+    pending.current = null; paused.current = false;
+    setConflict(null);
+    setSync({ status: 'off', at: null });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth.token, ready]);
+  useEffect(() => { if (ready && prevToken.current === undefined) prevToken.current = auth.token; }, [ready, auth.token]);
+
+  /* ---------- the tick ---------- */
 
   useEffect(() => {
     if (!ready) return;
@@ -91,14 +282,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
         announce(ach);
       }
       sinceSave.current += dt;
-      if (sinceSave.current >= SAVE_EVERY_S) { sinceSave.current = 0; saveGame(game.current); }
+      if (sinceSave.current >= SAVE_EVERY_S) { sinceSave.current = 0; saveGame(game.current); push(); }
       force((n) => n + 1);
     }, FRAME_MS);
     const sub = AppState.addEventListener('change', (st) => {
-      if (st !== 'active' && game.current) saveGame(game.current);
+      if (st !== 'active' && game.current) { saveGame(game.current); push(); }
     });
     return () => { clearInterval(id); sub.remove(); };
-  }, [ready, catchUp, pushLog, announce]);
+  }, [ready, catchUp, pushLog, announce, push]);
+
+  /* ---------- actions ---------- */
 
   const hustle = useCallback(() => {
     if (!game.current) return;
@@ -121,23 +314,53 @@ export function GameProvider({ children }: { children: ReactNode }) {
     last.current = Date.now();
     sinceSave.current = 0;
     saveGame(game.current);
+    push();
     say('🎫 +' + r.gain + ' tokens! Opening your new franchise…', 6000);
     force((n) => n + 1);
     return r.gain;
-  }, [say]);
+  }, [say, push]);
 
-  const reset = useCallback(async () => {
+  const saveNow = useCallback(async () => {
+    if (!game.current) return;
+    await saveGame(game.current);
+    sinceSave.current = 0;
+    if (!tokenRef.current) { say('💾 Saved on this device'); return; }
+    await push();
+    say(syncStatusRef.current === 'ok' ? '☁️ Saved to your account' : '💾 Saved on this device. Cloud sync is waiting for a connection.');
+  }, [say, push]);
+  const syncStatusRef = useRef<SyncStatus>('off');
+  syncStatusRef.current = sync.status;
+
+  const reset = useCallback(async (): Promise<ResetResult> => {
+    // Erase the cloud save first: if we erased only the phone, the next launch would pull the shop straight back.
+    const t = tokenRef.current;
+    if (t) {
+      const r = await api.resetServer(t);
+      if (!r.ok && r.status !== 401) return { ok: false, message: api.errorText(r.error) + " Your shop wasn't erased." };
+    }
     log.current = [];
+    pending.current = null;
+    paused.current = false;
+    setConflict(null);
     await clearGame();
     game.current = newGame();
     last.current = Date.now();
     setAway(null);
+    if (t && userIdRef.current != null) { meta.current = { userId: userIdRef.current, rev: 0, at: Date.now() }; await saveSyncMeta(meta.current); }
+    else { meta.current = null; await clearSyncMeta(); }
     force((n) => n + 1);
+    return { ok: true };
   }, []);
 
   if (!ready) return null;
+  const status: SyncStatus = auth.token ? sync.status : 'off';
   return (
-    <GameContext.Provider value={{ game: game.current, frame, refresh, log: log.current, toast, hustleResult, hustle, prestige, away, dismissAway: () => setAway(null), reset }}>
+    <GameContext.Provider
+      value={{
+        game: game.current, frame, refresh, log: log.current, toast, hustleResult, hustle, prestige, notify: say, saveNow, away,
+        dismissAway: () => setAway(null), reset, sync: { status, at: sync.at }, conflict, resolveConflict, syncNow,
+      }}
+    >
       {children}
     </GameContext.Provider>
   );
