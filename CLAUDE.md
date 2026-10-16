@@ -46,8 +46,16 @@ An idle shop game (desktop + mobile): run a computer shop from 1993 to today. Pa
 ## Native app plan
 React Native (Expo) app reusing the simulation: `engine.js`, `data.js`, `addons.js`, `consoles.js`, `managers.js`, `advisor.js` move into a DOM-free shared `core/` module (imports instead of `CS.*` globals); only `ui.js` is rewritten as native components. Backend stays PHP + MariaDB; needs bearer-token auth + CORS, an in-app delete-account endpoint, and a capped device-clock fallback for offline catch-up. Keep `tools/sim.js` and the `*-check.js` scripts working against `core/`.
 
+### `app/` (Expo, SDK 58, TypeScript)
+- Run: `cd app && npm install && npx expo start --ios`. Checks: `npx tsc --noEmit`, `npx expo-doctor`, `npx expo export --platform ios` (proves Metro + Hermes can bundle `core/`).
+- Expo Router (file routes in `src/app/`: tabs Shop/Stock/Upgrades/Menu; `@/` aliases `src/`). `src/GameProvider.tsx` owns the sim: loads the save, offline catch-up (`E.offline`, gaps >= 60 s, welcome-back sheet), 250 ms tick, autosave every 15 s + on background. `src/storage.ts` = AsyncStorage (`csig-save-v1`). `metro.config.js` watches `../core` and aliases it as `@core`; `src/game.ts` wraps `CS.E`; `src/core.d.ts` declares the untyped module. Add packages with `npx expo install <pkg>` (SDK-compatible versions). Expo APIs change per SDK, so check https://docs.expo.dev/versions/ before using one.
+- Bundle ids: `com.davideis1.computershopidle` (iOS + Android) — placeholder, change before the first store build.
+- **Rebuild rule:** a package with native code needs `npx expo run:ios` (or `pod install` in `app/ios` + Xcode Run); JS-only edits just reload. Debug builds need Metro running (`npx expo start`). `ios/` is generated and gitignored. Verified on the iPhone 17 Pro simulator (save survives kill + relaunch, welcome-back sheet).
+- Not yet done: real Stock/Upgrades screens, buying/stocking actions, server sync/auth, Android run-through.
+
 ## Change log (newest first)
 Developer-facing log; the player-facing one is `changelog.json`.
+- **native-mobile-expo (draft, targets `native-mobile-core`/`native-mobile`)** `app/` Expo scaffold: Metro reads `core/`; Expo Router tabs, local AsyncStorage save, offline catch-up + welcome-back sheet.
 - **native-mobile-core (draft, targets `native-mobile`)** Simulation moved from `js/` to DOM-free `core/` (+ `core/index.js` loader for Node/React Native); tools, index.php, SW cache bumped; `custom-check` fixed (it was missing addons).
 - **#12 (open draft)** also: version number + auto-increment hook, What's new popup.
 - **#12 (open draft)** PC Designer buyer; `tools/design-check.js`; Advisor hints; Buyers stat `n / 6`; this file.
