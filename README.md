@@ -17,7 +17,7 @@ Apache: the bundled `.htaccess` files block `inc/`, `sql/` and `tools/`. On ngin
 Lost password (there is no email): `php tools/reset_password.php <username> <new-password>`.
 
 ### How it fits together
-- The game simulation (`js/engine.js`) runs in the browser, so it stays smooth. PHP handles accounts and storage.
+- The game simulation (`core/engine.js`) runs in the browser, so it stays smooth. PHP handles accounts and storage.
 - `index.php` requires login and boots the game with the player's save, settings and CSRF token.
 - `api/save.php` stores the state (revision-checked so two tabs/devices cannot silently overwrite each other); `api/settings.php` stores theme and display options; `api/reset.php` deletes a shop.
 - **Offline progress is measured on the server clock** (time since the last save), so changing the device clock does not cheat it. The browser also keeps a per-user local backup and offers to restore it if a save never reached the server.

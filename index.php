@@ -79,12 +79,12 @@ $v = static function (string $f): string { return (string) @filemtime(__DIR__ . 
 <div id="modal" hidden></div>
 
 <script>window.CSIG = <?= $bootJson ?>;</script>
-<script src="js/data.js?v=<?= $v('js/data.js') ?>"></script>
-<script src="js/addons.js?v=<?= $v('js/addons.js') ?>"></script>
-<script src="js/engine.js?v=<?= $v('js/engine.js') ?>"></script>
-<script src="js/consoles.js?v=<?= $v('js/consoles.js') ?>"></script>
-<script src="js/managers.js?v=<?= $v('js/managers.js') ?>"></script>
-<script src="js/advisor.js?v=<?= $v('js/advisor.js') ?>"></script>
+<script src="core/data.js?v=<?= $v('core/data.js') ?>"></script>
+<script src="core/addons.js?v=<?= $v('core/addons.js') ?>"></script>
+<script src="core/engine.js?v=<?= $v('core/engine.js') ?>"></script>
+<script src="core/consoles.js?v=<?= $v('core/consoles.js') ?>"></script>
+<script src="core/managers.js?v=<?= $v('core/managers.js') ?>"></script>
+<script src="core/advisor.js?v=<?= $v('core/advisor.js') ?>"></script>
 <script src="js/ui.js?v=<?= $v('js/ui.js') ?>"></script>
 </body>
 </html>
