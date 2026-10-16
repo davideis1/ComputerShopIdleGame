@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, Switch, ScrollView, Text, TextInput, View } from 'react-native';
 import { useAuth } from '@/AuthProvider';
 import { AccountPanel } from '@/components/AccountPanel';
 import { useGame } from '@/GameProvider';
@@ -72,6 +72,10 @@ export default function Menu() {
             );
           })}
         </View>
+        <View style={styles.rowBetween}>
+          <Text style={styles.label}>News ticker</Text>
+          <Switch value={s.settings?.showTicker !== false} onValueChange={(v) => { s.settings = { ...s.settings, showTicker: v }; refresh(); }} />
+        </View>
       </Panel>
 
       <AccountPanel />
@@ -133,6 +137,7 @@ const styles = themed(() => ({
   body: { color: colors.dim, fontSize: 14, lineHeight: 20 },
   label: { color: colors.text, fontSize: 14 },
   input: { backgroundColor: colors.inset, color: colors.text, borderRadius: Math.min(8, theme.radius), paddingHorizontal: 10, paddingVertical: 10, fontSize: 16 },
+  rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   row: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
   rowLabel: { color: colors.dim, fontSize: 14, flex: 1 },
   rowVal: { color: colors.text, fontSize: 14, fontWeight: '700' },

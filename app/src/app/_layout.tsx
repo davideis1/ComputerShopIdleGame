@@ -2,9 +2,11 @@ import { Tabs } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Fragment, ReactNode, useEffect } from 'react';
+import { View } from 'react-native';
 import { AuthProvider, useAuth } from '@/AuthProvider';
 import { GameProvider, useGame } from '@/GameProvider';
 import { SyncConflictModal } from '@/components/SyncConflictModal';
+import { Ticker } from '@/components/Ticker';
 import { ToastBanner } from '@/components/ToastBanner';
 import { buyersVisible, hqVisible } from '@/franchise';
 import { E } from '@/game';
@@ -33,10 +35,12 @@ function AppTabs() {
   const showHQ = hqVisible(game);
   const showBuyers = buyersVisible(game);
   return (
-    <>
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      <Ticker />
       <Tabs
         screenOptions={{
           headerStyle: { backgroundColor: colors.bg },
+          headerStatusBarHeight: 0, // the ticker above already clears the status bar
           headerTintColor: colors.onBg,
           tabBarStyle: { backgroundColor: colors.card, borderTopColor: colors.bg },
           tabBarActiveTintColor: colors.accent,
@@ -56,7 +60,7 @@ function AppTabs() {
       </Tabs>
       <ToastBanner />
       <SyncConflictModal />
-    </>
+    </View>
   );
 }
 
