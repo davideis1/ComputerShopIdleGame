@@ -17,7 +17,7 @@ function Panel({ title, right, children }: { title: string; right?: React.ReactN
 }
 
 export default function Shop() {
-  const { game: s, frame, refresh, log, toast, hustleResult, hustle, away, dismissAway } = useGame();
+  const { game: s, frame, refresh, log, hustleResult, hustle, away, dismissAway } = useGame();
   const [advOpen, setAdvOpen] = useState(true);
   const [acted, setActed] = useState(0);
 
@@ -32,8 +32,6 @@ export default function Shop() {
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      {!!toast && <View style={styles.toast}><Text style={styles.toastText}>{toast}</Text></View>}
-
       <View style={styles.top}>
         <View style={{ flex: 1 }}>
           <Text style={styles.shopName}>{s.name || 'Computer Shop'}</Text>
@@ -182,8 +180,6 @@ const styles = StyleSheet.create({
   logRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 },
   logText: { color: colors.dim, fontSize: 13, flex: 1 },
   logAmt: { color: colors.good, fontSize: 13, fontWeight: '700' },
-  toast: { backgroundColor: colors.accent, borderRadius: 10, padding: 12 },
-  toastText: { color: '#fff', fontWeight: '700', fontSize: 13 },
   backdrop: { flex: 1, backgroundColor: '#000a', justifyContent: 'center', padding: 24 },
   modal: { backgroundColor: colors.card, borderRadius: 14, padding: 20, gap: 8 },
 });

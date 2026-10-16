@@ -1,12 +1,18 @@
 import { Tabs } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { GameProvider } from '@/GameProvider';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { GameProvider, useGame } from '@/GameProvider';
+import { ToastBanner } from '@/components/ToastBanner';
+import { buyersVisible, hqVisible } from '@/franchise';
 import { colors } from '@/theme';
 
-export default function RootLayout() {
+function AppTabs() {
+  const { game } = useGame();
+  // Same rules as the web nav: HQ appears once tokens matter, Buyers once the Purchasing Office is near.
+  const showHQ = hqVisible(game);
+  const showBuyers = buyersVisible(game);
   return (
-    <GameProvider>
-      <StatusBar style="light" />
+    <>
       <Tabs
         screenOptions={{
           headerStyle: { backgroundColor: colors.bg },
@@ -14,6 +20,8 @@ export default function RootLayout() {
           tabBarStyle: { backgroundColor: colors.card, borderTopColor: colors.bg },
           tabBarActiveTintColor: colors.accent,
           tabBarInactiveTintColor: colors.dim,
+          tabBarLabelStyle: { fontSize: 9 }, // seven tabs must fit on a phone
+          tabBarItemStyle: { paddingHorizontal: 0 },
           sceneStyle: { backgroundColor: colors.bg },
         }}
       >
@@ -21,9 +29,22 @@ export default function RootLayout() {
         <Tabs.Screen name="stock" options={{ title: 'Stock' }} />
         <Tabs.Screen name="upgrades" options={{ title: 'Upgrades' }} />
         <Tabs.Screen name="workshop" options={{ title: 'Workshop' }} />
-        <Tabs.Screen name="buyers" options={{ title: 'Buyers' }} />
+        <Tabs.Screen name="buyers" options={{ title: 'Buyers', ...(showBuyers ? {} : { href: null }) }} />
+        <Tabs.Screen name="franchise" options={{ title: 'HQ', ...(showHQ ? {} : { href: null }) }} />
         <Tabs.Screen name="menu" options={{ title: 'Menu' }} />
       </Tabs>
-    </GameProvider>
+      <ToastBanner />
+    </>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <SafeAreaProvider>
+      <GameProvider>
+        <StatusBar style="light" />
+        <AppTabs />
+      </GameProvider>
+    </SafeAreaProvider>
   );
 }
