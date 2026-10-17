@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { useAuth } from '@/AuthProvider';
 import { PRIVACY_URL } from '@/config';
-import { colors } from '@/theme';
+import { colors, theme, themed } from '@/theme';
 
 /** Sign in / create account sheet. Accounts are optional: the game works fully without one. */
 export function AuthModal({ visible, initialMode, onClose }: { visible: boolean; initialMode: 'in' | 'up'; onClose: () => void }) {

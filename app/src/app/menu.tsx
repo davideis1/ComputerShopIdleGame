@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 import { useAuth } from '@/AuthProvider';
 import { AccountPanel } from '@/components/AccountPanel';
 import { useGame } from '@/GameProvider';
@@ -157,7 +157,7 @@ const styles = themed(() => ({
   btnRow: { flexDirection: 'row', gap: 10 },
   linkRow: { flexDirection: 'row', gap: 24 },
   link: { color: colors.accent, fontSize: 14, fontWeight: '600' },
-  btn: { flex: 1, backgroundColor: colors.accent, borderRadius: 8, paddingVertical: 11, alignItems: 'center' },
+  btn: { flex: 1, backgroundColor: colors.accent, borderRadius: Math.min(8, theme.radius), paddingVertical: 11, alignItems: 'center' },
   danger: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.danger },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 }));
