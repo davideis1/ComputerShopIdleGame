@@ -14,6 +14,11 @@ What is **left on purpose** is the PC hardware layer: the computer makers, parts
 add display-name overrides in `core/names.js` (product and part brands are defined in `core/data.js`, so they need the same treatment to keep ids stable).
 The Stock and Workshop screenshots (06, 07) show these hardware brands; leave them out of the first submission to lower the risk.
 
+## Opening the project in Xcode
+The Xcode project is generated, not committed. From a fresh clone: `cd app && npm install && npm run xcode` (runs `expo prebuild --clean --platform ios`, then opens `ios/MegaByteComputers.xcworkspace`).
+In Xcode pick a simulator and press Run; for a real device set your team under Signing & Capabilities. Debug builds load JavaScript from Metro (`npx expo start`).
+Store builds do not need Xcode at all: `eas build -p ios` (see below).
+
 ## 1. Before you build
 1. **Contact address.** The privacy and support pages show a "no contact address" notice until you add one. On the server edit `inc/config.php`
    (it is never deployed or committed) and add `'contact_email' => 'you@example.com',`. Reload https://computershopidlegame.davideis.com/privacy.php to check.
