@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { ActivityIndicator, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useAuth } from '@/AuthProvider';
-import { colors, theme, themed } from '@/theme';
+import { PRIVACY_URL } from '@/config';
+import { colors } from '@/theme';
 
 /** Sign in / create account sheet. Accounts are optional: the game works fully without one. */
 export function AuthModal({ visible, initialMode, onClose }: { visible: boolean; initialMode: 'in' | 'up'; onClose: () => void }) {
@@ -53,6 +54,12 @@ export function AuthModal({ visible, initialMode, onClose }: { visible: boolean;
                 value={password2} onChangeText={setPassword2} secureTextEntry autoCapitalize="none" textContentType="newPassword"
               />
             )}
+            {up && (
+              <Text style={styles.fine}>
+                By creating an account you agree that we store your username and shop as described in the{' '}
+                <Text style={styles.finelink} onPress={() => Linking.openURL(PRIVACY_URL)}>privacy policy</Text>.
+              </Text>
+            )}
             {!!error && <Text style={styles.error}>{error}</Text>}
             <Pressable style={[styles.btn, busy && { opacity: 0.6 }]} onPress={submit} disabled={busy}>
               {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>{up ? 'Create account' : 'Sign in'}</Text>}
@@ -74,7 +81,9 @@ const styles = themed(() => ({
   body: { color: colors.dim, fontSize: 14, lineHeight: 20 },
   input: { backgroundColor: colors.inset, color: colors.text, borderRadius: Math.min(8, theme.radius), paddingHorizontal: 12, paddingVertical: 12, fontSize: 16 },
   error: { color: colors.danger, fontSize: 14 },
-  btn: { backgroundColor: colors.accent, borderRadius: Math.min(10, theme.radius), paddingVertical: 14, alignItems: 'center' },
+  fine: { color: colors.dim, fontSize: 12, lineHeight: 17 },
+  finelink: { color: colors.accent, fontWeight: '600' },
+  btn: { backgroundColor: colors.accent, borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
   link: { color: colors.accent, textAlign: 'center', fontSize: 14, fontWeight: '600' },
   dim: { color: colors.dim, textAlign: 'center', fontSize: 14 },

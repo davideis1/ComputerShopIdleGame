@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
-import { Alert, Pressable, Switch, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useAuth } from '@/AuthProvider';
 import { AccountPanel } from '@/components/AccountPanel';
 import { useGame } from '@/GameProvider';
+import { APP_VERSION, PRIVACY_URL, SUPPORT_URL } from '@/config';
 import { buildMenuView, setShopName, TRO_FILTERS, TroFilter } from '@/menu';
 import { colors, theme, themed, THEME_IDS, THEME_LABELS } from '@/theme';
 
@@ -119,10 +120,14 @@ export default function Menu() {
         </View>
       </Panel>
 
-      <Panel title="About">
+      <Panel title="About" right={APP_VERSION ? 'v' + APP_VERSION : undefined}>
         <Text style={styles.body}>
           Idle computer shop, 1993 → today. Every brand and product name is a made-up parody; this game is not affiliated with or endorsed by any real company. Offline progress is capped by your shop's Night Lock-Up, and Franchise Tokens, HQ upgrades and trophies carry over when you open a new franchise.
         </Text>
+        <View style={styles.linkRow}>
+          <Pressable onPress={() => Linking.openURL(PRIVACY_URL)} hitSlop={8}><Text style={styles.link}>Privacy policy</Text></Pressable>
+          <Pressable onPress={() => Linking.openURL(SUPPORT_URL)} hitSlop={8}><Text style={styles.link}>Support</Text></Pressable>
+        </View>
       </Panel>
     </ScrollView>
   );
@@ -150,7 +155,9 @@ const styles = themed(() => ({
   trophyIcon: { fontSize: 22 },
   trophyName: { color: colors.text, fontSize: 14, fontWeight: '700' },
   btnRow: { flexDirection: 'row', gap: 10 },
-  btn: { flex: 1, backgroundColor: colors.accent, borderRadius: Math.min(8, theme.radius), paddingVertical: 11, alignItems: 'center' },
+  linkRow: { flexDirection: 'row', gap: 24 },
+  link: { color: colors.accent, fontSize: 14, fontWeight: '600' },
+  btn: { flex: 1, backgroundColor: colors.accent, borderRadius: 8, paddingVertical: 11, alignItems: 'center' },
   danger: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.danger },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 }));
