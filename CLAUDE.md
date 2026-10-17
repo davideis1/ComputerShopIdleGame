@@ -71,7 +71,6 @@ React Native (Expo) app reusing the simulation: `engine.js`, `data.js`, `addons.
 ## Change log (newest first)
 Developer-facing log; the player-facing one is `changelog.json`.
 - **rename-games (draft)** Original names for all PC/console games, publishers, consoles and console accessories via `core/names.js` (ids frozen, `tools/names-check.js` guard, saves migrate); the real name "Geocities Web Page" -> "Free Homepage Hosting"; PC makers/models/parts/peripheral brands renamed too (Bytewell, Marlowe, Quince, Silicor, Verdant, Skylight...).
-- **rename-games (draft)** Original names for all PC/console games, publishers, consoles and console accessories via `core/names.js` (ids frozen, `tools/names-check.js` guard, saves migrate); the real name "Geocities Web Page" -> "Free Homepage Hosting".
 - **app-token-header (draft)** App sends `X-Api-Token` as well as `Authorization` (IONOS drops `Authorization`); notes updated.
 - **native-mobile-sync (draft, stacked on native-mobile-trophies)** Optional accounts + cloud sync in the app: token sign-in/up/out, keychain storage, conflict-aware sync with the PHP backend, server-clock offline time, in-app account deletion, Erase-all also erases the cloud save.
 - **native-mobile-trophies (draft)** Native Menu tab: shop name, statistics, trophy case with filters, Save now, Erase all, About.
