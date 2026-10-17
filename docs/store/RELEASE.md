@@ -3,16 +3,11 @@
 What is already done in the repo: icon and splash, bundle ID, versions, privacy manifest, privacy and support pages, in-app account
 deletion, EAS config (`app/eas.json`). What follows needs your accounts and cannot be done from the code.
 
-## 0. Naming risk (mostly resolved)
+## 0. Naming risk (resolved)
 Apple guideline 5.2 (Intellectual Property) can reject apps whose names read as another company's trademark, and review is done by a person looking at the screenshots.
-**Games, publishers and consoles now have original names** (`core/names.js`, from the `rename-games` branch; guarded by `tools/names-check.js`: no real trademark, no retired pun,
-no "-ish" marker, and no item id changes, so saves keep working). The real name "Geocities Web Page" was renamed too.
-
-What is **left on purpose** is the PC hardware layer: the computer makers, parts and peripherals are one-letter parodies of real companies
-(Microsaft, Dall, Compac, Intal, Envidia, Logitec, Windoze, Corsiar...). They parody generic industry names rather than game franchises, and the app says
-"not affiliated with any real company" in About and in the privacy policy, but review is still a judgement call. If Apple objects, the fix uses the same mechanism:
-add display-name overrides in `core/names.js` (product and part brands are defined in `core/data.js`, so they need the same treatment to keep ids stable).
-The Stock and Workshop screenshots (06, 07) show these hardware brands; leave them out of the first submission to lower the risk.
+**Every brand in the game now has an original name**: games, publishers, consoles, PC makers, models, parts and peripheral brands (`core/names.js` and `core/data.js`; guarded by
+`tools/names-check.js`: no real trademark, no retired pun, no "-ish" marker, and no item id changes, so saves keep working). About and the privacy policy also say the game is not affiliated
+with any real company. All seven screenshots are safe to submit.
 
 ## 1. Before you build
 1. **Contact address.** The privacy and support pages show a "no contact address" notice until you add one. On the server edit `inc/config.php`
