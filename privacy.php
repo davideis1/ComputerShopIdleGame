@@ -15,10 +15,11 @@ page_head('Privacy policy');
 <p>We store what is needed to sign you in and keep your shop safe:</p>
 <ul>
   <li><b>Username</b> and a <b>password</b>. The password is stored only as a one-way hash; nobody, including us, can read it.</li>
+  <li><b>Email address (optional)</b>: only if you choose to add one. It is used only to email you a link to reset a forgotten password (and a note when the password is changed). It is not used for marketing and is not shared. You can remove it any time under Account. Reset requests are stored as a hashed one-time token for a short time.</li>
   <li><b>Your game progress</b>: the saved state of your shop (shop name, cash, upgrades, stock, statistics, trophies) plus up to five recent backups of it.</li>
   <li><b>Sign-in tokens</b> (stored hashed) with a device label such as "iPhone", and the times they were created and last used.</li>
   <li><b>A random install ID</b> made by the app, used only to tell your devices apart when saving. It is not linked to your identity outside the game.</li>
-  <li><b>Security records</b>: failed sign-ins and sign-ups are recorded with the username and IP address for a short time, to block password guessing and automated sign-ups. These records are deleted automatically after about a day.</li>
+  <li><b>Security records</b>: failed sign-ins, sign-ups and reset requests are recorded with the username and IP address for a short time, to block password guessing and automated sign-ups. These records are deleted automatically after about a day.</li>
 </ul>
 <p>Our web host also keeps ordinary server logs (IP address, time, page requested) under its own policy.</p>
 

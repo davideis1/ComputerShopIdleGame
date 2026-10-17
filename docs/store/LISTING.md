@@ -52,12 +52,13 @@ Tracking: **No.** Data not collected when playing without an account.
 | Data type | Collected? | Linked to user | Used for | Notes |
 |---|---|---|---|---|
 | User ID (the username) | Yes (account only) | Yes | App functionality | Sign-in |
+| Email address (optional) | Yes, only if the player adds one | Yes | App functionality | Used only to send a password-reset link; not marketing, not shared |
 | Gameplay Content (the saved shop) | Yes (account only) | Yes | App functionality | Cloud save and sync |
 | Credentials (password) | Stored only as a one-way hash | - | App functionality | Apple has no separate password category; the hash is never readable |
 | IP address | Short-lived security records (about a day) for throttling sign-in/sign-up | Not used for profiling | App functionality / security | **Check the current wording in App Connect:** declare it if the questionnaire says IP addresses used for security count |
 | Device identifier | A random install id made by the app and sent with saves | Not an advertising id | App functionality | Declare as "Device ID" if you want to be conservative |
 
-The app's own `PrivacyInfo.xcprivacy` (generated from `app.json`) already declares User ID and Gameplay Content as linked, not tracking,
+The app's own `PrivacyInfo.xcprivacy` (generated from `app.json`) already declares User ID, Email Address (optional) and Gameplay Content as linked, not tracking,
 for app functionality, plus the required-reason API codes used by its libraries.
 
 Account deletion: available **in the app** (Menu > Account > Delete account) and on the website. Required by guideline 5.1.1(v).
@@ -66,6 +67,7 @@ Export compliance: only standard HTTPS, so `ITSAppUsesNonExemptEncryption = fals
 ## Google Play "Data safety" answers
 - Collects data: **Yes (only if the user creates an account).** Shares data with third parties: **No.**
 - Personal info > User IDs (username): collected, required, for app functionality and account management.
+- Personal info > Email address: collected, optional, for account management (password reset only).
 - App activity / User content > the saved shop: collected, optional (account only), for app functionality.
 - Data encrypted in transit: **Yes (HTTPS).**
 - Users can request deletion: **Yes.** In-app: Menu > Account > Delete account. Web link to give Play:

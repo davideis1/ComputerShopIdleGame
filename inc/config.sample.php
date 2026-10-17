@@ -11,6 +11,18 @@ return [
     // Shown on the public privacy and support pages (required by the app stores). Leave empty until you have one.
     'contact_email' => '',
 
+    // Password-reset email (optional; without it the "forgot password" pages still load but no mail is sent).
+    // IONOS: smtp.ionos.com, port 587 with STARTTLS, authenticate with the mailbox login. Use 'mail_transport' => 'log' to test
+    // (writes the emails to mail_log instead of sending).
+    'mail_from'      => '',                 // e.g. admin@example.com (must be the mailbox you authenticate with)
+    'mail_from_name' => 'Mega Byte Computers',
+    'smtp_host'      => 'smtp.ionos.com',
+    'smtp_port'      => 587,
+    'smtp_user'      => '',                 // usually the full mailbox address
+    'smtp_pass'      => '',
+    // 'public_url'  => 'https://example.com',  // optional: base of the link in reset emails (default: this request's host)
+    'forgot_max_per_ip_hour' => 5,
+
     // How long a login lasts (seconds). Idle games are left open for days, so 30 days.
     'session_lifetime' => 2592000,
 

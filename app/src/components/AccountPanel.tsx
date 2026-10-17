@@ -22,6 +22,7 @@ export function AccountPanel() {
   const { sync, syncNow } = useGame();
   const [authOpen, setAuthOpen] = useState<null | 'in' | 'up'>(null);
   const [delOpen, setDelOpen] = useState(false);
+  const [mailOpen, setMailOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
   return (
@@ -42,6 +43,12 @@ export function AccountPanel() {
         <>
           <Text style={styles.body}>Signed in as <Text style={styles.strong}>{auth.user.username}</Text></Text>
           <Text style={styles.sub}>{statusLine(sync.status, sync.at)}</Text>
+          <Text style={styles.sub}>
+            {auth.user.email ? 'Password reset email: ' + auth.user.email : 'No email on file, so a forgotten password cannot be reset by email.'}
+          </Text>
+          <Pressable style={[styles.btn, styles.quiet]} onPress={() => setMailOpen(true)}>
+            <Text style={styles.btnText}>{auth.user.email ? 'Change email' : 'Add email'}</Text>
+          </Pressable>
           <View style={styles.row}>
             <Pressable
               style={[styles.btn, styles.quiet, busy && { opacity: 0.6 }]} disabled={busy}
@@ -58,7 +65,51 @@ export function AccountPanel() {
       )}
       <AuthModal visible={authOpen !== null} initialMode={authOpen ?? 'in'} onClose={() => setAuthOpen(null)} />
       <DeleteModal visible={delOpen} onClose={() => setDelOpen(false)} />
+      <EmailModal visible={mailOpen} onClose={() => setMailOpen(false)} />
     </View>
+  );
+}
+
+function EmailModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  const { setEmail, user } = useAuth();
+  const { notify } = useGame();
+  const [email, setMail] = useState('');
+  const [password, setPassword] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const go = async () => {
+    if (busy || !password) return;
+    setBusy(true); setError(null);
+    const r = await setEmail(email, password);
+    setBusy(false);
+    if (!r.ok) { setError(r.message); return; }
+    setPassword('');
+    onClose();
+    notify(email.trim() ? 'Email saved. You can now reset your password by email.' : 'Email removed.');
+  };
+
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <KeyboardAvoidingView style={styles.backdrop} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <ScrollView contentContainerStyle={styles.center} keyboardShouldPersistTaps="handled">
+          <View style={styles.sheet}>
+            <Text style={styles.title}>{user?.email ? 'Change email' : 'Add an email'}</Text>
+            <Text style={styles.body}>Used only to send you a link if you forget your password. Leave it empty to remove it.</Text>
+            <TextInput
+              style={styles.input} placeholder="you@example.com" placeholderTextColor={colors.dim} value={email} onChangeText={setMail}
+              autoCapitalize="none" autoCorrect={false} keyboardType="email-address" textContentType="emailAddress" autoComplete="email"
+            />
+            <TextInput style={styles.input} placeholder="Your password" placeholderTextColor={colors.dim} value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" />
+            {!!error && <Text style={styles.error}>{error}</Text>}
+            <Pressable style={[styles.btn, (!password || busy) && { opacity: 0.5 }]} disabled={!password || busy} onPress={go}>
+              {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Save</Text>}
+            </Pressable>
+            <Pressable onPress={onClose} hitSlop={8}><Text style={styles.dim}>Cancel</Text></Pressable>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </Modal>
   );
 }
 

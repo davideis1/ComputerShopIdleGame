@@ -1,5 +1,6 @@
 <?php
 require __DIR__ . '/inc/bootstrap.php';
+require __DIR__ . '/inc/reset.php';
 require __DIR__ . '/inc/page.php';
 
 $user = current_user();
@@ -30,6 +31,15 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             session_regenerate_id(true);
             $notice = 'Password changed.';
         }
+    } elseif ($action === 'email') {
+        $err = set_user_email((int) $user['id'], (string) ($_POST['email'] ?? ''));
+        if ($err === 'bad_email') {
+            $errors[] = 'That email address does not look right.';
+        } elseif ($err === 'email_taken') {
+            $errors[] = 'That email address is already used by another account.';
+        } else {
+            $notice = trim((string) ($_POST['email'] ?? '')) === '' ? 'Email removed.' : 'Email saved.';
+        }
     } elseif ($action === 'delete' && ($_POST['confirm'] ?? '') === 'DELETE') {
         db()->prepare('DELETE FROM users WHERE id = ?')->execute([$user['id']]); // cascades to saves/settings/backups
         log_out();
@@ -52,6 +62,15 @@ if ($notice) {
   <input type="password" name="new" placeholder="New password (8+ characters)" autocomplete="new-password" required>
   <input type="password" name="new2" placeholder="Repeat new password" autocomplete="new-password" required>
   <button type="submit">Change password</button>
+</form>
+<hr>
+<form method="post" class="list">
+  <?= csrf_field() ?><input type="hidden" name="action" value="email">
+  <b>Email for password resets</b>
+  <small>Optional. Only used to send a reset link if you forget your password. Leave empty to remove it.</small>
+  <input type="email" name="email" value="<?= h((string) user_email((int) $user['id'])) ?>" placeholder="you@example.com" maxlength="254" autocomplete="email">
+  <input type="password" name="current" placeholder="Current password" autocomplete="current-password" required>
+  <button type="submit">Save email</button>
 </form>
 <hr>
 <form method="post" class="list" onsubmit="return confirm('Delete your account and shop forever?');">
