@@ -50,7 +50,7 @@ php tools/install.php
 php -S localhost:8000
 node tools/api-smoke.js http://localhost:8000         # website (cookie) backend checks
 node tools/api-token-smoke.js http://localhost:8000    # native-app token API checks (add --throttle for the sign-up limit)
-node tools/api-reset-smoke.js http://localhost:8000 /tmp/mail.log   # email + password reset (server config: 'mail_transport' => 'log', 'mail_log' => /tmp/mail.log)
+node tools/api-reset-smoke.js http://localhost:8000 /tmp/mail.log   # email + password reset (--throttle checks the per-IP limit) (server config: 'mail_transport' => 'log', 'mail_log' => /tmp/mail.log)
 ```
 
 ## Features

@@ -1,8 +1,9 @@
-/* Password-reset + email checks:  node tools/api-reset-smoke.js http://localhost:8125 /path/to/mail.log
+/* Password-reset + email checks:  node tools/api-reset-smoke.js http://localhost:8125 /path/to/mail.log [--throttle]
+   --throttle also checks the per-IP limit on reset requests (5/hour by default; this uses up the hour's requests for your IP, so it is opt-in).
    The server must use 'mail_transport' => 'log' with 'mail_log' => that same file (the emails are read back from it). */
 const fs = require('fs');
 const base = (process.argv[2] || 'http://localhost:8125').replace(/\/$/, '');
-const logFile = process.argv[3];
+const logFile = process.argv[3] && !process.argv[3].startsWith('--') ? process.argv[3] : null;
 if (!logFile) { console.error('usage: node tools/api-reset-smoke.js <base url> <mail log file>'); process.exit(1); }
 let fails = 0;
 const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails++; };
@@ -93,9 +94,11 @@ const page = async (path) => {
   ok(/invalid or has expired/.test(p.t), 'the link cannot be used twice');
 
   // ---- throttle (per IP per hour)
-  let blocked = false;
-  for (let i = 0; i < 8 && !blocked; i++) blocked = (await call('auth_forgot.php', { email: `x${i}${n}@example.com` })).s === 429;
-  ok(blocked, 'forgot requests are throttled per IP');
+  if (process.argv.includes('--throttle')) {
+    let blocked = false;
+    for (let i = 0; i < 8 && !blocked; i++) blocked = (await call('auth_forgot.php', { email: `x${i}${n}@example.com` })).s === 429;
+    ok(blocked, 'forgot requests are throttled per IP');
+  }
 
   // ---- clean up
   r = await call('auth_delete.php', { password: pw2, confirm: 'DELETE' }, (await call('auth_login.php', { username: user, password: pw2 })).j.token);
