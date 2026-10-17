@@ -42,6 +42,7 @@ flash_errors($errors);
   <div class="field"><label for="p">Password</label><input type="password" id="p" name="password" autocomplete="current-password" required></div>
   <button class="primary" type="submit">Log in</button>
 </form>
+<small><a href="forgot.php">Forgot your password?</a></small>
 <?php if (cfg('allow_registration', true)): ?>
 <small>New here? <a href="register.php">Open a shop</a></small>
 <?php endif;

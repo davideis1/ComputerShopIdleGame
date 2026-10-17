@@ -1,7 +1,8 @@
 <?php
-// POST {username, password, label?}  ->  {ok, token, user: {id, username}}   (native app sign-in)
+// POST {username, password, label?}  ->  {ok, token, user: {id, username, email}}  (email is masked, or null)   (native app sign-in)
 // Errors: bad_credentials 401, too_many_attempts 429. Uses the same throttling as the website's login page.
 require __DIR__ . '/../inc/bootstrap.php';
+require __DIR__ . '/../inc/reset.php';
 $body = api_public();
 
 $username = trim((string) ($body['username'] ?? ''));
@@ -12,7 +13,7 @@ if ($username === '' || $password === '' || strlen($username) > 20 || strlen($pa
 if (login_blocked($username)) {
     json_out(['ok' => false, 'error' => 'too_many_attempts'], 429);
 }
-$st = db()->prepare('SELECT id, username, password_hash FROM users WHERE username = ?');
+$st = db()->prepare('SELECT id, username, email, password_hash FROM users WHERE username = ?');
 $st->execute([$username]);
 $u = $st->fetch();
 // Always run a hash check so response time does not reveal whether the user exists.
@@ -25,4 +26,4 @@ if (password_needs_rehash($u['password_hash'], PASSWORD_DEFAULT)) {
     db()->prepare('UPDATE users SET password_hash = ? WHERE id = ?')->execute([password_hash($password, PASSWORD_DEFAULT), $u['id']]);
 }
 db()->prepare('UPDATE users SET last_login_at = NOW() WHERE id = ?')->execute([$u['id']]);
-json_out(['ok' => true, 'token' => issue_token((int) $u['id'], (string) ($body['label'] ?? '')), 'user' => ['id' => (int) $u['id'], 'username' => $u['username']]]);
+json_out(['ok' => true, 'token' => issue_token((int) $u['id'], (string) ($body['label'] ?? '')), 'user' => ['id' => (int) $u['id'], 'username' => $u['username'], 'email' => mask_email($u['email'])]]);

@@ -14,7 +14,7 @@ Requirements: PHP 7.4+ with PDO MySQL, MariaDB 10.3+ (or MySQL 5.7+), HTTPS reco
 5. Open the site, register an account, play. Set `allow_registration` to `false` in the config once your players have signed up.
 
 Apache: the bundled `.htaccess` files block `inc/`, `sql/` and `tools/`. On nginx add `location ~ ^/(inc|sql|tools)/ { deny all; }`.
-Lost password (there is no email): `php tools/reset_password.php <username> <new-password>`.
+Forgotten passwords: players who added an email can use **Forgot password?** (website login page and the app's sign-in sheet); a link to `reset-password.php` is emailed (valid 1 hour, one use) and resetting signs the account out of every app. Needs outgoing mail in `inc/config.php` (`mail_from`, `smtp_host`/`smtp_port`/`smtp_user`/`smtp_pass`; IONOS: `smtp.ionos.com`, 587, STARTTLS, the mailbox login). Players with no email on file: `php tools/reset_password.php <username> <new-password>`.
 
 ### How it fits together
 - The game simulation (`core/engine.js`) runs in the browser, so it stays smooth. PHP handles accounts and storage.
@@ -34,9 +34,11 @@ The mobile app talks to the same `save.php` / `load.php` / `settings.php` / `res
 
 | Endpoint | Body | Result |
 |---|---|---|
-| `api/auth_register.php` | `{username, password, label?}` | `201 {ok, token, user}` (errors: `bad_username`, `bad_password`, `username_taken`, `registration_closed`, `too_many_attempts`) |
+| `api/auth_register.php` | `{username, password, email?, label?}` | `201 {ok, token, user}` (errors: `bad_username`, `bad_password`, `username_taken`, `registration_closed`, `too_many_attempts`) |
 | `api/auth_login.php` | `{username, password, label?}` | `{ok, token, user}` (`bad_credentials` 401, `too_many_attempts` 429) |
 | `api/auth_logout.php` | `{all?}` | revokes this token (or all of the account's tokens) |
+| `api/auth_forgot.php` | `{email}` | emails a reset link if an account has that address; always `{ok:true}` for a valid address (`bad_email` 422, `too_many_attempts` 429) |
+| `api/auth_set_email.php` | `{email, password}` + token | adds/changes/removes (empty) the reset email; returns it masked (`bad_password` 403, `bad_email` 422, `email_taken` 409) |
 | `api/auth_delete.php` | `{password, confirm: "DELETE"}` | permanently deletes the account (required by the App Store) |
 
 Send the token on every other call as `Authorization: Bearer <token>` and/or `X-Api-Token: <token>`; the server accepts either. Some hosts drop `Authorization` before PHP sees it (IONOS shared hosting does, even with the `.htaccess` rule), so the app sends both. No CSRF token is needed with a bearer token. Tokens last 180 days from last use, at most 10 per account (the oldest is dropped), and are revoked on logout or account deletion. Apps are not browsers, so no CORS headers are needed.
@@ -48,6 +50,7 @@ php tools/install.php
 php -S localhost:8000
 node tools/api-smoke.js http://localhost:8000         # website (cookie) backend checks
 node tools/api-token-smoke.js http://localhost:8000    # native-app token API checks (add --throttle for the sign-up limit)
+node tools/api-reset-smoke.js http://localhost:8000 /tmp/mail.log   # email + password reset (--throttle checks the per-IP limit) (server config: 'mail_transport' => 'log', 'mail_log' => /tmp/mail.log)
 ```
 
 ## Features

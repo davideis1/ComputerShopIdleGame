@@ -10,7 +10,9 @@ type Ctx = {
   token: string | null;
   user: User | null;
   signIn: (username: string, password: string) => Promise<Result>;
-  signUp: (username: string, password: string) => Promise<Result>;
+  signUp: (username: string, password: string, email?: string) => Promise<Result>;
+  forgot: (email: string) => Promise<Result>;
+  setEmail: (email: string, password: string) => Promise<Result>;
   /** Ends this device's session. Pass `expired` when the server already rejected the token. */
   signOut: (expired?: boolean) => Promise<void>;
   deleteAccount: (password: string) => Promise<Result>;
@@ -68,12 +70,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { ok: true };
   }, [adopt]);
 
-  const signUp = useCallback(async (username: string, password: string): Promise<Result> => {
-    const r = await api.register(username.trim(), password, label());
+  const signUp = useCallback(async (username: string, password: string, email?: string): Promise<Result> => {
+    const r = await api.register(username.trim(), password, label(), email?.trim() || undefined);
     if (!r.ok) return fail(r.error);
     await adopt(r.data.token, r.data.user);
     return { ok: true };
   }, [adopt]);
+
+  const forgot = useCallback(async (email: string): Promise<Result> => {
+    const r = await api.forgot(email.trim());
+    return r.ok ? { ok: true } : fail(r.error);
+  }, []);
+
+  const setEmail = useCallback(async (email: string, password: string): Promise<Result> => {
+    const t = tokenRef.current;
+    if (!t) return fail('bad_token');
+    const r = await api.setEmail(t, email.trim(), password);
+    if (!r.ok) return fail(r.error);
+    setUser((u) => {
+      if (!u) return u;
+      const next = { ...u, email: r.data.email };
+      SecureStore.setItemAsync(USER_KEY, JSON.stringify(next)).catch(() => {});
+      return next;
+    });
+    return { ok: true };
+  }, []);
 
   const clear = useCallback(async () => {
     tokenRef.current = null; setToken(null); setUser(null); setStatus('out');
@@ -97,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [clear]);
 
   return (
-    <AuthContext.Provider value={{ status, token, user, signIn, signUp, signOut, deleteAccount, notice, clearNotice: () => setNotice(null) }}>
+    <AuthContext.Provider value={{ status, token, user, signIn, signUp, forgot, setEmail, signOut, deleteAccount, notice, clearNotice: () => setNotice(null) }}>
       {children}
     </AuthContext.Provider>
   );
