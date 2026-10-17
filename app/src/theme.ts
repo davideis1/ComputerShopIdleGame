@@ -12,13 +12,17 @@ const PALETTES: Record<ThemeId, Palette> = {
   flat: { onBg: '#1b2330', onBgDim: '#667085', inset: '#f3f5f8', bg: '#e9edf2', card: '#ffffff', text: '#1b2330', dim: '#667085', accent: '#2d7ff9', onAccent: '#ffffff', danger: '#dc2626', good: '#16a34a', warn: '#b45309', edge: '#e1e5ec' },
   rgb: { onBg: '#e8eaf6', onBgDim: '#8b90b0', inset: '#0d0f1d', bg: '#090a12', card: '#14172a', text: '#e8eaf6', dim: '#8b90b0', accent: '#7a5cff', onAccent: '#ffffff', danger: '#ff5577', good: '#3dff9a', warn: '#ffc14d', edge: '#19f0c4' },
 };
+/** Sky / road / pavement colours behind the storefront, from style.css `--scene`. */
+const SCENES: Record<ThemeId, [string, string, string]> = {
+  win95: ['#87ceeb', '#9a9a9a', '#d8c9a0'], xp: ['#a6d8ff', '#8c8c8c', '#cfe8b0'], flat: ['#cfe5ff', '#c9ced6', '#f1ece0'], rgb: ['#171a40', '#22243a', '#15162a'],
+};
 const RADIUS: Record<ThemeId, number> = { win95: 0, xp: 8, flat: 12, rgb: 12 };
 export const LIGHT: Record<ThemeId, boolean> = { win95: true, xp: true, flat: true, rgb: false };
 
 /** Live colours. Mutated in place by `applyTheme`; the app root remounts when the theme changes. */
 export const colors: Palette = { ...PALETTES.win95 };
 /** Live shape: corner radius and the card "box" (win95 bevel, xp outline, flat shadow, rgb glow outline). */
-export const theme: { id: ThemeId; radius: number; box: ViewStyle; btn: ViewStyle } = { id: 'win95', radius: 0, box: {}, btn: {} };
+export const theme: { id: ThemeId; radius: number; box: ViewStyle; btn: ViewStyle; scene: [string, string, string] } = { id: 'win95', radius: 0, box: {}, btn: {}, scene: SCENES.win95 };
 
 function boxFor(id: ThemeId, p: Palette): ViewStyle {
   const base: ViewStyle = { backgroundColor: p.card, borderRadius: RADIUS[id] };
@@ -35,6 +39,7 @@ export function applyTheme(id: ThemeId) {
   Object.assign(colors, p);
   theme.id = id;
   theme.radius = RADIUS[id];
+  theme.scene = SCENES[id];
   theme.box = boxFor(id, p);
   theme.btn = id === 'win95' ? { borderRadius: 0, borderWidth: 2, borderTopColor: '#ffffff', borderLeftColor: '#ffffff', borderRightColor: '#404040', borderBottomColor: '#404040' } : { borderRadius: Math.min(RADIUS[id], 8) };
 }

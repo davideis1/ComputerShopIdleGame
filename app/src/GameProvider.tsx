@@ -4,6 +4,7 @@ import * as api from './api';
 import { useAuth } from './AuthProvider';
 import { E, GameState, HustleResult, hustle as doHustle, LogLine, newGame, saleLines, tick } from './game';
 import { clearGame, clearSyncMeta, deviceId, loadGame, loadSyncMeta, saveGame, saveSyncMeta } from './storage';
+import { noteBrowse, noteBuy } from './walkers';
 import { brief, Brief, Decision, reconcile, SyncMeta } from './sync';
 
 type Away = { elapsed: number; effective: number; capped: boolean; cash0: number; cash1: number } | null;
@@ -278,7 +279,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       if (dt > 10) catchUp(dt); // JS timers were suspended (app was backgrounded)
       else {
         const { events, ach } = tick(game.current, dt);
-        if (events.length) pushLog(saleLines(events));
+        if (events.length) { pushLog(saleLines(events)); events.forEach((ev) => { if (!ev.bailout && !E.isAddon(ev.it.kind)) noteBuy(Math.min(ev.k, 2)); }); }
         announce(ach);
       }
       sinceSave.current += dt;
@@ -300,6 +301,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     if (r.log) pushLog([r.log]);
     announce(r.ach);
     setHustleResult(r.result);
+    if (r.result.kind === 'sold') noteBuy(); else if (r.result.kind === 'passed') noteBrowse();
     if (resultTimer.current) clearTimeout(resultTimer.current);
     resultTimer.current = setTimeout(() => setHustleResult(null), 1500);
     force((n) => n + 1);

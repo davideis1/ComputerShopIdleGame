@@ -74,6 +74,10 @@ export default function Menu() {
           })}
         </View>
         <View style={styles.rowBetween}>
+          <Text style={styles.label}>Customers walking past</Text>
+          <Switch value={s.settings?.showWalkers !== false} onValueChange={(v) => { s.settings = { ...s.settings, showWalkers: v }; refresh(); }} />
+        </View>
+        <View style={styles.rowBetween}>
           <Text style={styles.label}>News ticker</Text>
           <Switch value={s.settings?.showTicker !== false} onValueChange={(v) => { s.settings = { ...s.settings, showTicker: v }; refresh(); }} />
         </View>
