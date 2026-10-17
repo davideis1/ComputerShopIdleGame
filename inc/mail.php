@@ -21,8 +21,10 @@ function send_mail(string $to, string $subject, string $text): bool
         'Content-Type: text/plain; charset=UTF-8',
         'Content-Transfer-Encoding: 8bit',
     ];
-    $message = implode("\r\n", $headers) . "\r\n\r\n" . str_replace(["\r\n", "\r"], "\n", $text);
-    $message = str_replace("\n", "\r\n", $message);
+    // Headers and body are joined with exactly CRLF; normalise only the body's line endings (a second pass over the
+    // whole message once produced "\r\r\n", which made the relay treat part of the headers as body text).
+    $body = str_replace("\n", "\r\n", str_replace(["\r\n", "\r"], "\n", $text));
+    $message = implode("\r\n", $headers) . "\r\n\r\n" . $body;
 
     if (cfg('mail_transport', 'smtp') === 'log') {
         $file = (string) cfg('mail_log', sys_get_temp_dir() . '/csig-mail.log');

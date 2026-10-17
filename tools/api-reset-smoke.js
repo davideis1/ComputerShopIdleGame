@@ -65,6 +65,7 @@ const page = async (path) => {
   ok(r.s === 200 && r.j.ok, 'forgot answers ok for a known address');
   let m = mails();
   ok(m.length === 1 && m[0].includes(`To: <${email.toLowerCase()}>`), 'one reset email was sent to the account address');
+  ok(!/\r\r/.test(fs.readFileSync(logFile, 'utf8')) && /Subject: [^\r\n]*\r\n/.test(m[0]), 'the message uses clean CRLF line endings (no \\r\\r\\n)');
   const link = (m[0].match(/https?:\/\/\S+reset-password\.php\?token=[0-9a-f]{64}/) || [])[0];
   ok(!!link, 'the email contains a reset link');
   const path = link ? new URL(link).pathname + new URL(link).search : '/';
