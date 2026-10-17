@@ -9,6 +9,11 @@ Apple guideline 5.2 (Intellectual Property) can reject apps whose names read as 
 `tools/names-check.js`: no real trademark, no retired pun, no "-ish" marker, and no item id changes, so saves keep working). About and the privacy policy also say the game is not affiliated
 with any real company. All seven screenshots are safe to submit.
 
+## Opening the project in Xcode
+The Xcode project is generated, not committed. From a fresh clone: `cd app && npm install && npm run xcode` (runs `expo prebuild --clean --platform ios`, then opens `ios/MegaByteComputers.xcworkspace`).
+In Xcode pick a simulator and press Run; for a real device set your team under Signing & Capabilities. Debug builds load JavaScript from Metro (`npx expo start`).
+Store builds do not need Xcode at all: `eas build -p ios` (see below).
+
 ## 1. Before you build
 1. **Contact address.** The privacy and support pages show a "no contact address" notice until you add one. On the server edit `inc/config.php`
    (it is never deployed or committed) and add `'contact_email' => 'you@example.com',`. Reload https://computershopidlegame.davideis.com/privacy.php to check.
