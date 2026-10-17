@@ -15,7 +15,7 @@ An idle shop game (desktop + mobile): run a computer shop from 1993 to today. Pa
 
 ## Layout
 - `core/` — DOM-free simulation, shared by web, Node tools and the React Native app (`require('./core')`). `js/` now holds only `ui.js`.
-- `index.php` — game shell (script order matters: data, addons, engine, consoles, managers, advisor, ui). `login/register/logout/account.php`, `inc/` (shared PHP: db, session, CSRF).
+- `index.php` — game shell (script order matters: data, addons, engine, consoles, managers, advisor, ui). `login/register/logout/account.php`, public `privacy.php` + `support.php` (store requirements; contact address comes from `contact_email` in the server-only `inc/config.php`), `inc/` (shared PHP: db, session, CSRF).
 - `api/` — `load.php`, `save.php` (rev-checked), `settings.php`, `reset.php`; native-app auth `auth_register.php`, `auth_login.php`, `auth_logout.php`, `auth_delete.php` (see README "Native app API"). `sql/` schema + `upgrade_*.sql`, `tools/install.php` applies them all (deploy runs it).
 - `core/data.js` parts/products/upgrades/HQ token upgrades/achievements/events. `core/addons.js` games & accessories. `core/engine.js` core simulation. `core/consoles.js` console gaming. `core/managers.js` buyers + PC Designer. `core/advisor.js` Shop Advisor. `js/ui.js` all rendering.
 - `sw.js` service worker caches static assets only (bump `CACHE` when assets change shape). `style.css`, `manifest.json`, `icon.svg`.
@@ -51,7 +51,7 @@ React Native (Expo) app reusing the simulation: `engine.js`, `data.js`, `addons.
 ### `app/` (Expo, SDK 58, TypeScript)
 - Run: `cd app && npm install && npx expo start --ios`. Checks: `npx tsc --noEmit`, `npx expo-doctor`, `npx expo export --platform ios` (proves Metro + Hermes can bundle `core/`).
 - Expo Router (file routes in `src/app/`: tabs Shop/Stock/Upgrades/Workshop/Buyers/HQ/Menu; `@/` aliases `src/`). `src/GameProvider.tsx` owns the sim: loads the save, offline catch-up (`E.offline`, gaps >= 60 s, welcome-back sheet), 250 ms tick, autosave every 15 s + on background. `src/storage.ts` = AsyncStorage (`csig-save-v1`). `metro.config.js` watches `../core` and aliases it as `@core`; `src/game.ts` wraps `CS.E`; `src/core.d.ts` declares the untyped module. Add packages with `npx expo install <pkg>` (SDK-compatible versions). Expo APIs change per SDK, so check https://docs.expo.dev/versions/ before using one.
-- Bundle ids: `com.davideis1.computershopidle` (iOS + Android) — placeholder, change before the first store build.
+- Bundle ids: `com.davideis.computershopidle` (iOS + Android), app name "Mega Byte Computers" (see `app/app.json`, `docs/store/`).
 - Stock tab: `src/stock.ts` (filters/sorts/tags ported from `js/ui.js` renderCatalog; duplicated logic — move to `core/` if it drifts), `src/components/ItemCard.tsx`, `src/app/stock.tsx`. List rebuilds ~1×/s plus right after a tap (`frame`/`refresh()` from `useGame`). Not yet ported: group/platform filters, console market panel.
 - Upgrades tab: `src/upgrades.ts` (ported `renderUpgrades`/`upNow`), `src/app/upgrades.tsx` (SectionList by group, All/Affordable/Not maxed filter, Buy + Max). `src/theme.ts` now has the web's `num()`/`money()` abbreviations (1.2M etc.).
 - Shop tab: `src/shop.ts` (ported `renderShop`/`renderAdvisor`: alerts, stats, advisor recs), `src/app/index.tsx`. `GameProvider` now also collects the recent-sales log (`saleLines`), hustle (`hustle()` + result), and achievement toasts. Not ported yet: walkers/street animation, themed eras/ticker, advisor open/closed persistence, era-change toast, token-ready toast, offline report details (top sellers).
@@ -65,8 +65,12 @@ React Native (Expo) app reusing the simulation: `engine.js`, `data.js`, `addons.
 - **Seeding a simulator save:** AsyncStorage on iOS keeps big values in `<app data>/Library/Application Support/<bundle id>/RCTAsyncLocalStorage_V1/<md5 of key>` (manifest.json holds `{"csig-save-v1":null}`); stop the app, write `E.serialize(state)` there, relaunch. Handy for screenshotting late-game screens.
 - **Metro gotcha:** do NOT start Metro with `CI=1` for manual testing — it disables file watching and serves stale code. `npx expo run:ios` needs `CI=1` only to skip prompts; then restart Metro with plain `npx expo start --port 8081`. Custom-scheme deep links (`xcrun simctl openurl booted computershopidle:///stock`) trigger an iOS confirmation prompt that can't be dismissed headlessly.
 - **Rebuild rule:** a package with native code needs `npx expo run:ios` (or `pod install` in `app/ios` + Xcode Run); JS-only edits just reload. Debug builds need Metro running (`npx expo start`). `ios/` is generated and gitignored. Verified on the iPhone 17 Pro simulator (save survives kill + relaunch, welcome-back sheet).
+- Not yet done: first real store build + TestFlight / Play internal test, Android run on a device, screenshots, password reset (needs email), password change / export-import from the app, `expo`/`expo-router` patch upgrades (`expo-doctor` flags 58.0.13 / 58.0.22).
+
+## Change log (newest first)
+Developer-facing log; the player-facing one is `changelog.json`.
+- **store-prep (draft)** Store-build setup: app icon + Android adaptive icon + splash from SVG sources, bundle id `com.davideis.computershopidle`, name Mega Byte Computers, iPhone-only, iOS privacy manifest + encryption flag, EAS config, privacy/support pages on the site (+ attempts sweep from sign-ups), About links in the app, expo patch updates + expo-splash-screen + expo-system-ui, store listing/release docs.
 - Production API: `https://computershopidlegame.davideis.com` (`extra.apiBase` in app.json), confirmed live on 2026-10-16 (login.php 200, `api/auth_login.php` GET -> 405 JSON).
-- Not yet done: Android run-through, store build (icon, splash, bundle id, privacy policy URL), password change / export-import from the app, `expo`/`expo-router` patch upgrades (`expo-doctor` flags 58.0.13 / 58.0.22).
 
 ## Change log (newest first)
 Developer-facing log; the player-facing one is `changelog.json`.

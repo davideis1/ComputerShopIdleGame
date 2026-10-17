@@ -8,6 +8,9 @@ return [
     'db_user' => 'csig',
     'db_pass' => 'change-me',
 
+    // Shown on the public privacy and support pages (required by the app stores). Leave empty until you have one.
+    'contact_email' => '',
+
     // How long a login lasts (seconds). Idle games are left open for days, so 30 days.
     'session_lifetime' => 2592000,
 
