@@ -3,6 +3,7 @@ import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { useGame } from '@/GameProvider';
 import { buildShopView, buyRec, recButtonLabel } from '@/shop';
 import { colors, money, num, theme, themed } from '@/theme';
+import { Scene } from '@/components/Scene';
 
 function Panel({ title, right, children }: { title: string; right?: React.ReactNode; children: React.ReactNode }) {
   return (
@@ -44,7 +45,7 @@ export default function Shop() {
       </View>
 
       <Panel title="Storefront" right={<Text style={styles.sub}>{v.stockInfo}</Text>}>
-        <Text style={styles.shelves}>{v.shelves || 'The shelves are empty…'}</Text>
+        <Scene shelves={v.shelves} />
       </Panel>
 
       <Pressable onPress={hustle} disabled={cooling} style={({ pressed }) => [styles.hustle, cooling && styles.hustleOff, pressed && { opacity: 0.8 }]}>
