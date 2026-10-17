@@ -66,7 +66,7 @@ React Native (Expo) app reusing the simulation: `engine.js`, `data.js`, `addons.
 - **Seeding a simulator save:** AsyncStorage on iOS keeps big values in `<app data>/Library/Application Support/<bundle id>/RCTAsyncLocalStorage_V1/<md5 of key>` (manifest.json holds `{"csig-save-v1":null}`); stop the app, write `E.serialize(state)` there, relaunch. Handy for screenshotting late-game screens.
 - **Metro gotcha:** do NOT start Metro with `CI=1` for manual testing — it disables file watching and serves stale code. `npx expo run:ios` needs `CI=1` only to skip prompts; then restart Metro with plain `npx expo start --port 8081`. Custom-scheme deep links (`xcrun simctl openurl booted computershopidle:///stock`) trigger an iOS confirmation prompt that can't be dismissed headlessly.
 - **Rebuild rule:** a package with native code needs `npx expo run:ios` (or `pod install` in `app/ios` + Xcode Run); JS-only edits just reload. Debug builds need Metro running (`npx expo start`). `ios/` is generated and gitignored. Verified on the iPhone 17 Pro simulator (save survives kill + relaunch, welcome-back sheet).
-- Not yet done: first real store build + TestFlight / Play internal test, Android run on a device, screenshots, password reset (needs email), password change / export-import from the app, `expo`/`expo-router` patch upgrades (`expo-doctor` flags 58.0.13 / 58.0.22).
+- Not yet done: first real store build + TestFlight / Play internal test, Android run on a device, password reset (needs email), password change / export-import from the app, `expo`/`expo-router` patch upgrades (`expo-doctor` flags 58.0.13 / 58.0.22).
 
 ## Change log (newest first)
 Developer-facing log; the player-facing one is `changelog.json`.
