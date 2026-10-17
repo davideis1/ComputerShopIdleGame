@@ -1,9 +1,9 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, SectionList, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, SectionList, Text, View } from 'react-native';
 import { useGame } from '@/GameProvider';
 import { buildFranchiseView, buyTokenUpgrade, claimSummary, TupRow } from '@/franchise';
 import { UP_FILTERS, UpFilter } from '@/upgrades';
-import { colors } from '@/theme';
+import { colors, theme, themed } from '@/theme';
 
 function TupCard({ row, onBuy }: { row: TupRow; onBuy: () => void }) {
   const { u } = row;
@@ -91,30 +91,30 @@ export default function Franchise() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   content: { padding: 16, paddingBottom: 40 },
-  panel: { backgroundColor: colors.card, borderRadius: 12, padding: 14, gap: 10 },
+  panel: { ...theme.box, padding: 14, gap: 10 },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   panelTitle: { color: colors.text, fontSize: 18, fontWeight: '700' },
   tokens: { color: colors.text, fontSize: 18, fontWeight: '700' },
   body: { color: colors.dim, fontSize: 14, lineHeight: 20 },
   sub: { color: colors.dim, fontSize: 12 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  mini: { backgroundColor: colors.bg, borderRadius: 10, padding: 10, width: '48.5%' },
+  mini: { backgroundColor: colors.inset, borderRadius: Math.min(10, theme.radius), padding: 10, width: '48.5%' },
   miniVal: { color: colors.text, fontSize: 17, fontWeight: '700' },
-  track: { height: 8, backgroundColor: colors.bg, borderRadius: 4, overflow: 'hidden' },
+  track: { height: 8, backgroundColor: colors.inset, borderRadius: Math.min(4, theme.radius), overflow: 'hidden' },
   fill: { height: 8, backgroundColor: colors.accent },
   chips: { gap: 8, paddingVertical: 2 },
-  chip: { backgroundColor: colors.card, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 7 },
+  chip: { backgroundColor: colors.card, borderRadius: Math.min(16, theme.radius), paddingHorizontal: 12, paddingVertical: 7 },
   chipOn: { backgroundColor: colors.accent },
   chipText: { color: colors.dim, fontSize: 13, fontWeight: '600' },
   section: { color: colors.text, fontSize: 18, fontWeight: '700', marginTop: 18, marginBottom: 8 },
-  card: { flexDirection: 'row', gap: 12, backgroundColor: colors.card, borderRadius: 12, padding: 14 },
+  card: { flexDirection: 'row', gap: 12, ...theme.box, padding: 14 },
   icon: { fontSize: 28 },
   name: { color: colors.text, fontSize: 16, fontWeight: '700' },
   now: { color: colors.good, fontSize: 12 },
-  btn: { backgroundColor: colors.accent, borderRadius: 8, paddingVertical: 9, paddingHorizontal: 14, alignItems: 'center', marginTop: 6 },
+  btn: { backgroundColor: colors.accent, borderRadius: Math.min(8, theme.radius), paddingVertical: 9, paddingHorizontal: 14, alignItems: 'center', marginTop: 6 },
   off: { opacity: 0.35 },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   empty: { color: colors.dim, textAlign: 'center', marginTop: 24 },
-});
+}));

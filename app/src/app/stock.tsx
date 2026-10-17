@@ -1,11 +1,11 @@
 import { useCallback, useMemo, useState } from 'react';
-import { FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { ItemCard } from '@/components/ItemCard';
 import { useGame } from '@/GameProvider';
 import { E } from '@/game';
 import { togglePin } from '@/workshop';
 import { Age, buildStockView, canBuy, Cat, CATS, Filters, Item, Shelf, SORTS, SortId, stepTarget } from '@/stock';
-import { colors, money } from '@/theme';
+import { colors, money, theme, themed } from '@/theme';
 
 function Chips<T extends string>({ value, options, onChange }: { value: T; options: { id: T; label: string }[]; onChange: (v: T) => void }) {
   return (
@@ -106,29 +106,29 @@ export default function Stock() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   content: { padding: 16, paddingBottom: 32 },
   header: { gap: 10, marginBottom: 12 },
   sub: { color: colors.dim, fontSize: 12 },
   capRow: { flexDirection: 'row', justifyContent: 'space-between' },
   capText: { color: colors.text, fontWeight: '700', fontSize: 13 },
-  bar: { height: 6, backgroundColor: colors.card, borderRadius: 3, overflow: 'hidden' },
+  bar: { height: 6, backgroundColor: colors.card, borderRadius: Math.min(3, theme.radius), overflow: 'hidden' },
   barFill: { height: 6, backgroundColor: colors.accent },
   chips: { gap: 8, paddingVertical: 2 },
-  chip: { backgroundColor: colors.card, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 7 },
+  chip: { backgroundColor: colors.card, borderRadius: Math.min(16, theme.radius), paddingHorizontal: 12, paddingVertical: 7 },
   chipOn: { backgroundColor: colors.accent },
   chipText: { color: colors.dim, fontSize: 13, fontWeight: '600' },
   chipTextOn: { color: '#fff' },
-  search: { backgroundColor: colors.card, color: colors.text, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15 },
-  pricing: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.card, borderRadius: 12, padding: 12 },
+  search: { backgroundColor: colors.card, color: colors.text, borderRadius: Math.min(10, theme.radius), paddingHorizontal: 12, paddingVertical: 10, fontSize: 15 },
+  pricing: { flexDirection: 'row', alignItems: 'center', gap: 10, ...theme.box, padding: 12 },
   pricingTitle: { color: colors.text, fontWeight: '700', fontSize: 14 },
   pricingVal: { color: colors.text, fontWeight: '700', fontSize: 16, minWidth: 48, textAlign: 'center' },
-  step: { backgroundColor: colors.accent, borderRadius: 8, width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  step: { backgroundColor: colors.accent, borderRadius: Math.min(8, theme.radius), width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   stepText: { color: '#fff', fontSize: 20, fontWeight: '700' },
-  notice: { backgroundColor: colors.card, borderRadius: 12, padding: 14, gap: 8 },
+  notice: { ...theme.box, padding: 14, gap: 8 },
   noticeTitle: { color: colors.text, fontWeight: '700', fontSize: 16 },
-  open: { backgroundColor: colors.accent, borderRadius: 10, padding: 12, alignItems: 'center' },
+  open: { backgroundColor: colors.accent, borderRadius: Math.min(10, theme.radius), padding: 12, alignItems: 'center' },
   openOff: { opacity: 0.35 },
   openText: { color: '#fff', fontWeight: '700' },
   empty: { color: colors.dim, textAlign: 'center', marginTop: 24 },
-});
+}));

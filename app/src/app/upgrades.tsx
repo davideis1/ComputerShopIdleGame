@@ -1,8 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Pressable, ScrollView, SectionList, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, SectionList, Text, View } from 'react-native';
 import { useGame } from '@/GameProvider';
 import { buildUpgradesView, buyMax, buyOne, UP_FILTERS, UpFilter, UpRow } from '@/upgrades';
-import { colors } from '@/theme';
+import { colors, theme, themed } from '@/theme';
 
 function UpgradeCard({ row, onBuy, onMax }: { row: UpRow; onBuy: () => void; onMax: () => void }) {
   const { u } = row;
@@ -79,29 +79,29 @@ export default function Upgrades() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   content: { padding: 16, paddingBottom: 32 },
   header: { gap: 10, marginBottom: 4 },
   stats: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  stat: { backgroundColor: colors.card, borderRadius: 10, padding: 10, width: '48%' },
+  stat: { backgroundColor: colors.card, borderRadius: Math.min(10, theme.radius), padding: 10, width: '48%' },
   statVal: { color: colors.text, fontSize: 20, fontWeight: '700' },
   hint: { color: colors.dim, fontSize: 13, lineHeight: 18 },
   chips: { gap: 8, paddingVertical: 2 },
-  chip: { backgroundColor: colors.card, borderRadius: 16, paddingHorizontal: 12, paddingVertical: 7 },
+  chip: { backgroundColor: colors.card, borderRadius: Math.min(16, theme.radius), paddingHorizontal: 12, paddingVertical: 7 },
   chipOn: { backgroundColor: colors.accent },
   chipText: { color: colors.dim, fontSize: 13, fontWeight: '600' },
   section: { color: colors.text, fontSize: 18, fontWeight: '700', marginTop: 18, marginBottom: 8 },
-  card: { flexDirection: 'row', gap: 12, backgroundColor: colors.card, borderRadius: 12, padding: 14 },
+  card: { flexDirection: 'row', gap: 12, ...theme.box, padding: 14 },
   locked: { opacity: 0.6 },
   icon: { fontSize: 28 },
   name: { color: colors.text, fontSize: 16, fontWeight: '700' },
   sub: { color: colors.dim, fontSize: 12, fontWeight: '400' },
   now: { color: colors.good, fontSize: 12 },
   btnRow: { flexDirection: 'row', gap: 8, marginTop: 6 },
-  btn: { backgroundColor: '#2d3b52', borderRadius: 8, paddingVertical: 9, paddingHorizontal: 14, alignItems: 'center' },
+  btn: { backgroundColor: '#2d3b52', borderRadius: Math.min(8, theme.radius), paddingVertical: 9, paddingHorizontal: 14, alignItems: 'center' },
   buy: { backgroundColor: colors.accent, flex: 1 },
   off: { opacity: 0.35 },
   down: { opacity: 0.7 },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   empty: { color: colors.dim, textAlign: 'center', marginTop: 24 },
-});
+}));

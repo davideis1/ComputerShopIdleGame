@@ -1,13 +1,30 @@
 import { Tabs } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { useEffect } from 'react';
+import { Fragment, ReactNode, useEffect } from 'react';
+import { View } from 'react-native';
 import { AuthProvider, useAuth } from '@/AuthProvider';
 import { GameProvider, useGame } from '@/GameProvider';
 import { SyncConflictModal } from '@/components/SyncConflictModal';
+import { Ticker } from '@/components/Ticker';
 import { ToastBanner } from '@/components/ToastBanner';
 import { buyersVisible, hqVisible } from '@/franchise';
-import { colors } from '@/theme';
+import { E } from '@/game';
+import { applyTheme, colors, LIGHT, THEME_IDS, ThemeId } from '@/theme';
+
+/** Picks the era theme (or the player's choice), applies it before anything renders, and remounts the tree when it changes. */
+function ThemeGate({ children }: { children: ReactNode }) {
+  const { game } = useGame();
+  const pref = game.settings?.theme;
+  const id: ThemeId = THEME_IDS.includes(pref) ? pref : (E.eraAt(E.yearOf(game)).theme as ThemeId);
+  applyTheme(id);
+  return (
+    <Fragment key={id}>
+      <StatusBar style={LIGHT[id] ? 'dark' : 'light'} />
+      {children}
+    </Fragment>
+  );
+}
 
 function AppTabs() {
   const { game, notify } = useGame();
@@ -18,11 +35,13 @@ function AppTabs() {
   const showHQ = hqVisible(game);
   const showBuyers = buyersVisible(game);
   return (
-    <>
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      <Ticker />
       <Tabs
         screenOptions={{
           headerStyle: { backgroundColor: colors.bg },
-          headerTintColor: colors.text,
+          headerStatusBarHeight: 0, // the ticker above already clears the status bar
+          headerTintColor: colors.onBg,
           tabBarStyle: { backgroundColor: colors.card, borderTopColor: colors.bg },
           tabBarActiveTintColor: colors.accent,
           tabBarInactiveTintColor: colors.dim,
@@ -41,7 +60,7 @@ function AppTabs() {
       </Tabs>
       <ToastBanner />
       <SyncConflictModal />
-    </>
+    </View>
   );
 }
 
@@ -50,8 +69,9 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <AuthProvider>
         <GameProvider>
-          <StatusBar style="light" />
-          <AppTabs />
+          <ThemeGate>
+            <AppTabs />
+          </ThemeGate>
         </GameProvider>
       </AuthProvider>
     </SafeAreaProvider>

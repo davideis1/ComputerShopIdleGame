@@ -1,8 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { useGame } from '@/GameProvider';
 import { buildShopView, buyRec, recButtonLabel } from '@/shop';
-import { colors, money, num } from '@/theme';
+import { colors, money, num, theme, themed } from '@/theme';
 
 function Panel({ title, right, children }: { title: string; right?: React.ReactNode; children: React.ReactNode }) {
   return (
@@ -35,11 +35,11 @@ export default function Shop() {
       <View style={styles.top}>
         <View style={{ flex: 1 }}>
           <Text style={styles.shopName}>{s.name || 'Computer Shop'}</Text>
-          <Text style={styles.sub}>{v.date} · {v.era.name}</Text>
+          <Text style={styles.hsub}>{v.date} · {v.era.name}</Text>
         </View>
         <View style={{ alignItems: 'flex-end' }}>
           <Text style={styles.cash}>{money(s.cash)}</Text>
-          <Text style={styles.sub}>{money(cashPerMin)}/min</Text>
+          <Text style={styles.hsub}>{money(cashPerMin)}/min</Text>
         </View>
       </View>
 
@@ -146,40 +146,41 @@ export default function Shop() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   content: { padding: 16, paddingBottom: 40, gap: 12 },
   top: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  shopName: { color: colors.text, fontSize: 22, fontWeight: '700' },
-  cash: { color: colors.good, fontSize: 24, fontWeight: '700' },
+  shopName: { color: colors.onBg, fontSize: 22, fontWeight: '700' },
+  cash: theme.id === 'win95' ? { color: '#33ff33', backgroundColor: '#000', paddingHorizontal: 8, fontSize: 24, fontWeight: '700', fontFamily: 'Courier New', overflow: 'hidden' } : { color: colors.good, fontSize: 24, fontWeight: '700' },
   sub: { color: colors.dim, fontSize: 12 },
+  hsub: { color: colors.onBgDim, fontSize: 12 },
   body: { color: colors.dim, fontSize: 14, lineHeight: 20, marginTop: 4 },
-  panel: { backgroundColor: colors.card, borderRadius: 12, padding: 14, gap: 8 },
+  panel: { ...theme.box, padding: 14, gap: 8 },
   panelHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   panelTitle: { color: colors.text, fontSize: 16, fontWeight: '700' },
   toggle: { color: colors.dim, fontSize: 18 },
   shelves: { fontSize: 22, lineHeight: 30, color: colors.text },
-  hustle: { backgroundColor: colors.accent, borderRadius: 12, paddingVertical: 16, alignItems: 'center', overflow: 'hidden' },
+  hustle: { backgroundColor: colors.accent, borderRadius: Math.min(12, theme.radius), paddingVertical: 16, alignItems: 'center', overflow: 'hidden' },
   hustleOff: { backgroundColor: '#2d3b52' },
   hbar: { position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: colors.accent, opacity: 0.6 },
   hustleText: { color: '#fff', fontSize: 17, fontWeight: '700' },
   result: { color: colors.dim, textAlign: 'center', fontSize: 15, fontWeight: '700' },
-  alert: { backgroundColor: '#3a2f16', borderRadius: 10, padding: 12 },
+  alert: { backgroundColor: '#3a2f16', borderRadius: Math.min(10, theme.radius), padding: 12 },
   alertBad: { backgroundColor: '#3d1b1d' },
   alertText: { color: colors.text, fontSize: 13, lineHeight: 18 },
   h: { color: colors.text, fontSize: 13, fontWeight: '700' },
-  rec: { flexDirection: 'row', gap: 10, backgroundColor: colors.bg, borderRadius: 10, padding: 10 },
+  rec: { flexDirection: 'row', gap: 10, backgroundColor: colors.inset, borderRadius: Math.min(10, theme.radius), padding: 10 },
   recIcon: { fontSize: 26 },
   recName: { color: colors.text, fontSize: 15, fontWeight: '700' },
   insight: { color: colors.dim, fontSize: 13, lineHeight: 18 },
-  btn: { backgroundColor: colors.accent, borderRadius: 8, paddingVertical: 9, paddingHorizontal: 14, alignItems: 'center', marginTop: 4 },
+  btn: { backgroundColor: colors.accent, borderRadius: Math.min(8, theme.radius), paddingVertical: 9, paddingHorizontal: 14, alignItems: 'center', marginTop: 4 },
   off: { opacity: 0.35 },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  mini: { backgroundColor: colors.bg, borderRadius: 10, padding: 10, width: '48.5%' },
+  mini: { backgroundColor: colors.inset, borderRadius: Math.min(10, theme.radius), padding: 10, width: '48.5%' },
   miniVal: { color: colors.text, fontSize: 18, fontWeight: '700' },
   logRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 10 },
   logText: { color: colors.dim, fontSize: 13, flex: 1 },
   logAmt: { color: colors.good, fontSize: 13, fontWeight: '700' },
   backdrop: { flex: 1, backgroundColor: '#000a', justifyContent: 'center', padding: 24 },
-  modal: { backgroundColor: colors.card, borderRadius: 14, padding: 20, gap: 8 },
-});
+  modal: { backgroundColor: colors.card, borderRadius: Math.min(14, theme.radius), padding: 20, gap: 8 },
+}));

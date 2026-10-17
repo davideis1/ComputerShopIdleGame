@@ -73,13 +73,13 @@ export function AuthModal({ visible, initialMode, onClose }: { visible: boolean;
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   backdrop: { flex: 1, backgroundColor: '#000a' },
   center: { flexGrow: 1, justifyContent: 'center', padding: 20 },
-  sheet: { backgroundColor: colors.card, borderRadius: 14, padding: 20, gap: 12 },
+  sheet: { backgroundColor: colors.card, borderRadius: Math.min(14, theme.radius), padding: 20, gap: 12 },
   title: { color: colors.text, fontSize: 20, fontWeight: '700' },
   body: { color: colors.dim, fontSize: 14, lineHeight: 20 },
-  input: { backgroundColor: colors.bg, color: colors.text, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 12, fontSize: 16 },
+  input: { backgroundColor: colors.inset, color: colors.text, borderRadius: Math.min(8, theme.radius), paddingHorizontal: 12, paddingVertical: 12, fontSize: 16 },
   error: { color: colors.danger, fontSize: 14 },
   fine: { color: colors.dim, fontSize: 12, lineHeight: 17 },
   finelink: { color: colors.accent, fontWeight: '600' },
@@ -87,4 +87,4 @@ const styles = StyleSheet.create({
   btnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
   link: { color: colors.accent, textAlign: 'center', fontSize: 14, fontWeight: '600' },
   dim: { color: colors.dim, textAlign: 'center', fontSize: 14 },
-});
+}));

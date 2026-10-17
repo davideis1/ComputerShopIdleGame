@@ -1,7 +1,7 @@
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, Text, View } from 'react-native';
 import { useGame } from '@/GameProvider';
 import { Brief } from '@/sync';
-import { colors, money } from '@/theme';
+import { colors, money, theme, themed } from '@/theme';
 
 const when = (ms: number) => (ms ? new Date(ms).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'unknown');
 
@@ -42,16 +42,16 @@ export function SyncConflictModal() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themed(() => ({
   backdrop: { flex: 1, backgroundColor: '#000b', justifyContent: 'center', padding: 20 },
-  sheet: { backgroundColor: colors.card, borderRadius: 14, padding: 20, gap: 12 },
+  sheet: { backgroundColor: colors.card, borderRadius: Math.min(14, theme.radius), padding: 20, gap: 12 },
   title: { color: colors.text, fontSize: 20, fontWeight: '700' },
   body: { color: colors.dim, fontSize: 14, lineHeight: 20 },
-  card: { backgroundColor: colors.bg, borderRadius: 10, padding: 12, gap: 3 },
+  card: { backgroundColor: colors.inset, borderRadius: Math.min(10, theme.radius), padding: 12, gap: 3 },
   cardTitle: { color: colors.dim, fontSize: 12, fontWeight: '700' },
   cardName: { color: colors.text, fontSize: 17, fontWeight: '700' },
   sub: { color: colors.dim, fontSize: 13 },
-  btn: { backgroundColor: colors.accent, borderRadius: 10, paddingVertical: 13, alignItems: 'center' },
+  btn: { backgroundColor: colors.accent, borderRadius: Math.min(10, theme.radius), paddingVertical: 13, alignItems: 'center' },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
   dim: { color: colors.dim, textAlign: 'center', fontSize: 13 },
-});
+}));
