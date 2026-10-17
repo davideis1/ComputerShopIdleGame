@@ -1,6 +1,6 @@
 /* Console gaming sanity check:  node tools/console-check.js
    Coverage of the catalogue by year, platform market shares, installed-base effect on game sales, launch allocation. */
-require('../core/data.js'); require('../core/addons.js'); require('../core/engine.js'); require('../core/consoles.js'); require('../core/managers.js');
+require('../core/data.js'); require('../core/addons.js'); require('../core/engine.js'); require('../core/consoles.js'); require('../core/names.js'); require('../core/managers.js');
 const CS = globalThis.CS, E = CS.E, Con = CS.Con;
 const fmt = (n) => (n >= 1e6 ? (n / 1e6).toFixed(2) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'K' : n.toFixed(0));
 console.log('platforms', CS.PLATFORMS.length, '| consoles', CS.CONSOLES.length, '| games', CS.CGAMES.length, '| accessories', CS.CACCS.length);
@@ -38,7 +38,7 @@ console.log('  500 consoles sold   ', JSON.stringify(run(2003, 500)));
   const s = E.newState(); s.cal = 2020 - 1993 + 0.1; s.cash = 5e7; Object.assign(s.up, { aisle_console: 1, ads_news: 20, ads_tv: 10, ads_web: 8, ads_ecom: 5, sales: 10, barcode: 10, pos: 4, shelf: 8, depot: 6, clerk: 6 });
   const d = E.derive(s);
   const ps5 = E.getItems(s, d).find((i) => i.id === 'ps5');
-  console.log('\nPlayStatic 5 launch (Feb 2020): hype', ps5.hype.toFixed(2), 'allocation cap', ps5.allocCap, 'cost', Math.round(ps5.cost), 'price', Math.round(ps5.price));
+  console.log('\n' + ps5.name + ' launch (Feb 2020): hype', ps5.hype.toFixed(2), 'allocation cap', ps5.allocCap, 'cost', Math.round(ps5.cost), 'price', Math.round(ps5.price));
   console.log('buying 1000 at launch ->', E.buy(s, ps5.key, 1000), 'units allowed');
   E.setTarget(s, ps5.key, 400);
   E.advance(s, 1200, 1);

@@ -1,6 +1,6 @@
 /* PC Designer sanity check:  node tools/design-check.js [year]
    Hires a designer (and a Custom Builds buyer), runs the shop and prints the blueprints it designed. */
-require('../core/data.js'); require('../core/addons.js'); require('../core/engine.js'); require('../core/consoles.js'); require('../core/managers.js');
+require('../core/data.js'); require('../core/addons.js'); require('../core/engine.js'); require('../core/consoles.js'); require('../core/names.js'); require('../core/managers.js');
 const CS = globalThis.CS, E = CS.E, M = CS.M;
 const year = +process.argv[2] || 2003;
 const fmt = (n) => (n >= 1e6 ? (n / 1e6).toFixed(2) + 'M' : n >= 1e3 ? (n / 1e3).toFixed(1) + 'K' : n.toFixed(0));
