@@ -80,6 +80,7 @@
     s.lastAway = raw.lastAway || null;
     s.mgr = raw.mgr || null; s.mgrCfg = raw.mgrCfg || {}; s.mgrPool = raw.mgrPool || {}; s.mAcc = raw.mAcc || {}; s.vel = raw.vel || {};
     if (CS.M) CS.M.init(s);
+    if (CS.Names) CS.Names.migrate(s); // buyers' blocked brand names after the game/console renames
     s.meta = Object.assign(newMeta(), raw.meta || {});
     s.meta.tup = Object.assign({}, (raw.meta && raw.meta.tup) || {});
     ['up', 'stock', 'target', 'acc', 'ach', 'seen'].forEach((k) => (s[k] = Object.assign({}, raw[k] || (k === 'seen' ? base.seen : {}))));
