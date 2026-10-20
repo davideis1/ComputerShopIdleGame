@@ -1,4 +1,5 @@
 [
+  {"build":"next","title":"Fixes","changes":["Leaving the game in a background browser tab now counts as one stretch away, so the welcome-back report shows the whole time and your night-shift upgrades apply.","Menu → Statistics now shows sales and items sold across all your franchises."]},
   {"build":"next","title":"Password reset","changes":["Add an email to your account (optional) and you can reset a forgotten password with an emailed link, on the website or in the app."]},
   {"build":"next","title":"Customers on the street","changes":["The storefront now shows customers walking past your shop, and a 💲 pops up when one buys. Switch it off in Menu → Look."]},
   {"build":"next","title":"Era themes and news ticker in the app","changes":["The app now changes look with the era: Windoze 95, Bliss, Flat and RGB. Pick one yourself in Menu → Look.","The news ticker is back, scrolling era headlines and current events across the top (switch it off in Menu → Look)."]},

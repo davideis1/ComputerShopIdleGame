@@ -30,7 +30,11 @@ export function buildMenuView(s: GameState, filter: TroFilter): MenuView {
       { label: 'Calendar', value: E.dateStr(d.y) },
       { label: 'Time played', value: dur(st.play) },
       { label: 'Time earning while away', value: dur(st.offline) },
-      { label: 'Lifetime sales', value: money(st.revenue) },
+      { label: 'Sales this franchise', value: money(st.revenue) },
+      ...(s.meta.resets ? [
+        { label: 'Sales, all franchises', value: money(s.meta.lifeRevenue + st.revenue) },
+        { label: 'Items sold, all franchises', value: num(s.meta.lifeUnits + E.unitsSold(st)) },
+      ] : []),
       { label: 'Computers sold', value: num(st.sold) },
       { label: 'Computers built', value: num(st.built) },
       { label: 'Games sold', value: num(st.soldGames) },

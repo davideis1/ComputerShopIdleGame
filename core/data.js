@@ -361,7 +361,7 @@
     { id: 'a_game100', name: 'Game Night', desc: 'Sell 100 PC games', ok: (s) => (s.stats.soldGames || 0) >= 100 },
     { id: 'a_acc100', name: 'Accessorised', desc: 'Sell 100 accessories', ok: (s) => (s.stats.soldAcc || 0) >= 100 },
     { id: 'a_mgr1', name: 'Delegation', desc: 'Hire your first purchasing manager', ok: (s) => !!s.mgr && Object.values(s.mgr).some(Boolean) },
-    { id: 'a_mgr4', name: 'Full Buying Team', desc: 'Employ a manager in all four categories', ok: (s) => !!s.mgr && Object.values(s.mgr).filter(Boolean).length >= 4 },
+    { id: 'a_mgr4', name: 'Full Buying Team', desc: 'Employ buyers in four categories at once', ok: (s) => !!s.mgr && Object.values(s.mgr).filter(Boolean).length >= 4 },
     { id: 'a_con100', name: 'Player Two', desc: 'Sell 100 consoles', ok: (s) => (s.stats.soldConsoles || 0) >= 100 },
     { id: 'a_con1k', name: 'Console Wars', desc: 'Sell 1,000 consoles', ok: (s) => (s.stats.soldConsoles || 0) >= 1000 },
     { id: 'a_cg1k', name: 'Backlog Builder', desc: 'Sell 1,000 console games', ok: (s) => (s.stats.soldCGames || 0) >= 1000 },

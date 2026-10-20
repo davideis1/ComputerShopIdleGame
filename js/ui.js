@@ -42,7 +42,7 @@
   const BOOT = window.CSIG;
   const settings = BOOT.settings; // {theme, showTicker, showWalkers}, stored in user_settings
   const LOCAL_KEY = C.SAVE_KEY + '-u' + BOOT.user.id;
-  let S, noSave = false, rev = BOOT.rev || 0, saving = false, conflict = false, forceNext = false;
+  let S, hiddenAt = 0, noSave = false, rev = BOOT.rev || 0, saving = false, conflict = false, forceNext = false;
   let sync = { state: 'ok', at: Date.now() };
   const api = (name) => BOOT.base + '/api/' + name + '.php';
   const TAB = (() => { // survives reloads of this tab, differs between tabs
@@ -96,6 +96,9 @@
   }
   function beaconSave() { // last-gasp save while the page is closing
     if (noSave || !S || conflict || saving) return;
+    // A tab closed after a while in the background: the save made when it was hidden already holds this state, and
+    // re-saving it now would stamp a new server time and drop the hidden time from the next offline catch-up.
+    if (hiddenAt && Date.now() - hiddenAt > 10000) return;
     S.saved = Date.now();
     const str = E.serialize(S);
     try { localStorage.setItem(LOCAL_KEY, str); } catch (e) { /* ignore */ }
@@ -1196,7 +1199,9 @@
       <tr><td>Calendar</td><td>${E.dateStr(d.y)}</td></tr>
       <tr><td>Time played</td><td>${dur(st.play)}</td></tr>
       <tr><td>Time earning while away</td><td>${dur(st.offline)}</td></tr>
-      <tr><td>Lifetime sales</td><td>${money(st.revenue)}</td></tr>
+      <tr><td>Sales this franchise</td><td>${money(st.revenue)}</td></tr>
+      ${S.meta.resets ? `<tr><td>Sales, all franchises</td><td>${money(S.meta.lifeRevenue + st.revenue)}</td></tr>
+      <tr><td>Items sold, all franchises</td><td>${num(S.meta.lifeUnits + E.unitsSold(st))}</td></tr>` : ''}
       <tr><td>Computers sold</td><td>${num(st.sold)}</td></tr>
       <tr><td>Computers built</td><td>${num(st.built)}</td></tr>
       <tr><td>Games sold</td><td>${num(st.soldGames)}</td></tr>
@@ -1483,6 +1488,7 @@
     save();
   }
   function tick() {
+    if (document.hidden) return; // throttled timers would turn a background tab into many 1-minute offline sessions
     const now = Date.now();
     let dt = (now - last) / 1000;
     last = now;
@@ -1528,7 +1534,7 @@
     if (server && local && local.saved > server.saved + 2000) {
       return new Promise((resolve) => {
         modal('Newer progress found', '<p>This device holds a newer copy of your shop (' + new Date(local.saved).toLocaleString() + ') than your account (' + new Date(server.saved).toLocaleString() + '), probably from a dropped connection. Which should be used?</p>', [
-          { label: 'Use newer (this device)', cls: 'primary', fn: () => resolve({ state: local, elapsed: (Date.now() - local.saved) / 1000, force: true }) },
+          { label: 'Use newer (this device)', cls: 'primary', fn: () => resolve({ state: local, elapsed: Math.min(BOOT.elapsed, (Date.now() - local.saved) / 1000), force: true }) },
           { label: 'Use account copy', fn: () => { clearLocal(false); resolve({ state: server, elapsed: BOOT.elapsed }); } },
         ]);
       });
@@ -1558,10 +1564,9 @@
       switchTab('shop');
       maybeShowWhatsNew(S.stats.play > 120);
       setInterval(tick, 250);
-      setInterval(save, 15000);
+      setInterval(() => { if (!document.hidden) save(); }, 15000);
       document.addEventListener('visibilitychange', () => {
-        if (document.hidden) save();
-        else tick();
+        if (document.hidden) { hiddenAt = Date.now(); save(); } else { hiddenAt = 0; tick(); } // tick catches up the whole hidden time at once
       });
       window.addEventListener('pagehide', beaconSave);
       if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register(BOOT.base + '/sw.js').catch(() => {});

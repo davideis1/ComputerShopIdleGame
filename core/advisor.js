@@ -29,7 +29,8 @@
   const mem = { t: -1, stockouts: 0, lost: 0, rateSO: 0, rateLost: 0 };
   function sample(s) {
     const now = s.stats.play;
-    if (mem.t < 0 || now < mem.t) { mem.t = now; mem.stockouts = s.stats.stockouts; mem.lost = s.stats.lost; return; }
+    // a different shop (prestige, import, erase, cloud copy) has counters below ours: start over
+    if (mem.t < 0 || now < mem.t || s.stats.stockouts < mem.stockouts || s.stats.lost < mem.lost) { mem.t = now; mem.stockouts = s.stats.stockouts; mem.lost = s.stats.lost; return; }
     const dt = now - mem.t;
     if (dt >= 20) {
       mem.rateSO = Math.max(0, (s.stats.stockouts - mem.stockouts) / dt);
