@@ -105,5 +105,6 @@ Developer-facing log; the player-facing one is `changelog.json`.
 - **#2/#1** Balance pass; PHP + MariaDB accounts, saves, settings; game core.
 
 ## Ideas / not done
+- Full design & engineering review with prioritised fixes and feature ideas: `docs/design-review-2026-10.md`.
 - Game data in the database (decided to skip for now).
 - Balance pass on the economy with the Designer active (only checked for sanity, not tuned).
