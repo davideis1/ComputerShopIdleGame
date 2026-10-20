@@ -21,7 +21,11 @@
 
   /* ---------- state ---------- */
   function newMeta() {
-    return { tokens: 0, earned: 0, resets: 0, tup: {}, lifeRevenue: 0, lifeSold: 0, bestRevenue: 0 };
+    return { tokens: 0, earned: 0, resets: 0, tup: {}, lifeRevenue: 0, lifeSold: 0, lifeUnits: 0, bestRevenue: 0 };
+  }
+  /** Every unit sold this run: PCs, games, accessories, consoles and console games/accessories. */
+  function unitsSold(st) {
+    return (st.sold || 0) + (st.soldGames || 0) + (st.soldAcc || 0) + (st.soldConsoles || 0) + (st.soldCGames || 0) + (st.soldCAcc || 0);
   }
   const tl = (s, id) => (s.meta && s.meta.tup[id]) || 0;
 
@@ -82,6 +86,7 @@
     if (CS.M) CS.M.init(s);
     if (CS.Names) CS.Names.migrate(s); // buyers' blocked brand names after the game/console renames
     s.meta = Object.assign(newMeta(), raw.meta || {});
+    if (!raw.meta || !isFinite(raw.meta.lifeUnits)) s.meta.lifeUnits = s.meta.lifeSold; // older saves only counted PCs
     s.meta.tup = Object.assign({}, (raw.meta && raw.meta.tup) || {});
     ['up', 'stock', 'target', 'acc', 'ach', 'seen'].forEach((k) => (s[k] = Object.assign({}, raw[k] || (k === 'seen' ? base.seen : {}))));
     s.bps = Array.isArray(raw.bps) ? raw.bps.filter((b) => b && b.parts) : [];
@@ -672,6 +677,7 @@
     m.resets += 1;
     m.lifeRevenue += s.stats.revenue;
     m.lifeSold += s.stats.sold;
+    m.lifeUnits += unitsSold(s.stats);
     m.bestRevenue = Math.max(m.bestRevenue, s.stats.revenue);
     const n = newState(m);
     n.name = s.name;
@@ -700,7 +706,7 @@
     SEG, K, ADDON_SCALE, isAddon, sellUnits, itemWeight, popularityMap, infl, refPrice, newState, migrate, serialize, deserialize, yearOf, eraAt, eventsAt, derive,
     partAvail, partRel, partPrice, bpInfo, designInfo, totalStock, getItems, buy, buyUnits, setTarget,
     upLevel, upCost, upUnlocked, buyUp, createBp, deleteBp, step, advance, offline, hustle, newProducts,
-    newReport, checkAch, dateStr, pendingTokens, nextTokenAt, tokenAt, prestige, tokenCost, buyTokenUp, tl,
+    newReport, checkAch, dateStr, unitsSold, pendingTokens, nextTokenAt, tokenAt, prestige, tokenCost, buyTokenUp, tl,
   };
   if (typeof module !== 'undefined') module.exports = CS;
 })(typeof window !== 'undefined' ? window : globalThis);

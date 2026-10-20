@@ -69,32 +69,31 @@ React Native (Expo) app reusing the simulation: `engine.js`, `data.js`, `addons.
 - **`npm audit`:** the app reports ~27 findings (braces, node-forge, uuid) but all sit in the Expo/Metro build toolchain and config plugins, none ship in the app bundle. **Never run `npm audit fix --force`**: it proposes downgrading to expo 44. `npm audit fix` changes nothing. They clear as Expo ships SDK patch releases; keep `npx expo-doctor` at 18/18 (`npx expo install --check`).
 - **Xcode project:** `app/ios/` is generated (gitignored) from `app.json` + the Expo config plugins. `cd app && npm install && npm run xcode` regenerates it from scratch and opens `ios/MegaByteComputers.xcworkspace` (always the workspace, not the project). Verified from a fresh clone of `Main` (2026-10-17). Run it again after changing `app.json`, adding a native package or if the build fails with linker errors from a stale `ios/`. Debug builds then need `npx expo start` (no `CI=1`) running.
 - **Rebuild rule:** a package with native code needs `npx expo run:ios` (or `pod install` in `app/ios` + Xcode Run); JS-only edits just reload. Debug builds need Metro running (`npx expo start`). `ios/` is generated and gitignored. Verified on the iPhone 17 Pro simulator (save survives kill + relaunch, welcome-back sheet).
+- Production API: `https://computershopidlegame.davideis.com` (`extra.apiBase` in app.json), confirmed live on 2026-10-16 (login.php 200, `api/auth_login.php` GET -> 405 JSON).
 - Not yet done: first real store build + TestFlight / Play internal test, Android run on a device, password change / export-import from the app.
 
 ## Change log (newest first)
 Developer-facing log; the player-facing one is `changelog.json`.
-- **password-reset (draft)** Optional account email, forgot/reset password by emailed link (web + app), SMTP mail helper, `api-reset-smoke.js`; privacy page, manifest and store answers updated.
-- **native-mobile-walkers (draft)** App storefront scene with customers walking past (and a 💲 when one buys), Menu toggle.
-- **native-mobile-themes (draft)** App era themes (Win95 / Bliss / Flat / RGB): palettes, bevel/outline/shadow cards, auto by era or chosen in Menu -> Look; scrolling news ticker (toggle in Menu).
-- **store-prep (draft)** Store-build setup: app icon + Android adaptive icon + splash from SVG sources, bundle id `com.davideis.computershopidle`, name Mega Byte Computers, iPhone-only, iOS privacy manifest + encryption flag, EAS config, privacy/support pages on the site (+ attempts sweep from sign-ups), About links in the app, expo patch updates + expo-splash-screen + expo-system-ui, store listing/release docs.
-- Production API: `https://computershopidlegame.davideis.com` (`extra.apiBase` in app.json), confirmed live on 2026-10-16 (login.php 200, `api/auth_login.php` GET -> 405 JSON).
-
-## Change log (newest first)
-Developer-facing log; the player-facing one is `changelog.json`.
-- **rename-games (draft)** Original names for all PC/console games, publishers, consoles and console accessories via `core/names.js` (ids frozen, `tools/names-check.js` guard, saves migrate); the real name "Geocities Web Page" -> "Free Homepage Hosting"; PC makers/models/parts/peripheral brands renamed too (Bytewell, Marlowe, Quince, Silicor, Verdant, Skylight...).
-- **app-token-header (draft)** App sends `X-Api-Token` as well as `Authorization` (IONOS drops `Authorization`); notes updated.
-- **native-mobile-sync (draft, stacked on native-mobile-trophies)** Optional accounts + cloud sync in the app: token sign-in/up/out, keychain storage, conflict-aware sync with the PHP backend, server-clock offline time, in-app account deletion, Erase-all also erases the cloud save.
-- **native-mobile-trophies (draft)** Native Menu tab: shop name, statistics, trophy case with filters, Save now, Erase all, About.
-- **native-mobile-franchise (draft)** Native Franchise HQ tab (tokens, claim/prestige, permanent HQ and buyer upgrades); HQ/Buyers tabs hide until relevant; global toast banner; tab bar fits seven tabs.
-- **native-mobile-workshop (draft)** Native Workshop tab (blueprints, design form, part pickers); shared pin/skip `MgrRow` on Workshop and Stock cards; blueprints removed from the Stock list.
-- **native-mobile-buyers (draft, targets `native-mobile-shop`)** Native Buyers tab: Purchasing Office unlock, per-category hire/fire/train, on-duty, plans, all settings via generic controls, notebook.
-- **native-mobile-shop (draft, targets `native-mobile-upgrades`)** Real Shop tab: header, storefront shelves, Hustle, alerts, Advisor (buy recs), report grid, recent sales, The Times; achievement toasts.
-- **native-mobile-upgrades (draft, targets `native-mobile-stock`)** Native Upgrades tab (overview, filters, buy/max), shared `num`/`money` formatting.
-- **native-mobile-stock (draft, targets `native-mobile-expo`)** Native Stock tab: category/age/shelf/sort filters, search, item cards (Buy 1/+pack/Max, auto-restock stepper), pricing policy, aisle unlock.
-- **native-mobile-expo (draft, targets `native-mobile-core`/`native-mobile`)** `app/` Expo scaffold: Metro reads `core/`; Expo Router tabs, local AsyncStorage save, offline catch-up + welcome-back sheet.
-- **native-mobile-core (draft, targets `native-mobile`)** Simulation moved from `js/` to DOM-free `core/` (+ `core/index.js` loader for Node/React Native); tools, index.php, SW cache bumped; `custom-check` fixed (it was missing addons).
-- **#12 (open draft)** also: version number + auto-increment hook, What's new popup.
-- **#12 (open draft)** PC Designer buyer; `tools/design-check.js`; Advisor hints; Buyers stat `n / 6`; this file.
+- **design-review fix pass** Hidden web tabs no longer trade in 1-minute offline slices (one catch-up on return, offline cap applies once, no beacon save that would drop the hidden time); a newer local copy uses `min(server, device)` elapsed; Advisor rate memory resets when the shop changes; `meta.lifeUnits` + all-franchise stats rows; achievement text fix. See `docs/design-review-2026-10.md` §3.
+- **#34** `docs/design-review-2026-10.md`: design & engineering review with a roadmap.
+- **#32 password-reset** Optional account email, forgot/reset password by emailed link (web + app), SMTP mail helper, `api-reset-smoke.js`; privacy page, manifest and store answers updated.
+- **#28 native-mobile-walkers** App storefront scene with customers walking past (and a 💲 when one buys), Menu toggle.
+- **#26 native-mobile-themes** App era themes (Win95 / Bliss / Flat / RGB): palettes, bevel/outline/shadow cards, auto by era or chosen in Menu -> Look; scrolling news ticker (toggle in Menu).
+- **#25 store-prep** Store-build setup: app icon + Android adaptive icon + splash from SVG sources, bundle id `com.davideis.computershopidle`, name Mega Byte Computers, iPhone-only, iOS privacy manifest + encryption flag, EAS config, privacy/support pages on the site (+ attempts sweep from sign-ups), About links in the app, expo patch updates + expo-splash-screen + expo-system-ui, store listing/release docs.
+- **#24 rename-games** Original names for all PC/console games, publishers, consoles and console accessories via `core/names.js` (ids frozen, `tools/names-check.js` guard, saves migrate); the real name "Geocities Web Page" -> "Free Homepage Hosting"; PC makers/models/parts/peripheral brands renamed too (Bytewell, Marlowe, Quince, Silicor, Verdant, Skylight...).
+- **#23 app-token-header** App sends `X-Api-Token` as well as `Authorization` (IONOS drops `Authorization`); notes updated.
+- **native-mobile-sync** Optional accounts + cloud sync in the app: token sign-in/up/out, keychain storage, conflict-aware sync with the PHP backend, server-clock offline time, in-app account deletion, Erase-all also erases the cloud save.
+- **#21 native-mobile-trophies** Native Menu tab: shop name, statistics, trophy case with filters, Save now, Erase all, About.
+- **#20 native-mobile-franchise** Native Franchise HQ tab (tokens, claim/prestige, permanent HQ and buyer upgrades); HQ/Buyers tabs hide until relevant; global toast banner; tab bar fits seven tabs.
+- **native-mobile-workshop** Native Workshop tab (blueprints, design form, part pickers); shared pin/skip `MgrRow` on Workshop and Stock cards; blueprints removed from the Stock list.
+- **#19 native-mobile-buyers** Native Buyers tab: Purchasing Office unlock, per-category hire/fire/train, on-duty, plans, all settings via generic controls, notebook.
+- **#18 native-mobile-shop** Real Shop tab: header, storefront shelves, Hustle, alerts, Advisor (buy recs), report grid, recent sales, The Times; achievement toasts.
+- **#17 native-mobile-upgrades** Native Upgrades tab (overview, filters, buy/max), shared `num`/`money` formatting.
+- **#16 native-mobile-stock** Native Stock tab: category/age/shelf/sort filters, search, item cards (Buy 1/+pack/Max, auto-restock stepper), pricing policy, aisle unlock.
+- **#15 native-mobile-expo** `app/` Expo scaffold: Metro reads `core/`; Expo Router tabs, local AsyncStorage save, offline catch-up + welcome-back sheet.
+- **#14 native-mobile-core** Simulation moved from `js/` to DOM-free `core/` (+ `core/index.js` loader for Node/React Native); tools, index.php, SW cache bumped; `custom-check` fixed (it was missing addons).
+- **#12** also: version number + auto-increment hook, What's new popup.
+- **#12** PC Designer buyer; `tools/design-check.js`; Advisor hints; Buyers stat `n / 6`; this file.
 - **#11** Collapsible buyer panels (state in localStorage).
 - **#10** Console gaming: consoles, console games/accessories, generations with launch events, Console Corner upgrade, Stock filter, Consoles buyer.
 - **#9** Shop Advisor box on the shop summary (upgrade suggestions + insights).
