@@ -51,7 +51,7 @@ const styles = themed(() => ({
   cardTitle: { color: colors.dim, fontSize: 12, fontWeight: '700' },
   cardName: { color: colors.text, fontSize: 17, fontWeight: '700' },
   sub: { color: colors.dim, fontSize: 13 },
-  btn: { backgroundColor: colors.accent, borderRadius: Math.min(10, theme.radius), paddingVertical: 13, alignItems: 'center' },
+  btn: { backgroundColor: colors.accent, ...theme.btn, paddingVertical: 13, alignItems: 'center' },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
   dim: { color: colors.dim, textAlign: 'center', fontSize: 13 },
 }));

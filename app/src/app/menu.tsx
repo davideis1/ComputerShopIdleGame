@@ -6,18 +6,7 @@ import { useGame } from '@/GameProvider';
 import { APP_VERSION, PRIVACY_URL, SUPPORT_URL } from '@/config';
 import { buildMenuView, setShopName, TRO_FILTERS, TroFilter } from '@/menu';
 import { colors, theme, themed, THEME_IDS, THEME_LABELS } from '@/theme';
-
-function Panel({ title, right, children }: { title: string; right?: string; children: React.ReactNode }) {
-  return (
-    <View style={styles.panel}>
-      <View style={styles.head}>
-        <Text style={styles.title}>{title}</Text>
-        {!!right && <Text style={styles.sub}>{right}</Text>}
-      </View>
-      {children}
-    </View>
-  );
-}
+import { Panel } from '@/components/ui';
 
 export default function Menu() {
   const { game: s, frame, refresh, reset, saveNow } = useGame();
@@ -49,7 +38,7 @@ export default function Menu() {
 
   return (
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <Panel title="Shop Settings">
+      <Panel title="Shop Settings" icon="🏷️">
         <Text style={styles.label}>Shop name</Text>
         <TextInput
           style={styles.input}
@@ -61,7 +50,7 @@ export default function Menu() {
         />
       </Panel>
 
-      <Panel title="Look">
+      <Panel title="Look" icon="🎨">
         <Text style={styles.label}>Visual theme</Text>
         <View style={styles.chips}>
           {['auto', ...THEME_IDS].map((t) => {
@@ -85,7 +74,7 @@ export default function Menu() {
 
       <AccountPanel />
 
-      <Panel title="Statistics">
+      <Panel title="Statistics" icon="📈">
         {v.stats.map((st) => (
           <View key={st.label} style={styles.row}>
             <Text style={styles.rowLabel}>{st.label}</Text>
@@ -94,7 +83,7 @@ export default function Menu() {
         ))}
       </Panel>
 
-      <Panel title="Trophies" right={v.trophyCount}>
+      <Panel title="Trophies" icon="🏆" right={v.trophyCount}>
         <View style={styles.chips}>
           {TRO_FILTERS.map((f) => (
             <Pressable key={f.id} onPress={() => setFilter(f.id)} style={[styles.chip, filter === f.id && styles.chipOn]}>
@@ -114,7 +103,7 @@ export default function Menu() {
         {!v.trophies.length && <Text style={styles.sub}>Nothing matches this filter.</Text>}
       </Panel>
 
-      <Panel title="Save Data">
+      <Panel title="Save Data" icon="💾">
         <Text style={styles.body}>
           The game saves automatically every 15 seconds and when you leave the app. While you are away the shop keeps trading, up to your offline limit.
         </Text>
@@ -124,7 +113,7 @@ export default function Menu() {
         </View>
       </Panel>
 
-      <Panel title="About" right={APP_VERSION ? 'v' + APP_VERSION : undefined}>
+      <Panel title="About" icon="ℹ️" right={APP_VERSION ? 'v' + APP_VERSION : undefined}>
         <Text style={styles.body}>
           Idle computer shop, 1993 → today. Every brand and product name is a made-up parody; this game is not affiliated with or endorsed by any real company. Offline progress is capped by your shop's Night Lock-Up, and Franchise Tokens, HQ upgrades and trophies carry over when you open a new franchise.
         </Text>
@@ -150,7 +139,7 @@ const styles = themed(() => ({
   row: { flexDirection: 'row', justifyContent: 'space-between', gap: 12 },
   rowLabel: { color: colors.dim, fontSize: 14, flex: 1 },
   rowVal: { color: colors.text, fontSize: 14, fontWeight: '700' },
-  chips: { flexDirection: 'row', gap: 8 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: { backgroundColor: colors.inset, borderRadius: Math.min(16, theme.radius), paddingHorizontal: 12, paddingVertical: 7 },
   chipOn: { backgroundColor: colors.accent },
   chipText: { color: colors.dim, fontSize: 13, fontWeight: '600' },
@@ -161,7 +150,7 @@ const styles = themed(() => ({
   btnRow: { flexDirection: 'row', gap: 10 },
   linkRow: { flexDirection: 'row', gap: 24 },
   link: { color: colors.accent, fontSize: 14, fontWeight: '600' },
-  btn: { flex: 1, backgroundColor: colors.accent, borderRadius: Math.min(8, theme.radius), paddingVertical: 11, alignItems: 'center' },
+  btn: { flex: 1, backgroundColor: colors.accent, ...theme.btn, paddingVertical: 11, alignItems: 'center' },
   danger: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.danger },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
 }));

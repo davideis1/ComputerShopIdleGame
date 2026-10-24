@@ -96,7 +96,8 @@
           "imageWidth": 200,
           "resizeMode": "contain"
         }
-      ]
+      ],
+      "expo-status-bar"
     ],
     "extra": {
       "apiBase": "https://computershopidlegame.davideis.com"

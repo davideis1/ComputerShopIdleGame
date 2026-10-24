@@ -17,6 +17,6 @@ export function ToastBanner() {
 
 const styles = themed(() => ({
   wrap: { position: 'absolute', left: 16, right: 16, zIndex: 10 },
-  box: { backgroundColor: colors.accent, borderRadius: Math.min(10, theme.radius), padding: 12 },
+  box: { backgroundColor: colors.accent, ...theme.btn, padding: 12 },
   text: { color: '#fff', fontWeight: '700', fontSize: 13 },
 }));
