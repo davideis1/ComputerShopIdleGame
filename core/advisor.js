@@ -261,6 +261,10 @@
       });
     }
 
+    // reputation: name the factor that costs the most stars
+    const rv = E.reputationView(s, d);
+    if (rv.worst && s.stats.sold > 20) add(rv.worst.cost > 0.5 ? 66 : 40, rv.worst.cost > 0.5 ? 'warn' : 'info', '⭐', rv.worst.label + ' costs your shop ' + rv.worst.cost.toFixed(1) + '★ (' + rv.stars.toFixed(1) + '★ now, ' + (rv.effect >= 0 ? '+' : '') + Math.round(rv.effect * 100) + '% shoppers). ' + rv.worst.tip);
+
     // upcoming events
     const KIND_LABEL = { game: 'PC games', acc: 'accessories', console: 'consoles', cgame: 'console games', cacc: 'console accessories' };
     // scan the next ~4 months in small steps: retail seasons can be just a couple of weeks long

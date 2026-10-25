@@ -360,3 +360,8 @@ details.mgd summary { cursor: pointer; padding: 10px; font-weight: 700; min-heig
 .mgAll { gap: 6px; } .mgAll button { flex: 1 1 100px; }
 .tag.t-auto { background: #c8e6ff; color: #000; }
 .clog { margin: 4px 0 8px 18px; padding: 0; } .clog li { margin: 2px 0; }
+
+/* Reputation factor rows */
+.repf { display: grid; grid-template-columns: 1fr 90px 44px; gap: 8px; align-items: center; padding: 2px 0; }
+.repbar { height: 8px; background: var(--inset); border-radius: 4px; overflow: hidden; box-shadow: var(--bevel-in); }
+.repbar i { display: block; height: 100%; background: var(--accent); }

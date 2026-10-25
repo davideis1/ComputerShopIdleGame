@@ -230,6 +230,7 @@
           <div class="advsec"><b class="advh">Good to know</b><ul id="advIns"></ul><small id="advMore"></small></div>
           <small class="advnote">Estimates from your recent sales. Payback = how long an upgrade takes to earn back its cost.</small>
         </div></div>
+      <div class="panel"><div class="title"><span>⭐ Reputation</span><span id="repStars" class="num"></span></div><div class="pbody" id="repBody"></div></div>
       <div class="panel"><div class="title">Shop Report</div><div class="pbody"><div class="grid" id="statGrid"></div></div></div>
       <div class="panel" id="svcPanel" hidden><div class="title"><span>🛎️ Service Desk</span><span id="svcRate" class="num"></span></div><div class="pbody" id="svcBody"></div></div>
       <div class="panel"><div class="title">Recent Sales</div><div class="pbody"><ul id="log"></ul></div></div>
@@ -246,6 +247,15 @@
       grid.appendChild(m);
       shopRefs.cells[id] = $('b', m);
     });
+  }
+  /** Reputation panel: the stars, where they are heading, and what each factor costs. */
+  function renderReputation(d) {
+    const v = E.reputationView(S, d);
+    setText($('#repStars'), v.label + ' ' + v.stars.toFixed(1));
+    const dir = v.target > v.stars + 0.05 ? '↗ rising to ' + v.target.toFixed(1) : v.target < v.stars - 0.05 ? '↘ falling to ' + v.target.toFixed(1) : 'steady';
+    setHtml($('#repBody'), `<div>${dir} · ${v.effect >= 0 ? '+' : ''}${Math.round(v.effect * 100)}% shoppers</div>`
+      + v.factors.map((f) => `<div class="repf"><small>${esc(f.label)}</small><span class="repbar"><i style="width:${Math.round(f.score * 100)}%"></i></span><small class="num">${f.cost >= 0.05 ? '−' + f.cost.toFixed(1) + '★' : '✓'}</small></div>`).join('')
+      + (v.worst ? `<small class="warn">${esc(v.worst.tip)}</small>` : ''));
   }
   /** Service Desk panel: a teaser with an Open button, then jobs, capacity, the era's service menu and warranties. */
   function renderService(d) {
@@ -365,6 +375,7 @@
     setText(c.cons, num(S.stats.soldConsoles || 0));
     setText(c.cgm, num((S.stats.soldCGames || 0) + (S.stats.soldCAcc || 0)));
     renderService(d);
+    renderReputation(d);
 
     renderAdvisor(d, items);
 
