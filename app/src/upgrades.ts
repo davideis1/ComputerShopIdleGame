@@ -6,7 +6,7 @@ import { money, num } from './theme';
 export type Upgrade = any; // core/data.js CS.UPGRADES entry
 export type UpFilter = 'all' | 'afford' | 'open';
 
-export const UP_GROUPS = ['Marketing', 'Checkout', 'Stock', 'Shop', 'Workshop'];
+export const UP_GROUPS = ['Marketing', 'Checkout', 'Stock', 'Shop', 'Workshop', 'Service'];
 export const UP_FILTERS: { id: UpFilter; label: string }[] = [
   { id: 'all', label: 'All' },
   { id: 'afford', label: 'Affordable now' },

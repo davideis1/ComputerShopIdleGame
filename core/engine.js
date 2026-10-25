@@ -48,7 +48,10 @@
       rAcc: 0,
       bAcc: 0,
       hustleCd: 0,
-      stats: { sold: 0, soldGames: 0, soldAcc: 0, soldConsoles: 0, soldCGames: 0, soldCAcc: 0, consoleRevenue: 0, addonRevenue: 0, revenue: 0, built: 0, lost: 0, stockouts: 0, hustles: 0, play: 0, offline: 0 },
+      stats: { sold: 0, soldGames: 0, soldAcc: 0, soldConsoles: 0, soldCGames: 0, soldCAcc: 0, consoleRevenue: 0, addonRevenue: 0, revenue: 0, built: 0, lost: 0, stockouts: 0, hustles: 0, play: 0, offline: 0,
+        repairs: 0, serviceRevenue: 0, svcLost: 0, warranties: 0, warrantyRevenue: 0, claimsPaid: 0 },
+      claims: 0, // warranty claims still to be paid out
+      sAcc: 0, // fractional repair jobs
       ach: {},
       seen: {},
       aAcc: 0,
@@ -161,7 +164,7 @@
     const lv = (id) => s.up[id] || 0;
     let lambda = 0.06, serve = 0.25, restock = 0, build = 0, buildMult = 1, serveMult = 1;
     let cap = 12, disc = 0, night = 4, bench = 2, loyal = 0, upkeep = 0, upsell = 0;
-    let aisleGame = false, aisleAcc = false, aisleConsole = false, office = false;
+    let aisleGame = false, aisleAcc = false, aisleConsole = false, office = false, svcDesk = false, svc = 0, warranty = 0;
     CS.UPGRADES.forEach((u) => {
       const L = lv(u.id);
       if (!L) return;
@@ -182,6 +185,9 @@
         case 'aisle_console': aisleConsole = true; break;
         case 'aisle_acc': aisleAcc = true; break;
         case 'attach': upsell += u.per * L; break;
+        case 'svc_desk': svcDesk = true; break;
+        case 'svc': svc += u.per * L; break;
+        case 'warranty': warranty += u.per * L; break;
       }
       if (u.up) upkeep += u.up * L;
     });
@@ -210,7 +216,12 @@
       office,
       upsell,
       achCount,
+      service: svcDesk,
+      svcCap: svcDesk ? SVC_BASE + svc : 0, // repair jobs per second the desk can handle
+      warranty: svcDesk ? WARRANTY_BASE + warranty : 0, // share of PC buyers who add a warranty
     };
+    out.svc = serviceAt(y);
+    out.svcDemand = svcDesk ? out.lambda * SVC_SHARE * out.svc.mix : 0; // walk-in repair jobs per second
     if (CS.M) {
       out.mgr = CS.M.derive(s, out);
       out.upkeep += out.mgr.wages;
@@ -401,6 +412,77 @@
     return { ws, tot, p: Math.min(0.95, 1 - Math.exp(-tot / K)) };
   }
 
+  /* ---------- Service Desk ---------- */
+  const SVC_BASE = 0.04; // the owner fixes a PC every 25 s
+  const SVC_SHARE = 0.18; // walk-in repair jobs per arriving shopper, with a typical service menu
+  const WARRANTY_BASE = 0.12, WARRANTY_PRICE = 0.12, WARRANTY_CLAIMS = 0.4, CLAIM_TAU = 900;
+  /** Services on offer in year y: list, demand mix (1 = typical menu) and average price per job. */
+  const svcCache = { k: -1, v: null };
+  function serviceAt(y) {
+    const k = Math.round(y * 50);
+    if (svcCache.k === k) return svcCache.v;
+    const list = CS.SERVICES.filter((x) => y >= x.from && y < x.to);
+    const w = list.reduce((a, x) => a + x.w, 0);
+    const avg = w > 0 ? list.reduce((a, x) => a + x.w * x.price, 0) / w : 0;
+    svcCache.k = k;
+    svcCache.v = { list, mix: Math.min(1.5, w / 2.5), price: avg * infl(y) };
+    return svcCache.v;
+  }
+  const SVC_ITEM = { key: 'svc', name: 'Repairs & services', kind: 'svc', icon: '🛎️' };
+  const WARRANTY_ITEM = { key: 'warranty', name: 'Extended warranties', kind: 'warranty', icon: '📜' };
+  /** Repair jobs: walk-ins up to the desk's capacity, paid at the era's going rate. */
+  function serviceTick(s, d, dt, rep, events) {
+    if (!d.service) return 0;
+    const done = Math.min(d.svcDemand, d.svcCap);
+    s.stats.svcLost += (d.svcDemand - done) * dt;
+    const acc = (s.sAcc || 0) + done * dt;
+    const k = Math.floor(acc);
+    s.sAcc = acc - k;
+    if (k < 1) return 0;
+    const rev = k * d.svc.price * d.profit;
+    s.cash += rev;
+    s.stats.repairs += k;
+    s.stats.serviceRevenue += rev;
+    s.stats.revenue += rev;
+    s.fresh = false;
+    if (rep) { rep.sold.svc = (rep.sold.svc || 0) + k; rep.names.svc = SVC_ITEM.name; rep.revenue += rev; }
+    if (events) events.push({ it: SVC_ITEM, k, rev });
+    return rev;
+  }
+  /** Everything the Service Desk panel shows (web and app render this as-is). Per-minute figures. */
+  function serviceView(s, d) {
+    const done = Math.min(d.svcDemand, d.svcCap);
+    const desk = CS.UP_BY_ID.svc_desk;
+    return {
+      open: d.service,
+      available: d.y >= desk.year,
+      openCost: upCost(s, desk),
+      jobs: done * 60,
+      walkIns: d.svcDemand * 60,
+      capacity: d.svcCap * 60,
+      turnedAway: Math.max(0, d.svcDemand - d.svcCap) * 60,
+      busy: d.svcDemand - d.svcCap > Math.max(0.01, 0.1 * d.svcDemand), // turning away more than a tenth of walk-ins
+      income: done * d.svc.price * d.profit * 60,
+      menu: d.svc.list.map((x) => ({ id: x.id, name: x.name, icon: x.icon, price: x.price * infl(d.y) * d.profit })),
+      warrantyShare: d.warranty,
+      repairs: s.stats.repairs || 0,
+      repairRevenue: s.stats.serviceRevenue || 0,
+      warranties: s.stats.warranties || 0,
+      warrantyRevenue: s.stats.warrantyRevenue || 0,
+      claimsPaid: s.stats.claimsPaid || 0,
+      claimsDue: s.claims || 0,
+    };
+  }
+  /** Warranty claims trickle in over time; returns what was paid this step. */
+  function payClaims(s, dt) {
+    if (!(s.claims > 0)) return 0;
+    const pay = s.claims * (1 - Math.exp(-dt / CLAIM_TAU));
+    s.claims -= pay;
+    s.cash -= pay;
+    s.stats.claimsPaid += pay;
+    return pay;
+  }
+
   function sellUnits(s, it, k, rep, events, mult) {
     s.stock[it.key] -= k;
     it.stock -= k;
@@ -411,18 +493,31 @@
     else if (it.kind === 'console' || it.kind === 'cgame' || it.kind === 'cacc') CS.Con.stat(s, it, k, rev);
     else s.stats.sold += k;
     if (it.kind === 'game' || it.kind === 'acc') s.stats.addonRevenue += rev;
-    s.stats.revenue += rev;
+    let wRev = 0;
+    if (s.up.svc_desk && (it.kind === 'pre' || it.kind === 'bp')) {
+      // extended warranties: a share of PC buyers pay ~12% of the price; ~40% of that comes back as claims later
+      const share = WARRANTY_BASE + CS.UP_BY_ID.warranty.per * (s.up.warranty || 0);
+      wRev = k * share * it.price * WARRANTY_PRICE * (mult || 1);
+      s.cash += wRev;
+      s.claims = (s.claims || 0) + wRev * WARRANTY_CLAIMS;
+      s.stats.warranties += k * share;
+      s.stats.warrantyRevenue += wRev;
+    }
+    s.stats.revenue += rev + wRev;
     s.fresh = false;
     if (CS.M) CS.M.noteSale(s, it.key, k);
     if (CS.Con) CS.Con.noteSale(s, it, k);
     if (rep) {
       rep.sold[it.key] = (rep.sold[it.key] || 0) + k;
       rep.names[it.key] = it.name;
-      rep.revenue += rev;
+      rep.revenue += rev + wRev;
       rep.units += k;
     }
-    if (events) events.push({ it, k, rev });
-    return rev;
+    if (events) {
+      events.push({ it, k, rev });
+      if (wRev > 0) events.push({ it: WARRANTY_ITEM, k: 0, rev: wRev }); // k 0: a log line, no extra walker
+    }
+    return rev + wRev;
   }
 
   function step(s, dt, calRate, rep, events) {
@@ -534,6 +629,7 @@
       });
     }
 
+    revenue += serviceTick(s, d, dt, rep, events);
     if (CS.M) CS.M.tick(s, d, items, dt);
 
     // consoles, console games and accessories (their own demand model and platform market)
@@ -554,8 +650,10 @@
       }
     }
 
-    // upkeep (never drives cash negative)
-    const upkeep = Math.min(s.cash, d.upkeep * dt);
+    // upkeep (never drives cash negative); warranty claims come out first
+    const claims = payClaims(s, dt);
+    if (rep) rep.upkeep += claims;
+    const upkeep = Math.min(Math.max(0, s.cash), d.upkeep * dt);
     s.cash -= upkeep;
     if (rep) {
       rep.upkeep += upkeep;
@@ -749,7 +847,7 @@
     SEG, K, ADDON_SCALE, kindBoost, isAddon, sellUnits, itemWeight, popularityMap, infl, refPrice, newState, migrate, serialize, deserialize, yearOf, eraAt, eventsAt, derive,
     partAvail, partRel, partPrice, bpInfo, designInfo, totalStock, getItems, buy, buyUnits, setTarget,
     upLevel, upCost, upUnlocked, buyUp, createBp, deleteBp, step, advance, offline, hustle, newProducts,
-    HUSTLE_CD, hustleStreak, newReport, checkAch, dateStr, unitsSold, pendingTokens, nextTokenAt, tokenAt, prestige, tokenCost, buyTokenUp, tl, calSpeed, startYear,
+    HUSTLE_CD, hustleStreak, serviceAt, serviceView, SVC_ITEM, newReport, checkAch, dateStr, unitsSold, pendingTokens, nextTokenAt, tokenAt, prestige, tokenCost, buyTokenUp, tl, calSpeed, startYear,
   };
   if (typeof module !== 'undefined') module.exports = CS;
 })(typeof window !== 'undefined' ? window : globalThis);

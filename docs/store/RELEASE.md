@@ -40,7 +40,7 @@ Then in App Store Connect: My Apps > + > New App (bundle ID `com.davideis.comput
 ```
 npx eas-cli@latest submit --platform ios --latest
 ```
-**Game Center:** before the first review, turn on Game Center for the app in App Store Connect and add the 28 achievements, following `game-center.md` (ids, points, texts and badge images are all ready).
+**Game Center:** before the first review, turn on Game Center for the app in App Store Connect and add the 30 achievements, following `game-center.md` (ids, points, texts and badge images are all ready).
 The build appears in TestFlight after processing. Test it on a real iPhone, then "Add for review". Review usually takes 1 to 2 days.
 
 ## 4. Android

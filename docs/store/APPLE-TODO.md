@@ -17,7 +17,7 @@ Details for each step are in `RELEASE.md`, `LISTING.md` and `game-center.md`.
 
 ## Game Center (PR #37)
 - [ ] App Store Connect → the app → Services → Game Center: turn it on.
-- [ ] Add the 28 achievements from `game-center.md` (ids must match exactly; upload the badge PNGs from `docs/store/game-center/`).
+- [ ] Add the 30 achievements from `game-center.md` (ids must match exactly; upload the badge PNGs from `docs/store/game-center/`).
 - [ ] Create a Sandbox tester (Users and Access → Sandbox) and sign in with it on the test iPhone (Settings → Game Center).
 - [ ] Run a development build on the phone: trophies already earned should appear in Game Center, and progress rings should move.
 
