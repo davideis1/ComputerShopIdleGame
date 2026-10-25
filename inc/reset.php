@@ -73,8 +73,11 @@ function forgot_noted(): void
 /** Where the emailed link points (the website's reset page; works for web and app users alike). */
 function reset_link(string $token): string
 {
-    $scheme = is_https() ? 'https' : 'http';
     $host = (string) ($_SERVER['HTTP_HOST'] ?? 'localhost');
+    // Some hosts hide HTTPS from PHP (a proxy in front); a real domain is always served over HTTPS, so don't send people
+    // through an http:// hop (and its redirect) just because PHP could not tell.
+    $local = (bool) preg_match('/^(localhost|127\.|\[::1\]|[^.]+$)/', $host);
+    $scheme = is_https() || !$local ? 'https' : 'http';
     return cfg('public_url') ? rtrim((string) cfg('public_url'), '/') . '/reset-password.php?token=' . $token
         : $scheme . '://' . $host . base_url() . '/reset-password.php?token=' . $token;
 }
@@ -108,24 +111,70 @@ function start_password_reset(string $email): void
     send_mail($email, 'Reset your Mega Byte Computers password',
         "Hi {$u['username']},\n\nSomeone (hopefully you) asked to reset the password for your Mega Byte Computers account.\n\n"
         . "Choose a new password here (the link works for 1 hour, once):\n" . reset_link($token) . "\n\n"
+        . "If the link doesn't open, copy the whole address (it is long) into your browser.\n\n"
         . "If you didn't ask for this, ignore this email; your password stays the same.\n");
+}
+
+/** Mail apps and browsers sometimes add spaces, line breaks, quotes or a trailing dot to a pasted or wrapped link. */
+function clean_reset_token(string $raw): string
+{
+    return strtolower(preg_replace('/[^0-9A-Za-z]/', '', $raw));
+}
+
+/**
+ * What is wrong with a reset token, if anything: ['status' => ok|malformed|unknown|used|expired, 'uid' => ?int, 'token' => cleaned,
+ * 'minutes' => minutes since it expired]. Telling these apart is safe (nobody can guess a 256-bit token) and saves a lot of
+ * "it says expired" confusion: a link cut in half by a mail app is not an old link.
+ */
+function reset_token_status(string $raw): array
+{
+    $token = clean_reset_token($raw);
+    $r = ['status' => 'malformed', 'uid' => null, 'token' => $token, 'length' => strlen($token), 'minutes' => 0];
+    if (!preg_match('/^[0-9a-f]{64}$/', $token)) {
+        return $r;
+    }
+    $st = db()->prepare('SELECT user_id, used_at, expires_at FROM password_resets WHERE token_hash = ?');
+    $st->execute([token_hash($token)]);
+    $row = $st->fetch();
+    if (!$row) {
+        $r['status'] = 'unknown';
+    } elseif ($row['used_at'] !== null) {
+        $r['status'] = 'used';
+    } elseif ((int) $row['expires_at'] <= time()) {
+        $r['status'] = 'expired';
+        $r['minutes'] = max(1, (int) round((time() - (int) $row['expires_at']) / 60));
+    } else {
+        $r['status'] = 'ok';
+        $r['uid'] = (int) $row['user_id'];
+    }
+    return $r;
+}
+
+/** Sentence for a failed reset token (see reset_token_status). */
+function reset_failure_text(array $s): string
+{
+    switch ($s['status']) {
+        case 'malformed':
+            return 'This link looks incomplete: only ' . (int) $s['length'] . ' of its 64 characters came through. Your mail app may have cut it off. Copy the whole address from the email, or ask for a new link.';
+        case 'used':
+            return 'This link was already used. If that was not you, ask for a new link.';
+        case 'expired':
+            return 'This link expired ' . (int) $s['minutes'] . ' minute' . ($s['minutes'] == 1 ? '' : 's') . ' ago (links last 1 hour). Ask for a new one.';
+        default:
+            return 'We do not recognise this link. If you asked for more than one email, use the newest one, or ask for a new link.';
+    }
 }
 
 /** The user id a still-valid, unused reset token belongs to, or null. */
 function reset_token_user(string $token): ?int
 {
-    if (!preg_match('/^[0-9a-f]{64}$/', $token)) {
-        return null;
-    }
-    $st = db()->prepare('SELECT user_id FROM password_resets WHERE token_hash = ? AND used_at IS NULL AND expires_at > ?');
-    $st->execute([token_hash($token), time()]);
-    $r = $st->fetchColumn();
-    return $r === false ? null : (int) $r;
+    return reset_token_status($token)['uid'];
 }
 
 /** Sets the new password, burns the token (and any other open ones), signs the account out everywhere, and confirms by email. */
 function finish_password_reset(string $token, string $password): bool
 {
+    $token = clean_reset_token($token);
     $uid = reset_token_user($token);
     if ($uid === null) {
         return false;
