@@ -16,7 +16,7 @@
     { id: 'enth', share: 0.15, a: 2.0, b: 0.8, c0: 2.3 },
   ];
   const CUSTOM_BONUS = 1.4;
-  const ADDON_SCALE = 0.6; // overall add-on attach tuning
+  const ADDON_SCALE = 0.5; // overall add-on attach tuning (see CLAUDE.md "Economy balance")
   const K = 0.8; // how easily customers are convinced to buy
 
   /* ---------- state ---------- */
@@ -111,6 +111,7 @@
     s.meta.tup = Object.assign({}, (raw.meta && raw.meta.tup) || {});
     ['up', 'stock', 'target', 'acc', 'ach', 'seen'].forEach((k) => (s[k] = Object.assign({}, raw[k] || (k === 'seen' ? base.seen : {}))));
     s.bps = Array.isArray(raw.bps) ? raw.bps.filter((b) => b && b.parts) : [];
+    CS.UPGRADES.forEach((u) => { if (s.up[u.id] > u.max) s.up[u.id] = u.max; }); // a max lowered in a balance pass
     if (!isFinite(s.cash)) s.cash = 0;
     if (!isFinite(s.cal) || s.cal < 0) s.cal = 0;
     s.cal = Math.min(s.cal, C.END_CAL);

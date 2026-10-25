@@ -91,6 +91,8 @@ At `END_CAL` the calendar stops: no new products, events or eras. A player who d
 - **Make prestige the obvious next step:** when the calendar ends, the HQ tab should show a projection ("next run: ~X tokens/hour faster").
 
 ### 4.3 Revenue mix is lopsided towards prebuilts
+*Fixed in `addon-balance`: the cause was buyers ordering one add-on pack per item per step. PC add-ons now take 14-18% of revenue.*
+
 In the bot run prebuilts are ~89% of revenue, custom builds ~7% and add-ons ~3.6%. The design target in `CLAUDE.md` is add-ons and consoles at 11–17% each. `console-check` (with buyers) gets closer (games+acc 16–25%, the console line ~17%), so part of this is the bot (see §7.2). But it also suggests the Workshop pays off less than it should for a headline feature. Things to tune:
 - Custom builds: CUSTOM_BONUS 1.4 gives a quality edge, but the build pipeline (technicians at 1 PC / 40 s) is slow next to restock rates. Consider cheaper early `cnc`, or a "build to order" mode where custom PCs sell from a queue without taking shelf space.
 - Shelf competition: with high targets, PCs fill the shelves and add-ons starve (the sim shows many add-ons at target 1,000+ with stock 0). A **separate add-on shelf capacity** (the Accessories Wall / Software Aisle each give their own space) would make add-ons less fiddly and easier to read.
