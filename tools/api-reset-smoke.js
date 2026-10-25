@@ -29,6 +29,15 @@ const page = async (path) => {
 
 (async () => {
   fs.writeFileSync(logFile, '');
+  // The session cookie must come with the page itself (a form's security token lives in the session). Hosts that don't
+  // buffer output refuse to start a session after the page began; run the test server with `php -d output_buffering=0 -S ...`.
+  for (const pth of ['/forgot.php', '/reset-password.php?token=' + '0'.repeat(64), '/login.php', '/register.php']) {
+    const rr = await fetch(base + pth);
+    const body = await rr.text();
+    const cookie = /csig_sid=/.test(rr.headers.get('set-cookie') || '');
+    // login/register start the session through current_user() before output; forgot/reset only through page_head()
+    ok(cookie && !/<b>Warning<\/b>/.test(body), pth.split('?')[0] + ' sets its session cookie before any output');
+  }
   const n = Math.floor(Math.random() * 1e6), user = 'smoke' + n, email = `Smoke${n}@Example.com`, pw = 'longenough1', pw2 = 'brandnew-pass2';
 
   let r = await call('auth_register.php', { username: user, password: pw, email: 'not-an-email' });
