@@ -179,6 +179,7 @@
   function marketShares(y) {
     const k = Math.round(y * 100);
     if (mcache.k === k) return mcache.v;
+    y = k / 100; // compute at the bucket's own year, so the cached value doesn't depend on what ran before
     const raw = {};
     let sum = 0;
     CS.PLATFORMS.forEach((p) => {

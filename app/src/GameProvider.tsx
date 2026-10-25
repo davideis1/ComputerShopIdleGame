@@ -26,6 +26,7 @@ type Ctx = {
   prestige: () => number; // sell up and open a new franchise; returns the tokens gained (0 if none ready)
   decide: (choice: number) => void; // answer the open offer card (core/offers.js)
   away: Away;
+  catchProgress: number | null; // 0..1 while a long offline catch-up runs, else null
   dismissAway: () => void;
   reset: () => Promise<ResetResult>;
   /** Cloud sync: 'off' when signed out, 'ok' / 'offline' / 'paused' (conflict postponed) / 'error' when signed in. */
@@ -45,7 +46,8 @@ export const useGame = () => {
 const FRAME_MS = 250;
 const SAVE_EVERY_S = 15;
 const MIN_AWAY_S = 60; // shorter gaps are just ticked through
-const BOOT_LOAD_MS = 5000; // how long launch waits for the server before playing from the local save
+const BOOT_LOAD_MS = 5000;
+const SLICE_MS = 12; // catch-up work per frame // how long launch waits for the server before playing from the local save
 
 type PendingServer = { state: GameState; rev: number; elapsed: number };
 
@@ -119,9 +121,29 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const refresh = useCallback(() => force((n) => n + 1), []);
 
   // Run real time that passed while the app was closed or backgrounded through the same offline code as the web build.
-  const catchUp = useCallback((seconds: number) => {
-    if (!game.current || seconds < MIN_AWAY_S) return;
-    const rep = E.offline(game.current, seconds);
+  // It runs in slices of ~12 ms so the phone keeps drawing; after 250 ms a progress overlay shows. The tick and
+  // autosave wait meanwhile. If the game is replaced mid-way (cloud copy adopted, erased), the job is dropped.
+  const catching = useRef(false);
+  const [catchProgress, setCatchProgress] = useState<number | null>(null);
+  const catchUp = useCallback(async (seconds: number) => {
+    const g = game.current;
+    if (!g || seconds < MIN_AWAY_S || catching.current) return;
+    catching.current = true;
+    const job = E.offlineStart(g, seconds);
+    const t0 = Date.now();
+    for (;;) {
+      const slice = Date.now();
+      let done = false;
+      while (!done && Date.now() - slice < SLICE_MS) done = E.offlineRun(job, 20);
+      if (done || game.current !== g) break;
+      if (Date.now() - t0 > 250) setCatchProgress(1 - job.left / Math.max(1, job.total));
+      await new Promise((r) => setTimeout(r, 0));
+    }
+    catching.current = false;
+    setCatchProgress(null);
+    last.current = Date.now();
+    if (game.current !== g) return;
+    const rep = job.rep;
     if (rep.units > 0 || rep.upkeep > 0 || rep.built > 0) setAway(rep);
   }, []);
 
@@ -177,7 +199,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     log.current = [];
     last.current = Date.now();
     sinceSave.current = 0;
-    catchUp(p.elapsed);
+    await catchUp(p.elapsed);
     await saveGame(game.current);
     await markSynced(p.rev);
     force((n) => n + 1);
@@ -255,14 +277,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
       const deviceAway = local ? Math.max(0, (Date.now() - local.saved) / 1000) : 0;
       if (d && d.kind === 'server') {
         game.current = d.state;
-        catchUp(d.elapsed);
+        await catchUp(d.elapsed);
         meta.current = { userId: uid!, rev: d.rev, at: Date.now() };
         await saveSyncMeta(meta.current);
         await saveGame(game.current);
         setSync({ status: 'ok', at: Date.now() });
       } else {
         game.current = local ?? newGame();
-        catchUp(d && d.kind === 'local' && d.elapsed != null ? Math.min(d.elapsed, deviceAway) : deviceAway);
+        await catchUp(d && d.kind === 'local' && d.elapsed != null ? Math.min(d.elapsed, deviceAway) : deviceAway);
         if (d && d.kind === 'local') { meta.current = { userId: uid!, rev: d.rev, at: Date.now() }; await saveSyncMeta(meta.current); setSync({ status: 'ok', at: Date.now() }); }
         if (d && d.kind === 'upload') meta.current = null;
         if (d && d.kind === 'conflict') {
@@ -309,10 +331,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
     if (!ready) return;
     const id = setInterval(() => {
       const now = Date.now();
+      if (catching.current) return; // catch-up owns the game until it finishes (it resets the clock)
       const dt = (now - last.current) / 1000;
       last.current = now;
       if (dt <= 0) return;
-      if (dt > 10) catchUp(dt); // JS timers were suspended (app was backgrounded)
+      if (dt > 10) { catchUp(dt); return; } // JS timers were suspended (app was backgrounded); the catch-up saves nothing mid-way
       else {
         const { events, ach } = tick(game.current, dt);
         if (events.length) { pushLog(saleLines(events)); events.forEach((ev) => { if (!ev.bailout && !E.isAddon(ev.it.kind)) noteBuy(Math.min(ev.k, 2)); }); }
@@ -324,7 +347,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       force((n) => n + 1);
     }, FRAME_MS);
     const sub = AppState.addEventListener('change', (st) => {
-      if (st !== 'active' && game.current) { saveGame(game.current); push(); }
+      if (st !== 'active' && game.current && !catching.current) { saveGame(game.current); push(); }
     });
     return () => { clearInterval(id); sub.remove(); };
   }, [ready, catchUp, pushLog, announce, push, milestones]);
@@ -407,7 +430,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     <GameContext.Provider
       value={{
         game: game.current, frame, refresh, log: log.current, toast, hustleResult, hustle, prestige, decide, notify: say, saveNow, away,
-        dismissAway: () => setAway(null), reset, sync: { status, at: sync.at }, conflict, resolveConflict, syncNow,
+        dismissAway: () => setAway(null), catchProgress, reset, sync: { status, at: sync.at }, conflict, resolveConflict, syncNow,
       }}
     >
       {children}

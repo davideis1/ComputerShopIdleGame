@@ -10,6 +10,7 @@ import { GameProvider, useGame } from '@/GameProvider';
 import { SyncConflictModal } from '@/components/SyncConflictModal';
 import { Ticker } from '@/components/Ticker';
 import { ToastBanner } from '@/components/ToastBanner';
+import { CatchUpOverlay } from '@/components/CatchUpOverlay';
 import { buyersVisible, hqVisible } from '@/franchise';
 import { E } from '@/game';
 import { applyTheme, colors, LIGHT, theme, THEME_IDS, ThemeId } from '@/theme';
@@ -84,6 +85,7 @@ function AppTabs() {
         <Tabs.Screen name="menu" options={{ tabBarIcon: icon('⚙️'), title: 'Menu' }} />
       </Tabs>
       <ToastBanner />
+      <CatchUpOverlay />
       <SyncConflictModal />
     </View>
   );
