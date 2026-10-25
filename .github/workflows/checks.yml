@@ -24,7 +24,7 @@ jobs:
       - name: Check scripts
         run: |
           set -e
-          for t in mgr-check design-check console-check advisor-check custom-check names-check gc-achievements hq-check season-check service-check rep-check offer-check offline-check reminder-check; do
+          for t in mgr-check design-check console-check advisor-check custom-check names-check gc-achievements hq-check season-check service-check rep-check offer-check offline-check reminder-check limits-check; do
             echo "::group::$t"
             node tools/$t.js
             echo "::endgroup::"
