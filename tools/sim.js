@@ -1,7 +1,9 @@
 /* Headless balance check:  node tools/sim.js [minutes] [runs] [options]
    A bot plays the full game (core/: consoles, buyers, PC Designer, names) so we can see how cash, income and
    Franchise Tokens progress. Runs are seeded, so the same command prints the same numbers.
-     minutes      play time per franchise (default 250, about the whole 1993 -> today calendar)
+     minutes      longest a franchise plays (default 250, about the whole 1993 -> today calendar)
+     --stop=today (default) a run ends when the calendar reaches today; --stop=best keeps playing at today until
+                  the run's average tokens per hour starts falling (a token-maximising player); --stop=time plays all minutes
      runs         franchises to play; between runs it claims tokens and buys HQ upgrades (default 1)
      --bot=full   (default) hires buyers and the PC Designer once the Purchasing Office opens, opens Console Corner
      --bot=classic  the original bot: stocks prebuilts, add-ons and its own blueprints by hand, no buyers or consoles
@@ -17,6 +19,7 @@ const mins = +pos[0] || 250;
 const runs = +pos[1] || 1;
 const mode = opt('bot', 'full');
 const quiet = flag('quiet');
+const stop = opt('stop', 'today');
 if (!['full', 'classic'].includes(mode)) { console.error('unknown --bot=' + mode); process.exit(2); }
 
 // Seed Math.random before the core loads (customers, events and buyer candidates all use it).
@@ -146,7 +149,16 @@ function play(s, run) {
   const split = {};
   const marks = {};
   let lastY = 0, firstToken = null;
-  for (let t = 0; t < mins * 60; t++) {
+  const y0 = E.yearOf(s);
+  let t = 0, best = 0;
+  for (; t < mins * 60; t++) {
+    if (stop === 'today' && marks.today != null) break;
+    if (stop === 'best' && t % 60 === 0 && marks.today != null) {
+      const raw = s.stats.revenue < CS.C.TOKEN_R0 ? 0 : CS.C.TOKEN_K * Math.sqrt(s.stats.revenue / CS.C.TOKEN_R0) - (CS.C.TOKEN_K - 1);
+      const avg = raw / (t / 3600); // unrounded tokens, so the rule doesn't trip between whole tokens
+      if (avg < best * 0.97) break;
+      best = Math.max(best, avg);
+    }
     if (t % 5 === 0) bot(s);
     const evs = [];
     E.step(s, 1, 1, null, evs);
@@ -165,13 +177,13 @@ function play(s, run) {
   }
   if (!Number.isFinite(s.cash) || !Number.isFinite(s.stats.revenue)) problems.push(`run ${run}: cash/revenue is not a number`);
   if (!(s.stats.revenue > 0)) problems.push(`run ${run}: no revenue`);
-  if (E.yearOf(s) < 1993 + Math.min(30, mins / 8)) problems.push(`run ${run}: calendar only reached ${E.yearOf(s).toFixed(1)}`);
+  if (E.yearOf(s) < y0 + Math.min(30, mins / 8) && E.yearOf(s) < 2026.7) problems.push(`run ${run}: calendar only reached ${E.yearOf(s).toFixed(1)}`);
   const tot = Object.values(split).reduce((a, b) => a + b, 0) || 1;
   const share = (k) => (100 * (split[k] || 0)) / tot;
-  return { revenue: s.stats.revenue, tokens: E.pendingTokens(s), marks, firstToken, share, year: E.yearOf(s) };
+  return { revenue: s.stats.revenue, tokens: E.pendingTokens(s), marks, firstToken, share, year: E.yearOf(s), start: y0, played: t / 60 };
 }
 
-const PRIORITY = ['t_income', 't_profit', 't_cash', 't_kit', 't_cap', 't_supply', 't_token', 't_night', 't_build'];
+const PRIORITY = (opt('hq', '') ? opt('hq').split(',') : []).concat(['t_head', 't_warp', 't_income', 't_profit', 't_cash', 't_kit', 't_cap', 't_supply', 't_token', 't_night', 't_build']).filter((id, i, a) => a.indexOf(id) === i && !(opt('nohq', '').split(',').includes(id)));
 const t0 = Date.now();
 let s = E.newState();
 const rows = [];
@@ -214,9 +226,9 @@ for (let run = 1; run <= runs; run++) {
 
 // Summary: one row per franchise. tok/h = tokens claimable at the end / hours played; the key prestige-pacing number.
 const m = (v) => (v == null ? '   -' : String(Math.round(v)).padStart(4));
-console.log(`\nsim.js ${mins}m x ${runs}, bot=${mode}, seed=${opt('seed', 1)}  (${((Date.now() - t0) / 1000).toFixed(1)}s)`);
-console.log('run  HQ ups  2000  2010  2020  today  1st tok  revenue    tokens  tok/h   pre  cust  addon  cons');
+console.log(`\nsim.js ${mins}m x ${runs}, bot=${mode}, stop=${stop}, seed=${opt('seed', 1)}  (${((Date.now() - t0) / 1000).toFixed(1)}s)`);
+console.log('run  start  played  HQ ups  2000  2010  2020  today  1st tok  revenue    tokens  tok/h   pre  cust  addon  cons');
 rows.forEach((r) => console.log(
-  `${String(r.run).padStart(3)}  ${String(r.bought).padStart(6)}  ${m(r.marks[2000])}m ${m(r.marks[2010])}m ${m(r.marks[2020])}m ${m(r.marks.today)}m  ${m(r.firstToken)}m   ${fmt(r.revenue).padStart(8)}  ${String(r.tokens).padStart(6)}  ${(r.tokens / (mins / 60)).toFixed(1).padStart(5)}  ${['pre', 'custom', 'add-on', 'console'].map((k) => r.share(k).toFixed(0).padStart(4) + '%').join(' ')}`,
+  `${String(r.run).padStart(3)}  ${Math.floor(r.start)}  ${m(r.played)}m  ${String(r.bought).padStart(6)}  ${m(r.marks[2000])}m ${m(r.marks[2010])}m ${m(r.marks[2020])}m ${m(r.marks.today)}m  ${m(r.firstToken)}m   ${fmt(r.revenue).padStart(8)}  ${String(r.tokens).padStart(6)}  ${(r.tokens / (r.played / 60)).toFixed(1).padStart(5)}  ${['pre', 'custom', 'add-on', 'console'].map((k) => r.share(k).toFixed(0).padStart(4) + '%').join(' ')}`,
 ));
 if (problems.length) { console.error('\nPROBLEMS:\n' + problems.join('\n')); process.exit(1); }

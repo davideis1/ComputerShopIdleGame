@@ -41,6 +41,8 @@ export function tupNow(u: any, L: number): string {
     case 't_mgr_wide': return '+' + v + ' products per buyer';
     case 't_mgr_free': return v + ' free hire' + (v > 1 ? 's' : '') + ' per franchise';
     case 't_mgr_office': return 'Office open from the start';
+    case 't_warp': return '+' + Math.round(v * 100) + '% calendar speed until 2015';
+    case 't_head': return 'New franchises open in ' + (CS.C.START_YEAR + CS.C.HEAD_STARTS[Math.min(L, CS.C.HEAD_STARTS.length - 1)].cal);
     default: return '+' + Math.round(v * 100) + '%';
   }
 }
@@ -102,7 +104,8 @@ export function claimSummary(s: GameState) {
   return {
     title: 'Open a new franchise?',
     body:
-      `Sell this shop for ${pend} Franchise Token${pend > 1 ? 's' : ''} and start again in 1993.\n\n` +
+      `Sell this shop for ${pend} Franchise Token${pend > 1 ? 's' : ''} and start again in ${E.startYear(s)}.\n\n` +
+      'HQ upgrades you buy before your first sale still apply to the new shop.\n\n' +
       `You keep: ${num(s.meta.tokens + pend)} tokens in total, your HQ upgrades, trophies, shop name and stats.\n\n` +
       `You lose: ${money(s.cash)} cash, shop upgrades, stock, blueprints and your place in history (${E.dateStr(E.yearOf(s))}).`,
   };
