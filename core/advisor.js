@@ -101,6 +101,10 @@
         if (ctx.restockShort) return { gain: pm.gross * 0.12, why: 'Orders (' + n(d.restock) + '/s) are slower than sales (' + n(pm.units) + '/s): shelves keep running dry.' };
         return null;
       }
+      case 'restockMult': {
+        if (!ctx.restockShort || d.restock <= 0) return null;
+        return { gain: pm.gross * 0.06, why: 'Orders (' + n(d.restock) + '/s) are slower than sales (' + n(pm.units) + '/s): every crew restocks ' + pct(u.per) + ' faster.' };
+      }
       case 'build': {
         if (!ctx.buildShort) return null;
         return { gain: pm.gross * 0.1, why: 'Your blueprints have unfilled build targets: more builders turn parts into sales.' };
