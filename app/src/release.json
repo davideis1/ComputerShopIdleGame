@@ -8,6 +8,13 @@
  "changelog": [
   {
    "build": "next",
+   "title": "Cloud saves past 2026",
+   "changes": [
+    "Fixed: once your shop passed October 2026 the cloud refused to save it (so your newest progress stayed only on that device). Cloud saves now work all the way to 2035."
+   ]
+  },
+  {
+   "build": "next",
    "title": "More ways to restock",
    "changes": [
     "Six new restock upgrades, from the 1997 Conveyor Stock Room to the 2032 Autonomous Supply Swarm, so your shelves keep up as the shop grows.",
