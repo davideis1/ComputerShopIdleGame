@@ -101,6 +101,7 @@
         }
       ],
       "expo-status-bar",
+      "./plugins/withXcodeUpgradeCheck",
       [
         "expo-notifications",
         {
