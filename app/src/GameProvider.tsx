@@ -7,6 +7,7 @@ import { E, GameState, HustleResult, hustle as doHustle, LogLine, newGame, saleL
 import { clearGame, clearSyncMeta, deviceId, loadGame, loadSyncMeta, saveGame, saveSyncMeta } from './storage';
 import { noteBrowse, noteBuy } from './walkers';
 import { gcReport, gcStart, onGcPlayer } from './gamecenter';
+import { cancelAll as cancelReminders, scheduleFor as scheduleReminders } from './notify';
 import { brief, Brief, Decision, reconcile, SyncMeta } from './sync';
 
 type Away = { elapsed: number; effective: number; capped: boolean; cash0: number; cash1: number } | null;
@@ -106,6 +107,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
       offerSeen.current = g.offer.at;
       const ov = CS.Offers.view(g);
       if (ov) say('📨 ' + ov.title + ' — open the Shop tab to decide (' + CS.Offers.WAIT + 's).', 6000);
+    }
+    // after an hour of play, mention reminders once (they are opt-in)
+    if (g.stats.play > 3600 && g.settings && g.settings.notify == null && !g.seen.notifyTip) {
+      g.seen.notifyTip = 1;
+      say('🔔 Want a nudge when the night shift ends? Switch on reminders in Menu → Look.', 6000);
     }
     if (E.pendingTokens(g) >= 1 && !g.seen.tok) {
       g.seen.tok = 1;
@@ -347,7 +353,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
       force((n) => n + 1);
     }, FRAME_MS);
     const sub = AppState.addEventListener('change', (st) => {
-      if (st !== 'active' && game.current && !catching.current) { saveGame(game.current); push(); }
+      if (st !== 'active' && game.current && !catching.current) { saveGame(game.current); push(); scheduleReminders(game.current); }
+      if (st === 'active') cancelReminders();
     });
     return () => { clearInterval(id); sub.remove(); };
   }, [ready, catchUp, pushLog, announce, push, milestones]);

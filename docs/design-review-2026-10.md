@@ -171,6 +171,8 @@ Still missing in the app: group/platform filters and the console market panel on
 `src/stock.ts`, `src/upgrades.ts`, `src/shop.ts` and others port logic from `js/ui.js` (filters, sorts, view models). Over time move these view models into `core/` (e.g. `core/views.js`) so the web and app share them and can't drift. Then `ui.js` and the app components only render.
 
 ### 6.4 Notifications
+*Done in `notifications`: opt-in local reminders (night shift over, shelves empty, console launch).*
+
 Idle mobile games depend on local notifications: "Your shop's shelves are empty", "Night shift finished (offline cap reached)", "A new console generation launches". `expo-notifications` with scheduled local notifications, no server needed: schedule at `offlineCap` on background. Opt-in on first prestige or after day 1.
 
 ### 6.5 Store readiness

@@ -525,6 +525,26 @@
       claimsDue: s.claims || 0,
     };
   }
+  /** What a phone should remind the player about if they leave now: [{ id, seconds (from now), title, body }].
+      Used by the app's local notifications (app/src/notify.ts). */
+  function remindersAt(s) {
+    const d = derive(s);
+    const out = [];
+    const cap = d.offlineCap;
+    out.push({ id: 'night', seconds: cap, title: '🌙 The night shift has clocked off', body: s.name + ' traded for ' + Math.round(cap / 360) / 10 + ' hours without you. Come back to collect the takings and restock.' });
+    // nobody restocks (no clerk, no buyers): when do the PCs on the shelf run out? (~half of served shoppers buy one)
+    if (!d.restock && !(d.mgr && d.mgr.count)) {
+      const pcs = getItems(s, d).filter((i) => (i.kind === 'pre' || i.kind === 'bp') && i.stock > 0).reduce((a, i) => a + i.stock, 0);
+      const rate = Math.min(d.lambda, d.serve) * 0.5;
+      const secs = rate > 0 ? pcs / rate : Infinity;
+      if (pcs > 0 && secs > 120 && secs < cap) out.push({ id: 'empty', seconds: secs, title: '🛒 Your shelves are probably empty', body: 'Nobody is restocking while you are away. Hire a Stock Clerk so the shop keeps selling.' });
+    }
+    // the next console launch while away (the calendar crawls offline)
+    const perSec = (C.OFFLINE_CAL_RATE * calSpeed(s)) / C.YEAR_SECONDS;
+    const next = d.aisleConsole && CS.PLATFORMS ? CS.PLATFORMS.filter((p) => p.year > d.y && (p.year - d.y) / perSec < cap).sort((a, b) => a.year - b.year)[0] : null;
+    if (next) out.push({ id: 'launch', seconds: (next.year - d.y) / perSec, title: '🎮 ' + next.name + ' launches today', body: 'Queues round the block and stock is limited. Get your allocation in.' });
+    return out.filter((r) => r.seconds >= 60);
+  }
   /** Warranty claims trickle in over time; returns what was paid this step. */
   function payClaims(s, dt) {
     if (!(s.claims > 0)) return 0;
@@ -928,7 +948,7 @@
     SEG, K, ADDON_SCALE, kindBoost, isAddon, sellUnits, itemWeight, popularityMap, infl, refPrice, newState, migrate, serialize, deserialize, yearOf, eraAt, eventsAt, derive,
     partAvail, partRel, partPrice, bpInfo, designInfo, totalStock, getItems, buy, buyUnits, setTarget,
     upLevel, upCost, upUnlocked, buyUp, createBp, deleteBp, step, advance, offline, offlineStart, offlineRun, hustle, newProducts,
-    HUSTLE_CD, hustleStreak, reputationView, repMult, serviceAt, serviceView, SVC_ITEM, newReport, checkAch, dateStr, unitsSold, pendingTokens, nextTokenAt, tokenAt, prestige, tokenCost, buyTokenUp, tl, calSpeed, startYear,
+    HUSTLE_CD, hustleStreak, remindersAt, reputationView, repMult, serviceAt, serviceView, SVC_ITEM, newReport, checkAch, dateStr, unitsSold, pendingTokens, nextTokenAt, tokenAt, prestige, tokenCost, buyTokenUp, tl, calSpeed, startYear,
   };
   if (typeof module !== 'undefined') module.exports = CS;
 })(typeof window !== 'undefined' ? window : globalThis);
