@@ -151,6 +151,7 @@ function bot(s) {
       need.push(pick('buildMult'));
     }
     need.push(pick('disc'));
+    if (dd.aisleGame || dd.aisleAcc) need.push(pick('attach')); // Upsell Training
     if (mode === 'full') {
       // Service Desk: open it once the shop has a little money, then keep capacity ahead of walk-ins
       if (!dd.service && s.cash > 15000) need.push(CS.UP_BY_ID.svc_desk);

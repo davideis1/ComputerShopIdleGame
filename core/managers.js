@@ -545,7 +545,10 @@
         const budget = s.mAcc[c.id];
         if (budget < 1) break;
         const addon = E.isAddon(it.kind);
-        const want = addon ? Math.min(it.pack, it.target - it.stock) : Math.min(Math.floor(budget), it.target - it.stock);
+        // add-ons come in packs, one order each; order as many packs as the gap needs (the budget allowing).
+        // (One pack per item per step used to cap a best-seller at ~10 units/s, and a tenth of that offline.)
+        const packs = addon ? Math.max(1, Math.min(Math.floor(budget), Math.ceil((it.target - it.stock) / it.pack))) : 0;
+        const want = addon ? Math.min(packs * it.pack, it.target - it.stock) : Math.min(Math.floor(budget), it.target - it.stock);
         const avail = s.cash - cfg.reserveCash;
         const byPct = cfg.maxOrderPct >= 100 ? Infinity : Math.floor((avail * cfg.maxOrderPct) / 100 / it.cost);
         const k = E.buyUnits(s, it, Math.min(want, byPct), d);
@@ -553,7 +556,7 @@
           if (avail < it.cost || byPct < 1) note(mg, cfg, s.stats.play, 'budget', '💸 Order budget reached (cash reserve / order limit). Waiting for cash.', 600);
           continue;
         }
-        s.mAcc[c.id] -= addon ? 1 : k;
+        s.mAcc[c.id] -= addon ? Math.ceil(k / it.pack) : k;
         spent += k * it.cost;
         mg.stats.ordered += k;
         mg.stats.spent += k * it.cost;

@@ -268,7 +268,7 @@
     { id: 'aisle_acc', grp: 'Shop', name: 'Accessories Wall', icon: '🖱️', desc: 'Sell keyboards, mice, monitors, modems and more alongside your PCs. PC buyers are twice as likely to add on.', year: 1993, base: 1500, grow: 1, max: 1, kind: 'aisle_acc', per: 1, verb: 'Open' },
     { id: 'aisle_games', grp: 'Shop', name: 'Software Aisle', icon: '💿', desc: 'Sell PC games. Demanding new releases only sell if the PCs you sell can run them.', year: 1993, base: 3000, grow: 1, max: 1, kind: 'aisle_game', per: 1, verb: 'Open' },
     { id: 'aisle_console', grp: 'Shop', name: 'Console Corner', icon: '🎮', desc: 'Sell game consoles, console games and accessories. Console games sell to people who own that platform, so the consoles you sell build your game business.', year: 1993, base: 6000, grow: 1, max: 1, kind: 'aisle_console', per: 1, verb: 'Open' },
-    { id: 'upsell', grp: 'Shop', name: 'Upsell Training', icon: '🗣️', desc: '"Would you like a mouse pad with that?" +10% game & accessory sales', year: 1993, base: 2000, grow: 1.45, max: 25, kind: 'attach', per: 0.1 },
+    { id: 'upsell', grp: 'Shop', name: 'Upsell Training', icon: '🗣️', desc: '"Would you like a mouse pad with that?" +6% game & accessory sales', year: 1993, base: 2000, grow: 1.45, max: 20, kind: 'attach', per: 0.06 },
     { id: 'purchasing', grp: 'Shop', name: 'Purchasing Office', icon: '👔', desc: 'Opens the Buyers tab: hire a purchasing manager for each product category to watch trends and manage your stock levels.', year: 1995, base: 15000, grow: 1, max: 1, kind: 'office', per: 1, verb: 'Open' },
     // Marketing
     { id: 'ads_news', grp: 'Marketing', name: 'Classified Ads', icon: '📰', desc: '+0.03 customers/s', year: 1993, base: 250, grow: 1.22, max: 60, kind: 'lambda', per: 0.03 },
