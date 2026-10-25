@@ -6,7 +6,7 @@ import CS from '@core';
 import { E, GameState, HustleResult, hustle as doHustle, LogLine, newGame, saleLines, tick } from './game';
 import { clearGame, clearSyncMeta, deviceId, loadGame, loadSyncMeta, saveGame, saveSyncMeta } from './storage';
 import { noteBrowse, noteBuy } from './walkers';
-import { gcReport, gcStart, onGcPlayer } from './gamecenter';
+import { gsReport, gsStart, onGsPlayer } from './gameservices';
 import { cancelAll as cancelReminders, scheduleFor as scheduleReminders } from './notify';
 import { brief, Brief, Decision, reconcile, SyncMeta } from './sync';
 
@@ -121,7 +121,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const announce = useCallback((ach: any[]) => {
     if (!ach.length) return;
     say('🏆 ' + ach[0].name + ' — ' + ach[0].desc + ' (+1% customers)');
-    gcReport(game.current);
+    gsReport(game.current);
   }, [say]);
   const [frame, force] = useState(0);
   const refresh = useCallback(() => force((n) => n + 1), []);
@@ -321,13 +321,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }, [auth.token, ready]);
   useEffect(() => { if (ready && prevToken.current === undefined) prevToken.current = auth.token; }, [ready, auth.token]);
 
-  /* ---------- Game Center ---------- */
+  /* ---------- Game Center / Google Play Games ---------- */
 
   // Sign in once the shop is loaded, then send every trophy and progress ring (again whenever a player signs in).
   useEffect(() => {
     if (!ready) return;
-    const off = onGcPlayer((p) => { if (p.authenticated) gcReport(game.current); });
-    gcStart();
+    const off = onGsPlayer((p) => { if (p.authenticated) gsReport(game.current); });
+    gsStart();
     return off;
   }, [ready]);
 
@@ -349,7 +349,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       }
       milestones();
       sinceSave.current += dt;
-      if (sinceSave.current >= SAVE_EVERY_S) { sinceSave.current = 0; saveGame(game.current); push(); gcReport(game.current); }
+      if (sinceSave.current >= SAVE_EVERY_S) { sinceSave.current = 0; saveGame(game.current); push(); gsReport(game.current); }
       force((n) => n + 1);
     }, FRAME_MS);
     const sub = AppState.addEventListener('change', (st) => {

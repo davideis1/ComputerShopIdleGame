@@ -9,7 +9,7 @@ import { colors, theme, themed, THEME_IDS, THEME_LABELS } from '@/theme';
 import { Bar, Panel } from '@/components/ui';
 import { recentReleases, WhatsNewModal } from '@/components/WhatsNewModal';
 import { enable as enableNotifications, LEAD_CHOICES, REMINDER_KINDS } from '@/notify';
-import { gcAvailable, gcPlayer, gcShowAchievements, onGcPlayer } from '@/gamecenter';
+import { gsAvailable, gsPlayer, gsShowAchievements, onGsPlayer, SERVICE_NAME } from '@/gameservices';
 
 export default function Menu() {
   const { game: s, frame, refresh, reset, saveNow } = useGame();
@@ -25,10 +25,14 @@ export default function Menu() {
     s.settings = { ...s.settings, notify: on };
     refresh();
   };
-  const [gc, setGc] = useState(gcPlayer);
-  useEffect(() => onGcPlayer(setGc), []);
+  const [gc, setGc] = useState(gsPlayer);
+  useEffect(() => onGsPlayer(setGc), []);
   const openGc = async () => {
-    if (!(await gcShowAchievements())) Alert.alert('Game Center', 'Sign in to Game Center in the Settings app, then reopen Mega Byte Computers to sync your trophies.');
+    if (!(await gsShowAchievements())) {
+      Alert.alert(SERVICE_NAME, SERVICE_NAME === 'Game Center'
+        ? 'Sign in to Game Center in the Settings app, then reopen Mega Byte Computers to sync your trophies.'
+        : 'Sign in to Google Play Games on this phone, then reopen Mega Byte Computers. Trophies show up there once the game is set up in the Play Console.');
+    }
   };
 
   // Statistics tick up constantly, so refresh about once a second.
@@ -144,12 +148,12 @@ export default function Menu() {
             </Pressable>
           ))}
         </View>
-        {gcAvailable && (
+        {gsAvailable && (
           <View style={styles.gcRow}>
             <Text style={[styles.sub, { flex: 1 }]}>
-              {gc.authenticated ? '🎮 Synced to Game Center' + (gc.name ? ' as ' + gc.name : '') : '🎮 Sign in to Game Center to collect these there too'}
+              {gc.authenticated ? '🎮 Synced to ' + SERVICE_NAME + (gc.name ? ' as ' + gc.name : '') : '🎮 Sign in to ' + SERVICE_NAME + ' to collect these there too'}
             </Text>
-            <Pressable style={[styles.btn, styles.gcBtn]} onPress={openGc}><Text style={styles.btnText}>Game Center</Text></Pressable>
+            <Pressable style={[styles.btn, styles.gcBtn]} onPress={openGc}><Text style={styles.btnText}>{SERVICE_NAME === 'Game Center' ? 'Game Center' : 'Play Games'}</Text></Pressable>
           </View>
         )}
         {v.trophies.map((t) => (

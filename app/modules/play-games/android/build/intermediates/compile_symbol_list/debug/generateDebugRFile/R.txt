@@ -1,0 +1,1 @@
+int string game_services_project_id 0x0

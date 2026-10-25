@@ -1,0 +1,20 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'com.davideis.mbplaygames'
+version = '1.0.0'
+
+android {
+  namespace "expo.modules.mbplaygames"
+  defaultConfig {
+    versionCode 1
+    versionName '1.0.0'
+  }
+}
+
+dependencies {
+  // Play Games Services v2: automatic sign-in, achievements, server-side access
+  implementation "com.google.android.gms:play-services-games-v2:22.1.0"
+}

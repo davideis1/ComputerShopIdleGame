@@ -102,6 +102,7 @@
       ],
       "expo-status-bar",
       "./plugins/withXcodeUpgradeCheck",
+      ["./plugins/withPlayGames", { "projectId": "" }],
       [
         "expo-notifications",
         {
@@ -110,7 +111,8 @@
       ]
     ],
     "extra": {
-      "apiBase": "https://computershopidlegame.davideis.com"
+      "apiBase": "https://computershopidlegame.davideis.com",
+      "playGamesWebClientId": ""
     }
   }
 }

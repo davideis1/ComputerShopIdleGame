@@ -68,6 +68,7 @@ Export compliance: only standard HTTPS, so `ITSAppUsesNonExemptEncryption = fals
 - Collects data: **Yes (only if the user creates an account).** Shares data with third parties: **No.**
 - Personal info > User IDs (username): collected, required, for app functionality and account management.
 - Personal info > Email address: collected, optional, for account management (password reset only).
+- Personal info > User IDs (Google Play Games player ID): collected only if the player signs in with or links Play Games, for account management.
 - App activity / User content > the saved shop: collected, optional (account only), for app functionality.
 - Data encrypted in transit: **Yes (HTTPS).**
 - Users can request deletion: **Yes.** In-app: Menu > Account > Delete account. Web link to give Play:

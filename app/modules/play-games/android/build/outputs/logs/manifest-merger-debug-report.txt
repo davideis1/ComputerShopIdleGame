@@ -1,0 +1,24 @@
+-- Merging decision tree log ---
+manifest
+ADDED from /Users/davideisenberg/Documents/ComputerShopIdleGame/app/modules/play-games/android/src/main/AndroidManifest.xml:1:1-7:12
+INJECTED from /Users/davideisenberg/Documents/ComputerShopIdleGame/app/modules/play-games/android/src/main/AndroidManifest.xml:1:1-7:12
+	package
+		INJECTED from /Users/davideisenberg/Documents/ComputerShopIdleGame/app/modules/play-games/android/src/main/AndroidManifest.xml
+	xmlns:android
+		ADDED from /Users/davideisenberg/Documents/ComputerShopIdleGame/app/modules/play-games/android/src/main/AndroidManifest.xml:1:11-69
+application
+ADDED from /Users/davideisenberg/Documents/ComputerShopIdleGame/app/modules/play-games/android/src/main/AndroidManifest.xml:2:3-6:17
+meta-data#com.google.android.gms.games.APP_ID
+ADDED from /Users/davideisenberg/Documents/ComputerShopIdleGame/app/modules/play-games/android/src/main/AndroidManifest.xml:5:5-118
+	android:value
+		ADDED from /Users/davideisenberg/Documents/ComputerShopIdleGame/app/modules/play-games/android/src/main/AndroidManifest.xml:5:67-115
+	android:name
+		ADDED from /Users/davideisenberg/Documents/ComputerShopIdleGame/app/modules/play-games/android/src/main/AndroidManifest.xml:5:16-66
+uses-sdk
+INJECTED from /Users/davideisenberg/Documents/ComputerShopIdleGame/app/modules/play-games/android/src/main/AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from /Users/davideisenberg/Documents/ComputerShopIdleGame/app/modules/play-games/android/src/main/AndroidManifest.xml
+INJECTED from /Users/davideisenberg/Documents/ComputerShopIdleGame/app/modules/play-games/android/src/main/AndroidManifest.xml
+	android:targetSdkVersion
+		INJECTED from /Users/davideisenberg/Documents/ComputerShopIdleGame/app/modules/play-games/android/src/main/AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from /Users/davideisenberg/Documents/ComputerShopIdleGame/app/modules/play-games/android/src/main/AndroidManifest.xml
