@@ -77,8 +77,9 @@
       if (legacyToo) { localStorage.removeItem(C.SAVE_KEY); localStorage.removeItem(C.SAVE_KEY + '-bak'); }
     } catch (e) { /* ignore */ }
   }
+  let catching = false; // an offline catch-up is running in slices: nothing may save a half-advanced shop
   function save(force) {
-    if (noSave || !S || conflict) return Promise.resolve();
+    if (noSave || !S || conflict || catching) return Promise.resolve();
     S.saved = Date.now();
     const str = E.serialize(S);
     try { localStorage.setItem(LOCAL_KEY, str); } catch (e) { /* storage blocked */ }
@@ -95,7 +96,7 @@
       .then(() => { saving = false; });
   }
   function beaconSave() { // last-gasp save while the page is closing
-    if (noSave || !S || conflict || saving) return;
+    if (noSave || !S || conflict || saving || catching) return;
     // A tab closed after a while in the background: the save made when it was hidden already holds this state, and
     // re-saving it now would stamp a new server time and drop the hidden time from the next offline catch-up.
     if (hiddenAt && Date.now() - hiddenAt > 10000) return;
@@ -222,7 +223,7 @@
   function buildShop() {
     $('#tab-shop').innerHTML = `
       <div class="panel offer" id="offerPanel" hidden><div class="title"><span id="offerTitle"></span><span id="offerLeft" class="num"></span></div><div class="pbody" id="offerBody"></div></div>
-      <div class="panel"><div class="title"><span>Storefront</span><span id="stockInfo" class="num"></span></div>
+      <div class="panel"><div class="title"><span>🏪 Storefront</span><span id="stockInfo" class="num"></span></div>
         <div class="scene"><div class="sign" id="sign"></div><div class="street" id="street"></div><div class="shopfront" id="shelf"></div></div></div>
       <button id="hustle" class="primary" data-act="hustle"><span id="hustleTxt">🤝 Hustle a customer</span><span class="hbar" id="hbar"></span></button>
       <div id="alerts" class="list"></div>
@@ -233,9 +234,9 @@
           <small class="advnote">Estimates from your recent sales. Payback = how long an upgrade takes to earn back its cost.</small>
         </div></div>
       <div class="panel"><div class="title"><span>⭐ Reputation</span><span id="repStars" class="num"></span></div><div class="pbody" id="repBody"></div></div>
-      <div class="panel"><div class="title">Shop Report</div><div class="pbody"><div class="grid" id="statGrid"></div></div></div>
-      <div class="panel"><div class="title">Recent Sales</div><div class="pbody"><ul id="log"></ul></div></div>
-      <div class="panel"><div class="title">The Times</div><div class="pbody" id="times"></div></div>`;
+      <div class="panel"><div class="title">📊 Shop Report</div><div class="pbody"><div class="grid" id="statGrid"></div></div></div>
+      <div class="panel"><div class="title">🧾 Recent Sales</div><div class="pbody"><ul id="log"></ul></div></div>
+      <div class="panel"><div class="title">📰 The Times</div><div class="pbody" id="times"></div></div>`;
     const defs = [
       ['cust', 'Customers / min'], ['serve', 'Checkout capacity / min'], ['sell', 'Revenue / min'],
       ['rest', 'Auto-restock / min'], ['up', 'Wages & rent / min'], ['lost', 'Walk-outs (busy)'],
@@ -275,7 +276,7 @@
   function buildService() {
     $('#tab-service').innerHTML = `
       <div class="panel" id="svcPanel"><div class="title"><span>🛎️ Service Desk</span><span id="svcRate" class="num"></span></div><div class="pbody" id="svcBody"></div></div>
-      <div class="panel" id="svcMgrPanel"><div class="title">Service Desk manager</div><div class="pbody"><div id="svcMgrBody"></div><button class="small" data-tab="buyers">Open Managers</button></div></div>
+      <div class="panel" id="svcMgrPanel"><div class="title">👔 Service Desk manager</div><div class="pbody"><div id="svcMgrBody"></div><button class="small" data-tab="buyers">Open Managers</button></div></div>
       <h3 class="sec" id="uph-Service">Service upgrades</h3><div class="list two" id="upl-Service"></div>`;
   }
   /** Service Desk panel: a teaser with an Open button, then jobs, capacity, the era's service menu and warranties. */
@@ -449,7 +450,7 @@
   let catFilter = 'pre';
   function buildCatalog() {
     $('#tab-catalog').innerHTML = `
-      <div class="panel"><div class="title"><span>Stock Room</span><span id="catCap" class="num"></span></div>
+      <div class="panel"><div class="title"><span>📦 Stock Room</span><span id="catCap" class="num"></span></div>
         <div class="pbody">
           <div class="chips" id="catChips"><button data-act="catfilter" data-f="pre" class="on">🖥️ Computers</button><button data-act="catfilter" data-f="game">💿 Games</button><button data-act="catfilter" data-f="acc">🖱️ Accessories</button><button data-act="catfilter" data-f="con">🎮 Consoles</button></div>
           <div class="bar"><i id="catBar"></i></div>
@@ -468,7 +469,7 @@
           <small id="clerkNote"></small>
         </div></div>
       <div id="catNotice"></div>
-      <div class="panel" id="conMarket" hidden><div class="title">Console market</div><div class="pbody" id="conMarketBody"></div></div>
+      <div class="panel" id="conMarket" hidden><div class="title">🎮 Console market</div><div class="pbody" id="conMarketBody"></div></div>
       <div class="empty-note" id="catEmpty" hidden>Nothing matches these filters.</div>
       <div class="list two" id="catList"></div>`;
     $('#priceAdj').addEventListener('input', (e) => { S.priceAdj = +e.target.value / 100; });
@@ -487,7 +488,8 @@
     const el = node(`<div class="card" data-key="${it.key}">
       <div class="icon">${it.icon}</div>
       <div class="info"><b class="nm"></b><small class="sub"></small>
-        <div class="tags"><span class="tag t-age"></span><span class="tag t-perf"></span><span class="tag t-extra" hidden></span><span class="tag t-pop"></span></div>
+        <div class="tags"><span class="tag t-age"></span><span class="tag t-extra" hidden></span></div>
+        <div class="meters"><div class="mt"><small class="ml-p"></small><div class="bar"><i class="mb-p"></i></div></div><div class="mt"><small class="ml-d"></small><div class="bar"><i class="mb-d"></i></div></div></div>
         <div class="nums"><span>Price <b class="pp num"></b></span><span>Cost <b class="cc num"></b></span><span>Profit <b class="pf num good"></b></span></div>
         <div>In stock: <b class="stk num"></b></div></div>
       <div class="acts">
@@ -497,7 +499,7 @@
         <div class="mgrow" hidden><span class="mginfo"></span><button class="small" data-act="mgpin"></button><button class="small" data-act="mgskip"></button></div>
       </div></div>`);
     const r = (s) => $(s, el);
-    const refs = { stepper: r('.stepper'), mgrow: r('.mgrow'), mginfo: r('.mginfo'), mgpin: r('[data-act=mgpin]'), mgskip: r('[data-act=mgskip]'), el, nm: r('.nm'), sub: r('.sub'), age: r('.t-age'), perf: r('.t-perf'), extra: r('.t-extra'), pop: r('.t-pop'), pp: r('.pp'), cc: r('.cc'), pf: r('.pf'), stk: r('.stk'), tg: r('.tg'), lbl: r('.lbl'), btns: $$('button', el), buy2: $('[data-act=buy][data-n="5"]', el) };
+    const refs = { stepper: r('.stepper'), mgrow: r('.mgrow'), mginfo: r('.mginfo'), mgpin: r('[data-act=mgpin]'), mgskip: r('[data-act=mgskip]'), el, nm: r('.nm'), sub: r('.sub'), age: r('.t-age'), perf: r('.ml-p'), pbar: r('.mb-p'), extra: r('.t-extra'), pop: r('.ml-d'), dbar: r('.mb-d'), pp: r('.pp'), cc: r('.cc'), pf: r('.pf'), stk: r('.stk'), tg: r('.tg'), lbl: r('.lbl'), btns: $$('button', el), buy2: $('[data-act=buy][data-n="5"]', el) };
     return refs;
   }
   // show who sets this item's stock level when a purchasing manager is on duty
@@ -519,6 +521,8 @@
     n.age.classList.toggle('new', it.age < 0.7 && it.buyable);
     setText(n.perf, (it.kind === 'console' ? 'Appeal ' : addon ? 'Hype ' : 'Performance ') + Math.round(it.rel * 100) + '%');
     setText(n.pop, '🔥 Demand ' + Math.round(((popNorm[it.key] || 0) * 100)) + '%');
+    n.pbar.style.width = Math.max(2, Math.min(100, (it.rel / 1.5) * 100)) + '%'; // same scale as the app: 150% fills the bar
+    n.dbar.style.width = Math.max(2, Math.min(100, (popNorm[it.key] || 0) * 100)) + '%';
     n.extra.hidden = !(it.kind === 'game' || con);
     if (it.kind === 'game') setText(n.extra, it.capF >= 0.95 ? '✅ Runs on your PCs' : it.capF >= 0.5 ? '⚠️ Marginal on your PCs' : '🚫 Too demanding for your PCs');
     else if (it.kind === 'console') setText(n.extra, it.limited ? '🔥 Launch frenzy · max ' + it.allocCap + ' per order window' : it.hype > 0.3 ? '🔥 Still hot' : (CS.PLAT_BY_ID[it.plat].hand ? '🕹️ Handheld' : '🎮 Home console'));
@@ -711,7 +715,7 @@
     let html = `
       <div class="panel" id="byLocked"><div class="title">Purchasing Office</div><div class="pbody" id="byLockedBody"></div></div>
       <div id="byMain" class="tab" hidden>
-        <div class="panel"><div class="title"><span>Purchasing Office</span><span id="byWages" class="num"></span></div><div class="pbody">
+        <div class="panel"><div class="title"><span>👔 Purchasing Office</span><span id="byWages" class="num"></span></div><div class="pbody">
           <small>Hire a buyer for each product category, a designer for your PCs and a manager for the Service Desk. Buyers watch sales trends, decide what to stock and how much, and place the orders themselves. Tune how each one works below (collapse a buyer with its arrow to compare them), and pin or skip individual products from the Stock tab.</small>
           <div class="grid" id="bySum"></div>
           <div class="row mgAll"><button class="small" data-act="mgcollapseall" data-v="1">Collapse all</button><button class="small" data-act="mgcollapseall" data-v="0">Expand all</button></div></div></div>`;
@@ -897,13 +901,13 @@
       sel += `<div class="field"><label><span>${sl.icon} ${sl.name}</span><small id="dpf-${sl.id}"></small></label><select id="dsel-${sl.id}" data-slot="${sl.id}"></select></div>`;
     });
     $('#tab-workshop').innerHTML = `
-      <div class="panel" id="wsLocked"><div class="title">Build Workshop</div><div class="pbody" id="wsLockedBody"></div></div>
+      <div class="panel" id="wsLocked"><div class="title">🛠️ Build Workshop</div><div class="pbody" id="wsLockedBody"></div></div>
       <div id="wsMain" class="tab" hidden>
-        <div class="panel"><div class="title">Workshop</div><div class="pbody"><div class="grid" id="wsStats"></div><small id="wsHint"></small></div></div>
+        <div class="panel"><div class="title">🔧 Workshop</div><div class="pbody"><div class="grid" id="wsStats"></div><small id="wsHint"></small></div></div>
         <h3 class="sec">Your Blueprints</h3>
         <div class="ftools" id="bpTools">${chipRow('bp.f', [['all', 'All'], ['build', 'Buildable'], ['old', 'Discontinued parts']])}${selectEl('bp.sort', [['new', 'Newest first'], ['profit', 'Profit per PC'], ['perf', 'Performance'], ['stock', 'Most in stock']], 'Sort')}</div>
         <div class="list two" id="bpList"></div>
-        <div class="panel"><div class="title">Design a New PC</div><div class="pbody">
+        <div class="panel"><div class="title">📐 Design a New PC</div><div class="pbody">
           <div class="field"><label><span>Model name</span></label><input type="text" id="dname" maxlength="28"></div>
           ${sel}
           <div class="field"><label><span>Markup over parts cost</span><b id="dmkLbl"></b></label><input type="range" id="dmk" min="0" max="150" step="5"></div>
@@ -1038,7 +1042,7 @@
   const GROUPS = ['Marketing', 'Checkout', 'Stock', 'Shop', 'Workshop']; // 'Service' upgrades live in the Service tab
   function buildUpgrades() {
     $('#tab-upgrades').innerHTML = `
-      <div class="panel"><div class="title">Shop Overview</div><div class="pbody"><div class="grid" id="upSum"></div><small id="upHint"></small></div></div>
+      <div class="panel"><div class="title">📈 Shop Overview</div><div class="pbody"><div class="grid" id="upSum"></div><small id="upHint"></small></div></div>
       <div class="ftools" id="upTools">${chipRow('up.f', [['all', 'All'], ['afford', 'Affordable now'], ['open', 'Not maxed']])}</div>` +
       GROUPS.map((g) => `<h3 class="sec" id="uph-${g}">${g}</h3><div class="list two" id="upl-${g}"></div>`).join('');
     const box = $('#upSum');
@@ -1071,9 +1075,9 @@
   function createUpCard(u) {
     const el = node(`<div class="card" data-id="${u.id}">
       <div class="icon">${u.icon}</div>
-      <div class="info"><b>${esc(u.name)} <small class="lv"></small></b><small>${esc(u.desc)}</small><small class="now good"></small><small class="req"></small></div>
+      <div class="info"><b>${esc(u.name)} <small class="lv"></small></b><div class="bar lvbar" hidden><i></i></div><small>${esc(u.desc)}</small><small class="now good"></small><small class="req"></small></div>
       <div class="acts"><button class="primary grow" data-act="up" data-id="${u.id}"></button><button data-act="upmax" data-id="${u.id}" class="small">Max</button></div></div>`);
-    return { el, lv: $('.lv', el), now: $('.now', el), req: $('.req', el), buy: $('[data-act=up]', el), max: $('[data-act=upmax]', el) };
+    return { el, lv: $('.lv', el), lvbar: $('.lvbar', el), lvfill: $('.lvbar i', el), now: $('.now', el), req: $('.req', el), buy: $('[data-act=up]', el), max: $('[data-act=upmax]', el) };
   }
   /** One group of upgrade cards (Upgrades tab; the Service tab renders its own group the same way). */
   function renderUpGroup(g, d) {
@@ -1089,6 +1093,8 @@
         const maxed = L >= u.max;
         n.el.classList.toggle('lockedcard', !unlocked);
         setText(n.lv, u.max === 1 ? (L ? '✔' : '') : 'Lv ' + L + (u.max < 999 ? '/' + u.max : ''));
+        n.lvbar.hidden = u.max === 1 || u.max >= 999;
+        n.lvfill.style.width = (u.max > 1 && u.max < 999 ? (100 * L) / u.max : 0) + '%';
         setText(n.now, L && u.max > 1 ? 'Now: ' + upNow(u, L) : '');
         setText(n.req, !unlocked ? (d.y < u.year ? '🔒 Available in ' + u.year : '🔒 Requires ' + CS.UP_BY_ID[u.req].name) : '');
         const cost = E.upCost(S, u);
@@ -1110,7 +1116,7 @@
   /* ---------- FRANCHISE HQ tab ---------- */
   function buildFranchise() {
     $('#tab-franchise').innerHTML = `
-      <div class="panel"><div class="title"><span>Franchise HQ</span><span id="fTokens" class="num"></span></div><div class="pbody">
+      <div class="panel"><div class="title"><span>🏢 Franchise HQ</span><span id="fTokens" class="num"></span></div><div class="pbody">
         <small>Once your shop is a big business it earns <b>Franchise Tokens</b> from its lifetime sales. Cash them in by selling up and opening a brand-new franchise back in 1993 (or later, with Head Start). Tokens buy permanent HQ upgrades below.</small>
         <div class="grid" id="fStats"></div>
         <div class="bar"><i id="fBar"></i></div><small id="fNext"></small>
@@ -1234,27 +1240,27 @@
   }
   function buildMenu() {
     $('#tab-menu').innerHTML = `
-      <div class="panel"><div class="title">Shop Settings</div><div class="pbody">
+      <div class="panel"><div class="title">🏷️ Shop Settings</div><div class="pbody">
         <div class="field"><label><span>Shop name</span></label><input type="text" id="nameIn" maxlength="30"></div>
         <div class="field"><label><span>Visual theme</span></label>
           <select id="themeSel"><option value="auto">Automatic (follows the era)</option><option value="win95">Windoze 95 (1993–99)</option><option value="xp">Bliss (2000–08)</option><option value="flat">Flat (2009–16)</option><option value="rgb">RGB (2015–26)</option><option value="holo">Holo (2027+)</option></select></div>
         <label class="check"><input type="checkbox" id="optTicker"> Show the news ticker</label>
         <label class="check"><input type="checkbox" id="optWalkers"> Animate customers walking past</label>
       </div></div>
-      <div class="panel"><div class="title">Account</div><div class="pbody">
+      <div class="panel"><div class="title">👤 Account</div><div class="pbody">
         <div>Signed in as <b>${esc(BOOT.user.name)}</b></div>
         <small id="syncInfo"></small>
         <form method="post" action="${esc(BOOT.base)}/logout.php" id="logoutForm"><input type="hidden" name="csrf" value="${esc(BOOT.csrf)}"></form>
         <div class="menu-btns"><a class="btnlink" href="${esc(BOOT.base)}/account.php">🔑 Password &amp; account</a><button data-act="logout">🚪 Log out</button></div>
       </div></div>
-      <div class="panel"><div class="title">Save Data</div><div class="pbody">
+      <div class="panel"><div class="title">💾 Save Data</div><div class="pbody">
         <small id="saveInfo">The game saves to your account every 15 seconds and when you leave the page. While you are away the shop keeps trading (up to your offline limit).</small>
         <div class="menu-btns">
           <button data-act="save">💾 Save now</button><button data-act="export">📤 Export</button><button data-act="import">📥 Import</button><button data-act="reset" class="danger">🗑️ Erase all</button>
         </div></div></div>
-      <div class="panel"><div class="title">Statistics</div><div class="pbody" id="statsBody"></div></div>
-      <div class="panel"><div class="title"><span>Trophies</span><span id="achCount"></span></div><div class="pbody"><div id="troTools">${chipRow('tro.f', [['all', 'All'], ['earned', 'Earned'], ['locked', 'Locked']])}</div><div id="achBody"></div></div></div>
-      <div class="panel"><div class="title"><span>About</span><span class="num" id="verLbl"></span></div><div class="pbody"><div class="menu-btns"><button data-act="changelog">📰 What's new</button></div><small>Idle computer shop, 1993 → 2035 (the last decade is pure speculation). Every brand and product name is a made-up parody; this game is not affiliated with or endorsed by any real company. Offline progress is capped by your shop's Night Lock-Up, and the calendar crawls at 1/20 speed while you are away.</small></div></div>`;
+      <div class="panel"><div class="title">📈 Statistics</div><div class="pbody" id="statsBody"></div></div>
+      <div class="panel"><div class="title"><span>🏆 Trophies</span><span id="achCount"></span></div><div class="pbody"><div id="troTools">${chipRow('tro.f', [['all', 'All'], ['earned', 'Earned'], ['locked', 'Locked']])}</div><div id="achBody"></div></div></div>
+      <div class="panel"><div class="title"><span>ℹ️ About</span><span class="num" id="verLbl"></span></div><div class="pbody"><div class="menu-btns"><button data-act="changelog">📰 What's new</button></div><small>Idle computer shop, 1993 → 2035 (the last decade is pure speculation). Every brand and product name is a made-up parody; this game is not affiliated with or endorsed by any real company. Offline progress is capped by your shop's Night Lock-Up, and the calendar crawls at 1/20 speed while you are away.</small></div></div>`;
     setText($('#verLbl'), 'v' + verStr());
     $('#nameIn').addEventListener('input', (e) => { S.name = e.target.value.slice(0, 30) || 'Mega Byte Computers'; });
     $('#themeSel').addEventListener('change', (e) => { saveSettings({ theme: e.target.value }); applyTheme(true); });
@@ -1289,7 +1295,10 @@
     const got = CS.ACH.filter((a) => S.ach[a.id]).length;
     setText($('#achCount'), got + ' / ' + CS.ACH.length + ' (+' + got + '% customers)');
     syncFilterUI($('#troTools'));
-    setHtml($('#achBody'), CS.ACH.filter((a) => FILT.tro.f === 'all' || (FILT.tro.f === 'earned') === !!S.ach[a.id]).map((a) => `<div class="ach ${S.ach[a.id] ? '' : 'locked'}"><span>${S.ach[a.id] ? '🏆' : '🔒'}</span><div><b>${esc(a.name)}</b><br><small>${esc(a.desc)}</small></div></div>`).join(''));
+    setHtml($('#achBody'), CS.ACH.filter((a) => FILT.tro.f === 'all' || (FILT.tro.f === 'earned') === !!S.ach[a.id]).map((a) => {
+      const p = S.ach[a.id] ? 1 : Math.max(0, Math.min(1, a.p ? a.p(S) : 0));
+      return `<div class="ach ${S.ach[a.id] ? '' : 'locked'}"><span>${S.ach[a.id] ? '🏆' : '🔒'}</span><div><b>${esc(a.name)}</b><br><small>${esc(a.desc)}</small>${!S.ach[a.id] && p > 0.005 ? `<div class="bar"><i style="width:${Math.round(p * 100)}%"></i></div>` : ''}</div></div>`;
+    }).join(''));
   }
 
   /* ---------- theme / header ---------- */
@@ -1310,6 +1319,8 @@
     $('#ticker').hidden = !settings.showTicker;
     setText($('#date'), E.dateStr(d.y));
     setText($('#cash'), money(S.cash));
+    setText($('#repChip'), '★ ' + (S.rep == null ? 3 : S.rep).toFixed(1));
+    $('#yearBar').style.width = (100 * (((S.cal % 1) + 1) % 1)) + '%';
     setText($('#income'), money(S.rate.rev * 60));
     const era = E.eraAt(d.y);
     setText($('#eraName'), era.name);
@@ -1561,8 +1572,35 @@
   }
 
   let last = Date.now();
-  function goOffline(sec) {
-    const rep = E.offline(S, sec);
+  /** Catch up after time away, in slices of ~12 ms so the page keeps drawing; a progress sheet shows after 250 ms.
+      Same steps and result as E.offline (see tools/offline-check.js). Resolves when the welcome-back report is up. */
+  async function goOffline(sec) {
+    if (catching) return;
+    catching = true;
+    const job = E.offlineStart(S, sec);
+    const t0 = Date.now();
+    let sheet = null;
+    for (;;) {
+      const slice = Date.now();
+      let done = false;
+      while (!done && Date.now() - slice < 12) done = E.offlineRun(job, 20);
+      if (done) break;
+      if (!sheet && Date.now() - t0 > 250) {
+        sheet = document.createElement('div');
+        sheet.id = 'catchup';
+        sheet.innerHTML = '<div class="panel"><div class="title">⏳ Catching up</div><div class="pbody"><div>Your shop kept trading while you were away.</div><div class="bar"><i></i></div><small class="pct num">0%</small></div></div>';
+        document.body.appendChild(sheet);
+      }
+      if (sheet) {
+        const p = Math.round(100 * (1 - job.left / Math.max(1, job.total)));
+        $('.bar i', sheet).style.width = p + '%';
+        setText($('.pct', sheet), p + '%');
+      }
+      await new Promise((r) => setTimeout(r, 0));
+    }
+    if (sheet) sheet.remove();
+    catching = false;
+    const rep = job.rep;
     announceAch(rep.ach);
     announceNew(false);
     if (sec >= 60 && (rep.units > 0 || rep.upkeep > 0 || rep.built > 0)) showWelcome(rep);
@@ -1570,12 +1608,12 @@
     save();
   }
   function tick() {
-    if (document.hidden) return; // throttled timers would turn a background tab into many 1-minute offline sessions
+    if (document.hidden || catching) return; // throttled timers would turn a background tab into many 1-minute offline sessions
     const now = Date.now();
     let dt = (now - last) / 1000;
     last = now;
     if (dt <= 0) return;
-    if (dt > 10) { goOffline(dt); render(true); return; }
+    if (dt > 10) { goOffline(dt).then(() => render(true)); return; }
     const events = [];
     const ach = E.step(S, dt, 1, null, events);
     announceAch(ach);
@@ -1644,12 +1682,11 @@
       eraShown = E.eraAt(E.yearOf(S)).name;
       last = Date.now();
       forceNext = c.force === true;
-      if (c.elapsed > 10) goOffline(c.elapsed);
-      else save();
+      const booted = c.elapsed > 10 ? goOffline(c.elapsed) : (save(), Promise.resolve());
       nextHeadline();
       $('#tickerText').addEventListener('animationiteration', nextHeadline);
       switchTab('shop');
-      maybeShowWhatsNew(S.stats.play > 120);
+      booted.then(() => maybeShowWhatsNew(S.stats.play > 120)); // after the welcome-back report is up
       setInterval(tick, 250);
       setInterval(() => { if (!document.hidden) save(); }, 15000);
       document.addEventListener('visibilitychange', () => {

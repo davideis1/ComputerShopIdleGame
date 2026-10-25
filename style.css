@@ -369,3 +369,17 @@ details.mgd summary { cursor: pointer; padding: 10px; font-weight: 700; min-heig
 /* Decision card */
 .panel.offer { box-shadow: var(--box), 0 0 0 2px var(--warn); }
 .panel.offer .btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+
+/* Header: shop rating and progress through the year */
+.repchip { font-weight: 700; margin-right: 6px; color: #ffd23f; text-shadow: 0 1px 1px rgba(0, 0, 0, .5); }
+.yearbar { height: 4px; background: var(--inset); overflow: hidden; }
+.yearbar > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .25s linear; }
+/* Meters on item cards, level bars on upgrade cards, trophy progress */
+.meters { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; margin: 3px 0; }
+.mt small { display: block; line-height: 1.1; margin-bottom: 2px; }
+.lvbar { margin: 3px 0; }
+.ach .bar { height: 5px; margin-top: 3px; }
+/* Offline catch-up progress */
+#catchup { position: fixed; inset: 0; background: rgba(0, 0, 0, .55); z-index: 90; display: flex; align-items: center; justify-content: center; padding: 12px; }
+#catchup .panel { width: 100%; max-width: 360px; }
+#catchup .bar { height: 10px; margin: 8px 0 4px; }

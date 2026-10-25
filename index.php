@@ -45,13 +45,14 @@ $v = static function (string $f): string { return (string) @filemtime(__DIR__ . 
 <body data-theme="win95">
 <div id="app">
   <header id="top" class="panel">
-    <div class="title"><span id="shopName">Mega Byte Computers</span><span id="eraName" class="era"></span></div>
+    <div class="title"><span id="shopName">Mega Byte Computers</span><span class="era"><span id="repChip" class="repchip" title="Shop rating (see the Reputation panel on the Shop tab)">★ 3.0</span> <span id="eraName"></span></span></div>
     <div class="topbody">
       <div class="stat"><small>Date</small><b id="date">Jan 1993</b></div>
       <div class="stat grow"><small>Cash</small><b id="cash" class="money">$0</b></div>
       <div class="stat" id="tokStat" hidden><small>Tokens</small><b id="tokens">0</b></div>
       <div class="stat"><small>Sales / min</small><b id="income">$0</b></div>
     </div>
+    <div class="yearbar" title="Progress through the year"><i id="yearBar"></i></div>
     <div id="ticker"><span id="tickerText"></span></div>
   </header>
 
