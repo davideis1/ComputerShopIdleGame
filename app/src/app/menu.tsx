@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, Linking, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 import { useAuth } from '@/AuthProvider';
 import { AccountPanel } from '@/components/AccountPanel';
@@ -6,13 +6,19 @@ import { useGame } from '@/GameProvider';
 import { APP_VERSION, PRIVACY_URL, SUPPORT_URL } from '@/config';
 import { buildMenuView, setShopName, TRO_FILTERS, TroFilter } from '@/menu';
 import { colors, theme, themed, THEME_IDS, THEME_LABELS } from '@/theme';
-import { Panel } from '@/components/ui';
+import { Bar, Panel } from '@/components/ui';
+import { gcAvailable, gcPlayer, gcShowAchievements, onGcPlayer } from '@/gamecenter';
 
 export default function Menu() {
   const { game: s, frame, refresh, reset, saveNow } = useGame();
   const { token } = useAuth();
   const [filter, setFilter] = useState<TroFilter>('all');
   const [name, setName] = useState<string | null>(null); // what's being typed, until the box loses focus
+  const [gc, setGc] = useState(gcPlayer);
+  useEffect(() => onGcPlayer(setGc), []);
+  const openGc = async () => {
+    if (!(await gcShowAchievements())) Alert.alert('Game Center', 'Sign in to Game Center in the Settings app, then reopen Mega Byte Computers to sync your trophies.');
+  };
 
   // Statistics tick up constantly, so refresh about once a second.
   const sec = Math.floor(frame / 4);
@@ -91,12 +97,21 @@ export default function Menu() {
             </Pressable>
           ))}
         </View>
+        {gcAvailable && (
+          <View style={styles.gcRow}>
+            <Text style={[styles.sub, { flex: 1 }]}>
+              {gc.authenticated ? '🎮 Synced to Game Center' + (gc.name ? ' as ' + gc.name : '') : '🎮 Sign in to Game Center to collect these there too'}
+            </Text>
+            <Pressable style={[styles.btn, styles.gcBtn]} onPress={openGc}><Text style={styles.btnText}>Game Center</Text></Pressable>
+          </View>
+        )}
         {v.trophies.map((t) => (
           <View key={t.id} style={[styles.trophy, !t.earned && styles.locked]}>
             <Text style={styles.trophyIcon}>{t.earned ? '🏆' : '🔒'}</Text>
             <View style={{ flex: 1 }}>
               <Text style={styles.trophyName}>{t.name}</Text>
               <Text style={styles.sub}>{t.desc}</Text>
+              {!t.earned && t.progress > 0 && <View style={styles.trophyBar}><Bar value={t.progress} height={5} /></View>}
             </View>
           </View>
         ))}
@@ -145,6 +160,9 @@ const styles = themed(() => ({
   chipText: { color: colors.dim, fontSize: 13, fontWeight: '600' },
   trophy: { flexDirection: 'row', gap: 12, alignItems: 'center', backgroundColor: colors.inset, borderRadius: Math.min(10, theme.radius), padding: 10 },
   locked: { opacity: 0.55 },
+  trophyBar: { marginTop: 5 },
+  gcRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  gcBtn: { flex: 0, paddingHorizontal: 14, paddingVertical: 8 },
   trophyIcon: { fontSize: 22 },
   trophyName: { color: colors.text, fontSize: 14, fontWeight: '700' },
   btnRow: { flexDirection: 'row', gap: 10 },
