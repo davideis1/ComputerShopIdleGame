@@ -72,7 +72,12 @@ const page = async (path) => {
 
   // ---- reset page
   let p = await page('/reset-password.php?token=' + '0'.repeat(64));
-  ok(/invalid or has expired/.test(p.t), 'a made-up token is rejected');
+  ok(/do not recognise this link/.test(p.t), 'a made-up token is rejected, and the page says it is not recognised');
+  const tok = path.split('token=')[1];
+  p = await page('/reset-password.php?token=' + tok.slice(0, 40));
+  ok(/incomplete: only 40 of its 64/.test(p.t), 'a cut-off link says it is incomplete (and how much came through), not "expired"');
+  p = await page('/reset-password.php?token=' + encodeURIComponent(tok.slice(0, 30).toUpperCase() + ' \r\n ' + tok.slice(30) + '.'));
+  ok(/New password/.test(p.t), 'a link a mail app upper-cased, wrapped and put a dot after still works');
   p = await page(path);
   ok(/New password/.test(p.t) && !!p.csrf, 'the real token shows the new-password form');
   let f = await form(path.split('?')[0], { csrf: p.csrf, token: path.split('token=')[1], password: 'short', password2: 'short' }, p.cookie);
@@ -92,7 +97,7 @@ const page = async (path) => {
   r = await call('load.php', {}, t1);
   ok(r.s === 401 && r.j.error === 'bad_token', 'the old app sessions were signed out');
   p = await page(path);
-  ok(/invalid or has expired/.test(p.t), 'the link cannot be used twice');
+  ok(/already used/.test(p.t), 'the link cannot be used twice, and the page says it was already used');
 
   // ---- throttle (per IP per hour)
   if (process.argv.includes('--throttle')) {

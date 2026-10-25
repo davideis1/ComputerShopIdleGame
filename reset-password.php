@@ -6,7 +6,13 @@ require __DIR__ . '/inc/page.php';
 $token = (string) ($_GET['token'] ?? $_POST['token'] ?? '');
 $errors = [];
 $done = false;
-$valid = reset_token_user($token) !== null;
+$status = reset_token_status($token);
+$token = $status['token'];
+$valid = $status['status'] === 'ok';
+if (!$valid) {
+    // for whoever reads the server's error log: why a link was refused (never the whole token)
+    error_log('reset-password.php: ' . $status['status'] . ' (token length ' . $status['length'] . ', starts ' . substr($token, 0, 4) . ')');
+}
 if ($valid && ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     $pw = (string) ($_POST['password'] ?? '');
     if (!csrf_ok($_POST['csrf'] ?? null)) {
@@ -18,7 +24,7 @@ if ($valid && ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     } elseif (finish_password_reset($token, $pw)) {
         $done = true;
     } else {
-        $errors[] = 'This link has expired. Ask for a new one.';
+        $errors[] = reset_failure_text(reset_token_status($token));
     }
 }
 page_head('Reset password');
@@ -29,7 +35,7 @@ if ($done) {
     exit;
 }
 if (!$valid) {
-    echo '<div class="alert bad">This reset link is invalid or has expired.</div><small><a href="forgot.php">Ask for a new link</a></small>';
+    echo '<div class="alert bad">' . h(reset_failure_text($status)) . '</div><small><a href="forgot.php">Ask for a new link</a></small>';
     page_foot();
     exit;
 }
