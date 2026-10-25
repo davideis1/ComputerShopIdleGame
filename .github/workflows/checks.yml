@@ -1,0 +1,59 @@
+# Runs on every pull request (and on Main): the headless game checks, a full balance run, PHP syntax and the app typecheck.
+# Nothing here needs secrets or a database.
+name: Checks
+
+on:
+  pull_request:
+  push:
+    branches: [Main]
+
+concurrency:
+  group: checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  game:
+    name: Game core
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check scripts
+        run: |
+          set -e
+          for t in mgr-check design-check console-check advisor-check custom-check names-check gc-achievements; do
+            echo "::group::$t"
+            node tools/$t.js
+            echo "::endgroup::"
+          done
+
+      # One whole franchise (1993 -> today) with the full bot; fails if the economy breaks.
+      # The table lands in the job summary so balance changes can be compared between PRs.
+      - name: Balance run
+        run: |
+          node tools/sim.js 250 1 --quiet | tee sim.txt
+          { echo '### sim.js'; echo '```'; cat sim.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: PHP syntax
+        run: |
+          set -e
+          find . -name '*.php' -not -path './app/*' -not -path './node_modules/*' -print0 | xargs -0 -n1 php -l > /dev/null
+
+  app:
+    name: App typecheck
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - run: npx tsc --noEmit
