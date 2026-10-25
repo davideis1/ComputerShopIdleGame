@@ -157,6 +157,8 @@ Today "Franchise" means reset. A later-game layer could open real branches (mall
 ## 6. Mobile app
 
 ### 6.1 Offline catch-up blocks the JS thread
+*Done in `fast-catchup`: ~3× faster in Node, sliced in the app behind a progress overlay.*
+
 `GameProvider.catchUp` → `E.offline` runs synchronously. Measured in Node with the full core: **8 h offline ≈ 1.4 s** (mid-game, 119 items, buyers active); Hermes on a mid-range Android phone is likely several times slower, and it runs again whenever the app returns from background (`dt > 10`). Options:
 - chunk it (`E.advance` in 30-minute slices with `await` between them) behind the welcome-back sheet, with a progress bar;
 - coarser steps for long gaps (`h` is 5 s above 2 h; 15–30 s past 4 h is enough, since accumulators are already rate-based);
