@@ -20,6 +20,7 @@ Details for each step are in `RELEASE.md`, `LISTING.md` and `game-center.md`.
 - [ ] Add the 30 achievements from `game-center.md` (ids must match exactly; upload the badge PNGs from `docs/store/game-center/`).
 - [ ] Create a Sandbox tester (Users and Access → Sandbox) and sign in with it on the test iPhone (Settings → Game Center).
 - [ ] Run a development build on the phone: trophies already earned should appear in Game Center, and progress rings should move.
+- [ ] Sign in with Game Center (PR: gamecenter-signin): signed out, tap Menu → Account → Continue with Game Center; check the account is created and the shop syncs; on a second device or after deleting the app, Game Center signs back in to the same account. Also try Link Game Center from a password account.
 
 ## First build & TestFlight
 - [ ] `cd app && npx eas-cli@latest login && npx eas-cli@latest init` (writes the EAS project id into app.json; commit it).

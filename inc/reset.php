@@ -132,7 +132,7 @@ function finish_password_reset(string $token, string $password): bool
     }
     $pdo = db();
     $pdo->beginTransaction();
-    $pdo->prepare('UPDATE users SET password_hash = ? WHERE id = ?')->execute([password_hash($password, PASSWORD_DEFAULT), $uid]);
+    $pdo->prepare('UPDATE users SET password_hash = ?, has_password = 1 WHERE id = ?')->execute([password_hash($password, PASSWORD_DEFAULT), $uid]);
     $pdo->prepare('UPDATE password_resets SET used_at = ? WHERE user_id = ? AND used_at IS NULL')->execute([time(), $uid]);
     $pdo->prepare('DELETE FROM api_tokens WHERE user_id = ?')->execute([$uid]);
     $pdo->commit();

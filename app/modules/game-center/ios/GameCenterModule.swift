@@ -49,6 +49,27 @@ public final class GameCenterModule: Module {
       try await GKAchievement.report(list)
     }
 
+    // Signed proof of who the player is, for "Sign in with Game Center" (verified by api/auth_gamecenter.php).
+    // Apple signs teamPlayerID + bundle id + timestamp + salt; the server checks it against Apple's certificate.
+    AsyncFunction("identityProof") { () async -> [String: Any] in
+      let p = GKLocalPlayer.local
+      guard p.isAuthenticated else { return ["error": "not_signed_in"] }
+      do {
+        let (url, signature, salt, timestamp) = try await p.fetchItemsForIdentityVerificationSignature()
+        return [
+          "playerId": p.teamPlayerID,
+          "bundleId": Bundle.main.bundleIdentifier ?? "",
+          "publicKeyUrl": url.absoluteString,
+          "signature": signature.base64EncodedString(),
+          "salt": salt.base64EncodedString(),
+          "timestamp": String(timestamp),
+          "name": p.displayName,
+        ]
+      } catch {
+        return ["error": error.localizedDescription]
+      }
+    }
+
     AsyncFunction("showAchievements") { () -> Bool in
       guard GKLocalPlayer.local.isAuthenticated else { return false }
       GKAccessPoint.shared.trigger(state: .achievements) {}

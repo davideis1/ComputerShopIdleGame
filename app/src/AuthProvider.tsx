@@ -2,6 +2,7 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import * as api from './api';
+import { gcProof } from './gamecenter';
 
 type User = api.ApiUser;
 type Result = { ok: true } | { ok: false; message: string };
@@ -15,7 +16,12 @@ type Ctx = {
   setEmail: (email: string, password: string) => Promise<Result>;
   /** Ends this device's session. Pass `expired` when the server already rejected the token. */
   signOut: (expired?: boolean) => Promise<void>;
-  deleteAccount: (password: string) => Promise<Result>;
+  /** Accounts without a password (made with Game Center) pass null and prove themselves with Game Center. */
+  deleteAccount: (password: string | null) => Promise<Result>;
+  signInGameCenter: () => Promise<Result & { created?: boolean }>;
+  linkGameCenter: () => Promise<Result>;
+  unlinkGameCenter: () => Promise<Result>;
+  setPassword: (newPassword: string, password?: string) => Promise<Result>;
   /** Set when the server rejected our token on its own ("session expired"); the UI shows it once. */
   notice: string | null;
   clearNotice: () => void;
@@ -108,17 +114,67 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     else if (t) api.logout(t); // best effort: the token also dies on its own after 180 days
   }, [clear]);
 
-  const deleteAccount = useCallback(async (password: string): Promise<Result> => {
+  /** Replace the stored user after the server changed it (link, unlink, password). */
+  const keepUser = useCallback((u: User) => {
+    setUser(u);
+    SecureStore.setItemAsync(USER_KEY, JSON.stringify(u)).catch(() => {});
+  }, []);
+
+  const signInGameCenter = useCallback(async () => {
+    const g = await gcProof();
+    if ('error' in g) return fail(g.error);
+    const r = await api.gcSignIn(g.proof, g.name, label());
+    if (!r.ok) return fail(r.error);
+    await adopt(r.data.token, r.data.user);
+    return { ok: true as const, created: !!r.data.created };
+  }, [adopt]);
+
+  const linkGameCenter = useCallback(async (): Promise<Result> => {
     const t = tokenRef.current;
     if (!t) return fail('bad_token');
-    const r = await api.deleteAccount(t, password);
+    const g = await gcProof();
+    if ('error' in g) return fail(g.error);
+    const r = await api.gcLink(t, g.proof);
+    if (!r.ok) return fail(r.error);
+    keepUser(r.data.user);
+    return { ok: true };
+  }, [keepUser]);
+
+  const unlinkGameCenter = useCallback(async (): Promise<Result> => {
+    const t = tokenRef.current;
+    if (!t) return fail('bad_token');
+    const r = await api.gcUnlink(t);
+    if (!r.ok) return fail(r.error);
+    keepUser(r.data.user);
+    return { ok: true };
+  }, [keepUser]);
+
+  const setPassword = useCallback(async (newPassword: string, password?: string): Promise<Result> => {
+    const t = tokenRef.current;
+    if (!t) return fail('bad_token');
+    const r = await api.setPassword(t, newPassword, password);
+    if (!r.ok) return fail(r.error);
+    keepUser(r.data.user);
+    return { ok: true };
+  }, [keepUser]);
+
+  const deleteAccount = useCallback(async (password: string | null): Promise<Result> => {
+    const t = tokenRef.current;
+    if (!t) return fail('bad_token');
+    let proof: api.GcProofData | undefined;
+    if (password === null) {
+      const g = await gcProof();
+      if ('error' in g) return fail(g.error);
+      proof = g.proof;
+    }
+    const r = await api.deleteAccount(t, password ?? '', proof);
     if (!r.ok) return fail(r.error);
     await clear();
     return { ok: true };
   }, [clear]);
 
   return (
-    <AuthContext.Provider value={{ status, token, user, signIn, signUp, forgot, setEmail, signOut, deleteAccount, notice, clearNotice: () => setNotice(null) }}>
+    <AuthContext.Provider value={{ status, token, user, signIn, signUp, forgot, setEmail, signOut, deleteAccount, signInGameCenter, linkGameCenter, unlinkGameCenter, setPassword, notice, clearNotice: () => setNotice(null) }}>
       {children}
     </AuthContext.Provider>
   );

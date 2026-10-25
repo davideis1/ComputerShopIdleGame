@@ -6,8 +6,9 @@ export type ApiOk<T> = { ok: true; data: T };
 export type ApiErr = { ok: false; error: string; status: number; network: boolean };
 export type ApiResult<T> = ApiOk<T> | ApiErr;
 
-export type ApiUser = { id: number; username: string; email?: string | null }; // email is masked (d***@example.com)
-export type AuthReply = { token: string; user: ApiUser };
+export type ApiUser = { id: number; username: string; email?: string | null; gameCenter?: boolean; hasPassword?: boolean }; // email is masked (d***@example.com)
+export type AuthReply = { token: string; user: ApiUser; created?: boolean };
+export type GcProofData = { playerId: string; bundleId: string; publicKeyUrl: string; signature: string; salt: string; timestamp: string };
 export type LoadReply = { state: any | null; rev: number; elapsed: number };
 export type SaveReply = { rev: number; server_time: number };
 
@@ -39,7 +40,12 @@ export const login = (username: string, password: string, label: string) => post
 export const forgot = (email: string) => post<{}>('auth_forgot.php', { email });
 export const setEmail = (token: string, email: string, password: string) => post<{ email: string | null }>('auth_set_email.php', { email, password }, token);
 export const logout = (token: string) => post<{}>('auth_logout.php', {}, token);
-export const deleteAccount = (token: string, password: string) => post<{}>('auth_delete.php', { password, confirm: 'DELETE' }, token);
+export const deleteAccount = (token: string, password: string, proof?: GcProofData) => post<{}>('auth_delete.php', proof ? { proof, confirm: 'DELETE' } : { password, confirm: 'DELETE' }, token);
+// Sign in with Game Center (api/auth_gamecenter.php): the proof comes from the native module (identityProof)
+export const gcSignIn = (proof: GcProofData, name: string, label: string) => post<AuthReply>('auth_gamecenter.php', { proof, name, label });
+export const gcLink = (token: string, proof: GcProofData) => post<{ user: ApiUser }>('auth_gc_link.php', { proof }, token);
+export const gcUnlink = (token: string) => post<{ user: ApiUser }>('auth_gc_link.php', { unlink: true }, token);
+export const setPassword = (token: string, newPassword: string, password?: string) => post<{ user: ApiUser }>('auth_set_password.php', { new_password: newPassword, ...(password ? { password } : {}) }, token);
 export const loadSave = (token: string, timeoutMs = 8000) => post<LoadReply>('load.php', {}, token, timeoutMs);
 export const saveToServer = (token: string, body: { state: string; rev: number; tab: string; force?: boolean }) => post<SaveReply>('save.php', body, token);
 export const resetServer = (token: string) => post<{}>('reset.php', {}, token);
@@ -58,6 +64,11 @@ export function errorText(code: string): string {
     case 'email_taken': return 'That email address is already used by another account.';
     case 'bad_confirm': return 'Type DELETE to confirm.';
     case 'bad_token': return 'Your session has expired. Please sign in again.';
+    case 'gc_unavailable': return 'Sign in to Game Center in the Settings app first, then try again.';
+    case 'gc_bad_proof': case 'gc_bad_key': case 'gc_replay': case 'gc_expired': return "Game Center couldn't confirm who you are. Please try again.";
+    case 'gc_taken': return 'That Game Center player is already linked to another account.';
+    case 'needs_password': return 'Set a password first, or you could no longer sign in to this account.';
+    case 'weak_password': return 'Passwords need 8–200 characters.';
     default: return 'Something went wrong on the server. Please try again.';
   }
 }

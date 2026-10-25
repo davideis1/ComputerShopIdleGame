@@ -39,7 +39,12 @@ The mobile app talks to the same `save.php` / `load.php` / `settings.php` / `res
 | `api/auth_logout.php` | `{all?}` | revokes this token (or all of the account's tokens) |
 | `api/auth_forgot.php` | `{email}` | emails a reset link if an account has that address; always `{ok:true}` for a valid address (`bad_email` 422, `too_many_attempts` 429) |
 | `api/auth_set_email.php` | `{email, password}` + token | adds/changes/removes (empty) the reset email; returns it masked (`bad_password` 403, `bad_email` 422, `email_taken` 409) |
-| `api/auth_delete.php` | `{password, confirm: "DELETE"}` | permanently deletes the account (required by the App Store) |
+| `api/auth_delete.php` | `{password, confirm: "DELETE"}` (Game Center-only accounts: `{proof, confirm}`) | permanently deletes the account (required by the App Store) |
+| `api/auth_gamecenter.php` | `{proof, name?, label?}` | Sign in with Game Center: signs in the linked account or creates one (`201`, `created: true`, no password yet) (`gc_bad_proof` / `gc_expired` / `gc_bad_key` / `gc_replay` 401) |
+| `api/auth_gc_link.php` | `{proof}` or `{unlink: true}` + token | links this account to the Game Center player (`gc_taken` 409) or unlinks it (`needs_password` 409 if it has none) |
+| `api/auth_set_password.php` | `{new_password, password?}` + token | sets a first password (Game Center accounts, no `password` needed) or changes it (`bad_password` 403, `weak_password` 422) |
+
+`proof` is what GameKit's `fetchItems(forIdentityVerificationSignature:)` returns: `{playerId (teamPlayerID), bundleId, publicKeyUrl, signature, salt (base64), timestamp (ms)}`. `inc/gamecenter.php` verifies Apple's RSA-SHA256 signature over `playerId ‖ bundleId ‖ UInt64BE(timestamp) ‖ salt` with the certificate at `publicKeyUrl` (HTTPS from `static.gc.apple.com` / `sandbox.gc.apple.com` only), accepts proofs up to 15 minutes old for our bundle id (`gc_bundle_id`), and refuses a signature it has seen before. User objects carry `gameCenter` and `hasPassword`.
 
 Send the token on every other call as `Authorization: Bearer <token>` and/or `X-Api-Token: <token>`; the server accepts either. Some hosts drop `Authorization` before PHP sees it (IONOS shared hosting does, even with the `.htaccess` rule), so the app sends both. No CSRF token is needed with a bearer token. Tokens last 180 days from last use, at most 10 per account (the oldest is dropped), and are revoked on logout or account deletion. Apps are not browsers, so no CORS headers are needed.
 
@@ -51,6 +56,7 @@ php -S localhost:8000
 node tools/api-smoke.js http://localhost:8000         # website (cookie) backend checks
 node tools/api-token-smoke.js http://localhost:8000    # native-app token API checks (add --throttle for the sign-up limit)
 node tools/api-reset-smoke.js http://localhost:8000 /tmp/mail.log   # email + password reset (--throttle checks the per-IP limit) (server config: 'mail_transport' => 'log', 'mail_log' => /tmp/mail.log)
+node tools/api-gc-smoke.js http://localhost:8000 /tmp/gc-test-key.pem   # Sign in with Game Center (server config: 'gc_test_public_key' => /tmp/gc-test-key.pem; never in production)
 ```
 
 ## Features

@@ -11,6 +11,6 @@ if ($argc < 3) {
 if (strlen($argv[2]) < 8) {
     exit("Password must be at least 8 characters.\n");
 }
-$st = db()->prepare('UPDATE users SET password_hash = ? WHERE username = ?');
+$st = db()->prepare('UPDATE users SET password_hash = ?, has_password = 1 WHERE username = ?');
 $st->execute([password_hash($argv[2], PASSWORD_DEFAULT), $argv[1]]);
 echo $st->rowCount() ? "Password updated.\n" : "No such user.\n";
