@@ -87,6 +87,20 @@ export function GameProvider({ children }: { children: ReactNode }) {
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(null), ms);
   }, []);
+  // Era changes and the first claimable token get a banner, like the web build (js/ui.js renderHeader).
+  // Only moving forward counts: a new franchise or an adopted cloud save going back in time stays quiet.
+  const eraShown = useRef<{ name: string; from: number } | null>(null);
+  const milestones = useCallback(() => {
+    const g = game.current;
+    if (!g) return;
+    const era = E.eraAt(E.yearOf(g));
+    if (eraShown.current && era.from > eraShown.current.from) say('🕰️ New era: ' + era.name + ' — ' + era.blurb, 5000);
+    eraShown.current = era;
+    if (E.pendingTokens(g) >= 1 && !g.seen.tok) {
+      g.seen.tok = 1;
+      say('🎫 Franchise Tokens are available! Open the HQ tab to cash them in for permanent upgrades.', 6000);
+    }
+  }, [say]);
   const announce = useCallback((ach: any[]) => {
     if (!ach.length) return;
     say('🏆 ' + ach[0].name + ' — ' + ach[0].desc + ' (+1% customers)');
@@ -295,6 +309,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         if (events.length) { pushLog(saleLines(events)); events.forEach((ev) => { if (!ev.bailout && !E.isAddon(ev.it.kind)) noteBuy(Math.min(ev.k, 2)); }); }
         announce(ach);
       }
+      milestones();
       sinceSave.current += dt;
       if (sinceSave.current >= SAVE_EVERY_S) { sinceSave.current = 0; saveGame(game.current); push(); gcReport(game.current); }
       force((n) => n + 1);
@@ -303,7 +318,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       if (st !== 'active' && game.current) { saveGame(game.current); push(); }
     });
     return () => { clearInterval(id); sub.remove(); };
-  }, [ready, catchUp, pushLog, announce, push]);
+  }, [ready, catchUp, pushLog, announce, push, milestones]);
 
   /* ---------- actions ---------- */
 

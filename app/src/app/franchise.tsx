@@ -58,7 +58,7 @@ export default function Franchise() {
           <Text style={styles.btnText}>{v.claimLabel}</Text>
         </Pressable>
         <Text style={styles.sub}>
-          Kept: tokens, HQ upgrades, trophies, shop name, stats. Reset: cash, upgrades, stock, blueprints and the calendar.
+          Kept: tokens, HQ upgrades, trophies, shop name, stats. Reset: cash, upgrades, stock, blueprints and the calendar. Upgrades bought here before a new shop's first sale apply to it straight away.
         </Text>
       </Panel>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>

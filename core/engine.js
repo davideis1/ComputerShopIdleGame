@@ -59,18 +59,35 @@
       meta: meta || newMeta(),
     };
     if (CS.M) CS.M.init(s);
-    s.cash += 7500 * tl(s, 't_cash');
     s.freeHires = tl(s, 't_mgr_free');
-    if (tl(s, 't_mgr_office')) s.up.purchasing = 1;
-    const kit = tl(s, 't_kit');
-    if (kit) {
-      s.up.clerk = kit; s.up.ads_news = 2 * kit; s.up.shelf = kit; s.up.sales = kit;
-    }
-    CS.PRODUCTS.forEach((p) => {
-      if (p.year <= C.START_YEAR) s.seen[p.id] = 1;
-    });
+    ['t_cash', 't_kit', 't_mgr_office', 't_head'].forEach((id) => startBonus(s, id, 0, tl(s, id)));
     return s;
   }
+  const headStart = (L) => C.HEAD_STARTS[Math.min(C.HEAD_STARTS.length - 1, L)];
+  /** Apply an HQ upgrade that shapes the opening of a franchise, going from level `from` to `to`.
+      Runs at newState, and again when one is bought while the franchise is still fresh (no sale yet). */
+  function startBonus(s, id, from, to) {
+    switch (id) {
+      case 't_cash': s.cash += 7500 * (to - from); break;
+      case 't_kit':
+        s.up.clerk = Math.max(s.up.clerk || 0, to); s.up.ads_news = Math.max(s.up.ads_news || 0, 2 * to);
+        s.up.shelf = Math.max(s.up.shelf || 0, to); s.up.sales = Math.max(s.up.sales || 0, to);
+        break;
+      case 't_mgr_office': if (to) s.up.purchasing = 1; break;
+      case 't_head': {
+        const a = headStart(from), b = headStart(to);
+        s.cal = Math.max(s.cal, b.cal);
+        s.cash += b.cash - a.cash;
+        break;
+      }
+    }
+    // products from before the opening year aren't "new"
+    CS.PRODUCTS.forEach((p) => { if (p.year <= C.START_YEAR + s.cal) s.seen[p.id] = 1; });
+  }
+  /** Calendar speed multiplier from Time Warp (only before WARP_UNTIL). */
+  const calSpeed = (s) => (s.cal < C.WARP_UNTIL ? 1 + 0.15 * Math.min(C.WARP_MAX, tl(s, 't_warp')) : 1);
+  /** The year the next franchise opens in. */
+  const startYear = (s) => C.START_YEAR + headStart(tl(s, 't_head')).cal;
 
   function migrate(raw) {
     const base = newState();
@@ -385,6 +402,7 @@
     else s.stats.sold += k;
     if (it.kind === 'game' || it.kind === 'acc') s.stats.addonRevenue += rev;
     s.stats.revenue += rev;
+    s.fresh = false;
     if (CS.M) CS.M.noteSale(s, it.key, k);
     if (CS.Con) CS.Con.noteSale(s, it, k);
     if (rep) {
@@ -399,7 +417,7 @@
 
   function step(s, dt, calRate, rep, events) {
     const wasToday = s.cal >= C.END_CAL;
-    if (!wasToday) s.cal = Math.min(C.END_CAL, s.cal + (dt / C.YEAR_SECONDS) * calRate);
+    if (!wasToday) s.cal = Math.min(C.END_CAL, s.cal + (dt / C.YEAR_SECONDS) * calRate * calSpeed(s));
     s.stats.play += dt;
     s.hustleCd = Math.max(0, s.hustleCd - dt);
     const d = derive(s);
@@ -686,6 +704,7 @@
     n.stats.play = s.stats.play;
     n.stats.offline = s.stats.offline;
     n.stats.hustles = s.stats.hustles;
+    n.fresh = true; // until the first sale, opening upgrades bought at HQ still apply to this franchise
     return { state: n, gain };
   }
   const tokenCost = (s, u) => Math.ceil(u.base * Math.pow(u.grow, tl(s, u.id)));
@@ -696,6 +715,7 @@
     if (L >= u.max || s.meta.tokens < cost) return false;
     s.meta.tokens -= cost;
     s.meta.tup[id] = L + 1;
+    if (s.fresh) startBonus(s, id, L, L + 1);
     return true;
   }
 
@@ -706,7 +726,7 @@
     SEG, K, ADDON_SCALE, isAddon, sellUnits, itemWeight, popularityMap, infl, refPrice, newState, migrate, serialize, deserialize, yearOf, eraAt, eventsAt, derive,
     partAvail, partRel, partPrice, bpInfo, designInfo, totalStock, getItems, buy, buyUnits, setTarget,
     upLevel, upCost, upUnlocked, buyUp, createBp, deleteBp, step, advance, offline, hustle, newProducts,
-    newReport, checkAch, dateStr, unitsSold, pendingTokens, nextTokenAt, tokenAt, prestige, tokenCost, buyTokenUp, tl,
+    newReport, checkAch, dateStr, unitsSold, pendingTokens, nextTokenAt, tokenAt, prestige, tokenCost, buyTokenUp, tl, calSpeed, startYear,
   };
   if (typeof module !== 'undefined') module.exports = CS;
 })(typeof window !== 'undefined' ? window : globalThis);

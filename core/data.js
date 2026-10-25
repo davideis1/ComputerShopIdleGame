@@ -13,9 +13,13 @@
     PART_WINDOW: 6, // years a part stays orderable
     START_CASH: 5000,
     SAVE_KEY: 'csig-save-v1',
-    TOKEN_R0: 2e8, // run revenue at which Franchise Tokens start to accrue
+    TOKEN_R0: 1e8, // run revenue at which Franchise Tokens start to accrue
     TOKEN_K: 4, // tokens = floor(K * sqrt(revenue / R0) - (K - 1)), so the first token arrives at R0
     VERSION: 1,
+    // Head Start (HQ): later franchises open later in history. Level -> calendar start and extra starting cash.
+    HEAD_STARTS: [{ cal: 0, cash: 0 }, { cal: 3, cash: 6e4 }, { cal: 7, cash: 4e5 }, { cal: 12, cash: 2.5e6 }],
+    WARP_MAX: 10, // Time Warp levels (+15% calendar speed each)
+    WARP_UNTIL: 22, // ...but only before 2015: the last decade is where a run earns most, so it isn't shortened
   };
 
   CS.ERAS = [
@@ -288,6 +292,8 @@
     { id: 't_mgr_wide', grp: 'Buyers', name: 'Wider Aisles', icon: '🗂️', desc: 'Each buyer can stock +2 more products at once', base: 3, grow: 1.8, max: 5, per: 2 },
     { id: 't_mgr_free', grp: 'Buyers', name: 'Succession Plan', icon: '🪪', desc: 'The first hires of every new franchise have no signing bonus (1 per level)', base: 3, grow: 2.0, max: 4, per: 1 },
     { id: 't_mgr_office', grp: 'Buyers', name: 'Corner Office', icon: '🏢', desc: 'Every new franchise starts with the Purchasing Office already open (even before 1995)', base: 4, grow: 1, max: 1, per: 1 },
+    { id: 't_warp', name: 'Time Warp', icon: '⏩', desc: '+15% calendar speed until 2015: the early decades fly by (the last ten years, where the money is, run at normal speed)', base: 2, grow: 1.6, max: 10, per: 0.15 },
+    { id: 't_head', name: 'Head Start', icon: '🚀', desc: 'New franchises open later in history with cash to match: 1996, then 2000, then 2005', base: 4, grow: 2.2, max: 3, per: 1 },
     { id: 't_token', name: 'Franchise Consultant', icon: '🎫', desc: '+8% Franchise Tokens when you reset', base: 5, grow: 1.8, max: 20, per: 0.08 },
   ];
   CS.TUP_BY_ID = {};
