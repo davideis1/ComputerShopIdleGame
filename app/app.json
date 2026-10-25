@@ -105,7 +105,7 @@
       [
         "./plugins/withPlayGames",
         {
-          "projectId": ""
+          "projectId": "799328326205"
         }
       ],
       [
@@ -117,7 +117,7 @@
     ],
     "extra": {
       "apiBase": "https://computershopidlegame.davideis.com",
-      "playGamesWebClientId": "",
+      "playGamesWebClientId": "799328326205-om1p99j8mqkp7r956pfr1csrih1lqmlv.apps.googleusercontent.com",
       "router": {
         "asyncRoutes": {
           "web": true
