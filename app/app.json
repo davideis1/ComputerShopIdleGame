@@ -100,7 +100,13 @@
           "resizeMode": "contain"
         }
       ],
-      "expo-status-bar"
+      "expo-status-bar",
+      [
+        "expo-notifications",
+        {
+          "enableRemoteNotifications": false
+        }
+      ]
     ],
     "extra": {
       "apiBase": "https://computershopidlegame.davideis.com"
