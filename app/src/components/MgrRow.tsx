@@ -20,6 +20,6 @@ const styles = themed(() => ({
   wrap: { gap: 6 },
   info: { color: colors.dim, fontSize: 12 },
   row: { flexDirection: 'row', gap: 8 },
-  btn: { backgroundColor: '#2d3b52', borderRadius: Math.min(8, theme.radius), paddingVertical: 7, paddingHorizontal: 12 },
+  btn: { backgroundColor: colors.quiet, ...theme.quietBtn, paddingVertical: 7, paddingHorizontal: 12 },
   text: { color: '#fff', fontSize: 12, fontWeight: '700' },
 }));

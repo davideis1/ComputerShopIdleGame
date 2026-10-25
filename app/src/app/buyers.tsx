@@ -5,6 +5,7 @@ import {
   buildBuyersView, CatView, CtlView, fire, hire, openOffice, refreshCands, setCfg, severance, toggleChip, train,
 } from '@/buyers';
 import { colors, money, theme, themed } from '@/theme';
+import { Panel, Stat } from '@/components/ui';
 
 /* ---------- small building blocks ---------- */
 function Btn({ label, onPress, disabled, kind }: { label: string; onPress: () => void; disabled?: boolean; kind?: 'danger' | 'quiet' }) {
@@ -107,11 +108,10 @@ function CategoryPanel({ c, act, s }: { c: CatView; act: (fn: () => void) => voi
       { text: 'Let them go', style: 'destructive', onPress: () => act(() => fire(s, c.id)) },
     ]);
   return (
-    <View style={styles.panel}>
-      <Pressable onPress={() => setCollapsed(!collapsed)} style={styles.panelHead}>
-        <Text style={styles.panelTitle}>{c.icon} {c.name}{c.designer ? '' : ' buyer'}</Text>
-        <Text style={styles.sub}>{c.staffed ? s.mgr[c.id].name : 'Vacant'}  {collapsed ? '▸' : '▾'}</Text>
-      </Pressable>
+    <Panel
+      title={c.name + (c.designer ? '' : ' buyer')} icon={c.icon} onPressTitle={() => setCollapsed(!collapsed)}
+      right={<Text style={styles.headRight}>{c.staffed ? s.mgr[c.id].name : 'Vacant'}  {collapsed ? '▸' : '▾'}</Text>}
+    >
 
       {collapsed ? <Text style={styles.sub}>{c.summary}</Text> : !c.staffed ? (
         <View style={{ gap: 10 }}>
@@ -193,7 +193,7 @@ function CategoryPanel({ c, act, s }: { c: CatView; act: (fn: () => void) => voi
           <Btn label="Let go…" kind="danger" onPress={confirmFire} />
         </View>
       )}
-    </View>
+    </Panel>
   );
 }
 
@@ -210,8 +210,7 @@ export default function Buyers() {
     const l = v.locked;
     return (
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.panel}>
-          <Text style={styles.panelTitle}>Purchasing Office</Text>
+        <Panel title="Purchasing Office" icon="👔">
           {l.kind === 'year' ? (
             <Text style={styles.body}>🔒 Purchasing managers become available in {l.year}, once the shop is big enough to need a buyer.</Text>
           ) : (
@@ -220,27 +219,18 @@ export default function Buyers() {
               <Btn label={'Open the Purchasing Office — ' + money(l.cost)} disabled={!l.canBuy} onPress={() => act(() => openOffice(s))} />
             </>
           )}
-        </View>
+        </Panel>
       </ScrollView>
     );
   }
   return (
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <View style={styles.panel}>
-        <View style={styles.panelHead}>
-          <Text style={styles.panelTitle}>Purchasing Office</Text>
-          <Text style={styles.sub}>{v.wages}</Text>
-        </View>
+      <Panel title="Purchasing Office" icon="👔" right={v.wages}>
         <Text style={styles.body}>Hire a buyer for each product category. They watch sales trends, decide what to stock and how much, and place the orders themselves. Tune how each one works below.</Text>
         <View style={styles.grid}>
-          {v.stats.map((st) => (
-            <View key={st.label} style={styles.mini}>
-              <Text style={styles.sub}>{st.label}</Text>
-              <Text style={styles.miniVal}>{st.value}</Text>
-            </View>
-          ))}
+          {v.stats.map((st) => <Stat key={st.label} label={st.label} value={st.value} style={styles.mini} />)}
         </View>
-      </View>
+      </Panel>
       {v.cats.map((c) => <CategoryPanel key={c.id} c={c} act={act} s={s} />)}
     </ScrollView>
   );
@@ -249,7 +239,7 @@ export default function Buyers() {
 const styles = themed(() => ({
   content: { padding: 16, paddingBottom: 40, gap: 12 },
   panel: { ...theme.box, padding: 14, gap: 10 },
-  panelHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
+  headRight: { color: theme.id === 'win95' || theme.id === 'xp' ? '#e6efff' : colors.dim, fontSize: 12 },
   panelTitle: { color: colors.text, fontSize: 16, fontWeight: '700', flexShrink: 1 },
   body: { color: colors.dim, fontSize: 14, lineHeight: 20 },
   sub: { color: colors.dim, fontSize: 12 },
@@ -279,8 +269,8 @@ const styles = themed(() => ({
   chipOn: { backgroundColor: colors.accent },
   chipText: { color: colors.dim, fontSize: 12, fontWeight: '600' },
   input: { backgroundColor: colors.card, color: colors.text, borderRadius: Math.min(8, theme.radius), paddingHorizontal: 10, paddingVertical: 8, fontSize: 15 },
-  btn: { backgroundColor: colors.accent, borderRadius: Math.min(8, theme.radius), paddingVertical: 9, paddingHorizontal: 14, alignItems: 'center' },
-  btnQuiet: { backgroundColor: '#2d3b52' },
+  btn: { backgroundColor: colors.accent, ...theme.btn, paddingVertical: 9, paddingHorizontal: 14, alignItems: 'center' },
+  btnQuiet: { backgroundColor: colors.quiet },
   btnDanger: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.danger },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   off: { opacity: 0.35 },

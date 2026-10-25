@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { FlatList, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { ItemCard } from '@/components/ItemCard';
+import { Bar, Panel } from '@/components/ui';
 import { useGame } from '@/GameProvider';
 import { E } from '@/game';
 import { togglePin } from '@/workshop';
@@ -43,17 +44,15 @@ export default function Stock() {
 
   const header = (
     <View style={styles.header}>
-      <View style={styles.capRow}>
-        <Text style={styles.sub}>Shelf space</Text>
-        <Text style={styles.capText}>{view.used} / {view.cap}</Text>
-      </View>
-      <View style={styles.bar}><View style={[styles.barFill, { width: `${Math.min(100, (100 * view.used) / view.cap)}%` }]} /></View>
+      <Panel title="Stock Room" icon="📦" right={view.used + ' / ' + view.cap + ' shelves'}>
+      <Bar value={view.used / view.cap} height={10} />
 
       <Chips value={cat} options={CATS} onChange={setCat} />
       <Chips value={age} options={AGES} onChange={setAge} />
       <Chips value={shelf} options={SHELVES} onChange={setShelf} />
       <Chips value={sort} options={SORTS} onChange={setSort} />
-      <TextInput style={styles.search} value={q} onChangeText={setQ} placeholder="Search name or brand…" placeholderTextColor={colors.dim} autoCorrect={false} autoCapitalize="none" clearButtonMode="while-editing" />
+      <TextInput style={styles.search} value={q} onChangeText={setQ} placeholder="🔍  Search name or brand…" placeholderTextColor={colors.dim} autoCorrect={false} autoCapitalize="none" clearButtonMode="while-editing" />
+      </Panel>
 
       <View style={styles.pricing}>
         <View style={{ flex: 1 }}>
@@ -115,19 +114,19 @@ const styles = themed(() => ({
   bar: { height: 6, backgroundColor: colors.card, borderRadius: Math.min(3, theme.radius), overflow: 'hidden' },
   barFill: { height: 6, backgroundColor: colors.accent },
   chips: { gap: 8, paddingVertical: 2 },
-  chip: { backgroundColor: colors.card, borderRadius: Math.min(16, theme.radius), paddingHorizontal: 12, paddingVertical: 7 },
+  chip: { backgroundColor: colors.inset, borderRadius: Math.min(16, theme.radius), paddingHorizontal: 12, paddingVertical: 7 },
   chipOn: { backgroundColor: colors.accent },
   chipText: { color: colors.dim, fontSize: 13, fontWeight: '600' },
-  chipTextOn: { color: '#fff' },
-  search: { backgroundColor: colors.card, color: colors.text, borderRadius: Math.min(10, theme.radius), paddingHorizontal: 12, paddingVertical: 10, fontSize: 15 },
+  chipTextOn: { color: colors.onAccent },
+  search: { backgroundColor: colors.inset, color: colors.text, borderRadius: Math.min(10, theme.radius), paddingHorizontal: 12, paddingVertical: 10, fontSize: 15 },
   pricing: { flexDirection: 'row', alignItems: 'center', gap: 10, ...theme.box, padding: 12 },
   pricingTitle: { color: colors.text, fontWeight: '700', fontSize: 14 },
   pricingVal: { color: colors.text, fontWeight: '700', fontSize: 16, minWidth: 48, textAlign: 'center' },
-  step: { backgroundColor: colors.accent, borderRadius: Math.min(8, theme.radius), width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+  step: { backgroundColor: colors.accent, ...theme.btn, width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
   stepText: { color: '#fff', fontSize: 20, fontWeight: '700' },
   notice: { ...theme.box, padding: 14, gap: 8 },
   noticeTitle: { color: colors.text, fontWeight: '700', fontSize: 16 },
-  open: { backgroundColor: colors.accent, borderRadius: Math.min(10, theme.radius), padding: 12, alignItems: 'center' },
+  open: { backgroundColor: colors.accent, ...theme.btn, padding: 12, alignItems: 'center' },
   openOff: { opacity: 0.35 },
   openText: { color: '#fff', fontWeight: '700' },
   empty: { color: colors.dim, textAlign: 'center', marginTop: 24 },

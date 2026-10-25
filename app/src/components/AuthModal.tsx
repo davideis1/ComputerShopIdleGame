@@ -119,7 +119,7 @@ const styles = themed(() => ({
   error: { color: colors.danger, fontSize: 14 },
   fine: { color: colors.dim, fontSize: 12, lineHeight: 17 },
   finelink: { color: colors.accent, fontWeight: '600' },
-  btn: { backgroundColor: colors.accent, borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
+  btn: { backgroundColor: colors.accent, ...theme.btn, paddingVertical: 14, alignItems: 'center' },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
   link: { color: colors.accent, textAlign: 'center', fontSize: 14, fontWeight: '600' },
   dim: { color: colors.dim, textAlign: 'center', fontSize: 14 },

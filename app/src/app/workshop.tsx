@@ -8,10 +8,12 @@ import {
   saveBlueprint, setMarkup, SlotView, stepBpTarget, takeOver, togglePin,
 } from '@/workshop';
 import { colors, money, theme, themed } from '@/theme';
+import * as Haptics from 'expo-haptics';
+import { Bar, Panel, Stat } from '@/components/ui';
 
 function Btn({ label, onPress, disabled, quiet }: { label: string; onPress: () => void; disabled?: boolean; quiet?: boolean }) {
   return (
-    <Pressable onPress={onPress} disabled={disabled} style={({ pressed }) => [styles.btn, quiet && styles.btnQuiet, disabled && styles.off, pressed && { opacity: 0.7 }]}>
+    <Pressable onPress={() => { Haptics.selectionAsync().catch(() => {}); onPress(); }} disabled={disabled} style={({ pressed }) => [styles.btn, quiet && styles.btnQuiet, disabled && styles.off, pressed && { opacity: 0.7, transform: [{ scale: 0.97 }] }]}>
       <Text style={styles.btnText}>{label}</Text>
     </Pressable>
   );
@@ -21,7 +23,7 @@ function Chips<T extends string>({ value, options, onChange }: { value: T; optio
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
       {options.map((o) => (
         <Pressable key={o.id} onPress={() => onChange(o.id)} style={[styles.chip, value === o.id && styles.chipOn]}>
-          <Text style={[styles.chipText, value === o.id && { color: '#fff' }]}>{o.label}</Text>
+          <Text style={[styles.chipText, value === o.id && { color: colors.onAccent }]}>{o.label}</Text>
         </Pressable>
       ))}
     </ScrollView>
@@ -47,14 +49,14 @@ function BlueprintCard({ row, act, s }: { row: BpRow; act: (fn: () => void) => v
   return (
     <View style={styles.card}>
       <View style={styles.head}>
-        <Text style={styles.icon}>🛠️</Text>
-        <View style={{ flex: 1 }}>
+        <View style={styles.iconTile}><Text style={styles.icon}>🛠️</Text></View>
+        <View style={{ flex: 1, gap: 2 }}>
           <Text style={styles.name}>{bp.name}</Text>
           <Text style={styles.sub}>{row.spec}</Text>
         </View>
-        <View style={{ alignItems: 'flex-end' }}>
+        <View style={styles.stockBox}>
           <Text style={styles.stock}>{it.stock}</Text>
-          <Text style={styles.sub}>in stock</Text>
+          <Text style={styles.stockLbl}>in stock</Text>
         </View>
       </View>
       <View style={styles.tags}>
@@ -63,9 +65,9 @@ function BlueprintCard({ row, act, s }: { row: BpRow; act: (fn: () => void) => v
         {row.auto && <Text style={styles.tag}>📐 Auto-designed</Text>}
       </View>
       <View style={styles.nums}>
-        <Text style={styles.num}>Cost <Text style={styles.b}>{money(row.cost)}</Text></Text>
-        <Text style={styles.num}>Price <Text style={styles.b}>{money(row.price)}</Text></Text>
-        <Text style={styles.num}>Profit <Text style={[styles.b, { color: row.profit >= 0 ? colors.good : colors.danger }]}>{money(row.profit)}</Text></Text>
+        <View><Text style={styles.numLbl}>Cost</Text><Text style={styles.numVal}>{money(row.cost)}</Text></View>
+        <View><Text style={styles.numLbl}>Price</Text><Text style={styles.numVal}>{money(row.price)}</Text></View>
+        <View style={{ alignItems: 'flex-end' }}><Text style={styles.numLbl}>Profit / PC</Text><Text style={[styles.numVal, { color: row.profit >= 0 ? colors.good : colors.danger }]}>{money(row.profit)}</Text></View>
       </View>
       <Stepper
         label="Markup"
@@ -116,7 +118,7 @@ function PartPicker({ slot, onPick }: { slot: SlotView; onPick: (id: string) => 
         <View style={styles.optList}>
           {slot.options.map((o) => (
             <Pressable key={o.id} onPress={() => { onPick(o.id); setOpen(false); }} style={[styles.opt, o.id === slot.selected && styles.optOn]}>
-              <Text style={[styles.optText, o.id === slot.selected && { color: '#fff' }]}>{o.label}</Text>
+              <Text style={[styles.optText, o.id === slot.selected && { color: colors.onAccent }]}>{o.label}</Text>
             </Pressable>
           ))}
         </View>
@@ -142,8 +144,7 @@ export default function Workshop() {
     const l = v.locked;
     return (
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.panel}>
-          <Text style={styles.panelTitle}>Build Workshop</Text>
+        <Panel title="Build Workshop" icon="🔧">
           {l.kind === 'year' ? (
             <Text style={styles.body}>🔒 Custom PC building becomes possible in {l.year}.{'\n'}For now, stick to reselling name-brand prebuilts.</Text>
           ) : (
@@ -152,34 +153,27 @@ export default function Workshop() {
               <Btn label={'Build the Workshop — ' + money(l.cost)} disabled={!l.canBuy} onPress={() => act(() => buildWorkshop(s))} />
             </>
           )}
-        </View>
+        </Panel>
       </ScrollView>
     );
   }
 
   return (
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <View style={styles.panel}>
-        <Text style={styles.panelTitle}>Workshop</Text>
+      <Panel title="Workshop" icon="🔧">
         <View style={styles.grid}>
-          {v.stats.map((st) => (
-            <View key={st.label} style={styles.mini}>
-              <Text style={styles.sub}>{st.label}</Text>
-              <Text style={styles.miniVal}>{st.value}</Text>
-            </View>
-          ))}
+          {v.stats.map((st) => <Stat key={st.label} label={st.label} value={st.value} style={styles.mini} />)}
         </View>
         <Text style={styles.sub}>{v.hint}</Text>
-      </View>
+      </Panel>
 
-      <Text style={styles.section}>Your Blueprints</Text>
+      <View style={styles.sectionRow}><Text style={styles.section}>Your Blueprints</Text><View style={styles.sectionRule} /></View>
       <Chips value={filter} options={BP_FILTERS} onChange={setFilter} />
       <Chips value={sort} options={BP_SORTS} onChange={setSort} />
       {!v.rows.length && <Text style={styles.empty}>{v.totalBps ? 'Nothing matches this filter.' : 'No blueprints yet — design your first PC below.'}</Text>}
       {v.rows.map((r) => <BlueprintCard key={r.it.key} row={r} act={act} s={s} />)}
 
-      <View style={styles.panel}>
-        <Text style={styles.panelTitle}>Design a New PC</Text>
+      <Panel title="Design a New PC" icon="📐">
         <View style={styles.field}>
           <Text style={styles.ctlLabel}>Model name</Text>
           <TextInput style={styles.input} value={design.name} maxLength={28} onChangeText={(name) => setDesign({ ...design, name })} />
@@ -196,49 +190,49 @@ export default function Workshop() {
         />
         <View style={styles.grid}>
           {[['Build cost', money(v.info.cost)], ['Sell price', money(v.info.price)], ['Profit / PC', money(v.info.profit)], ['Performance', v.info.perf + '%']].map(([label, value]) => (
-            <View key={label} style={styles.mini}>
-              <Text style={styles.sub}>{label}</Text>
-              <Text style={styles.miniVal}>{value}</Text>
-            </View>
+            <Stat key={label} label={label} value={value} style={styles.mini} tone={label === 'Profit / PC' ? (v.info.profit >= 0 ? 'good' : 'bad') : undefined} />
           ))}
         </View>
+        <Bar value={Math.min(1, Number(v.info.perf) / 150)} height={8} />
         <Btn
           label="Save blueprint"
           disabled={v.full}
           onPress={() => act(() => { const r = saveBlueprint(s, design, v.parts); setNote({ ok: r.ok, text: r.msg }); })}
         />
         <Text style={[styles.sub, note && { color: note.ok ? colors.good : colors.danger }]}>{note ? note.text : v.msg}</Text>
-      </View>
+      </Panel>
     </ScrollView>
   );
 }
 
 const styles = themed(() => ({
   content: { padding: 16, paddingBottom: 40, gap: 12 },
-  panel: { ...theme.box, padding: 14, gap: 10 },
-  panelTitle: { color: colors.text, fontSize: 16, fontWeight: '700' },
-  section: { color: colors.text, fontSize: 18, fontWeight: '700', marginTop: 6 },
+  sectionRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 },
+  section: { color: colors.onBg, fontSize: 18, fontWeight: '800', fontFamily: theme.titleFont },
+  sectionRule: { flex: 1, height: 2, backgroundColor: colors.onBgDim, opacity: 0.35 },
   body: { color: colors.dim, fontSize: 14, lineHeight: 20 },
   sub: { color: colors.dim, fontSize: 12 },
-  empty: { color: colors.dim, textAlign: 'center', marginVertical: 12 },
+  empty: { color: colors.onBgDim, textAlign: 'center', marginVertical: 12 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  mini: { backgroundColor: colors.inset, borderRadius: Math.min(10, theme.radius), padding: 10, width: '48.5%' },
-  miniVal: { color: colors.text, fontSize: 17, fontWeight: '700' },
+  mini: { width: '48.5%' },
   chips: { gap: 8, paddingVertical: 2 },
-  chip: { backgroundColor: colors.card, borderRadius: Math.min(16, theme.radius), paddingHorizontal: 12, paddingVertical: 7 },
+  chip: { backgroundColor: colors.card, borderRadius: Math.min(16, theme.radius), paddingHorizontal: 12, paddingVertical: 7, ...(theme.id === 'win95' ? theme.quietBtn : {}) },
   chipOn: { backgroundColor: colors.accent },
-  chipText: { color: colors.dim, fontSize: 13, fontWeight: '600' },
+  chipText: { color: colors.text, fontSize: 13, fontWeight: '600' },
   card: { ...theme.box, padding: 14, gap: 10 },
   head: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  icon: { fontSize: 28 },
-  name: { color: colors.text, fontSize: 16, fontWeight: '700' },
-  stock: { color: colors.text, fontSize: 22, fontWeight: '700' },
+  iconTile: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.inset, borderRadius: Math.min(12, theme.radius + 2) },
+  icon: { fontSize: 26 },
+  name: { color: colors.text, fontSize: 16, fontWeight: '700', fontFamily: theme.titleFont },
+  stockBox: { alignItems: 'center', minWidth: 58, paddingHorizontal: 8, paddingVertical: 4, backgroundColor: colors.inset, borderRadius: Math.min(10, theme.radius) },
+  stock: { color: colors.text, fontSize: 20, fontWeight: '800', fontFamily: theme.monoFont },
+  stockLbl: { color: colors.dim, fontSize: 10 },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   tag: { color: colors.dim, backgroundColor: colors.inset, borderRadius: Math.min(6, theme.radius), paddingHorizontal: 8, paddingVertical: 3, fontSize: 12, overflow: 'hidden' },
-  tagWarn: { color: '#e8b04a' },
+  tagWarn: { color: colors.warn },
   nums: { flexDirection: 'row', justifyContent: 'space-between' },
-  num: { color: colors.dim, fontSize: 13 },
-  b: { color: colors.text, fontWeight: '700' },
+  numLbl: { color: colors.dim, fontSize: 11 },
+  numVal: { color: colors.text, fontSize: 15, fontWeight: '700', fontFamily: theme.monoFont },
   stepper: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   stepRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   stepVal: { color: colors.text, fontSize: 16, fontWeight: '700', minWidth: 52, textAlign: 'center' },
@@ -250,8 +244,8 @@ const styles = themed(() => ({
   opt: { paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: RNStyleSheet.hairlineWidth, borderBottomColor: colors.card },
   optOn: { backgroundColor: colors.accent },
   optText: { color: colors.dim, fontSize: 13 },
-  btn: { backgroundColor: colors.accent, borderRadius: Math.min(8, theme.radius), paddingVertical: 9, paddingHorizontal: 14, alignItems: 'center' },
-  btnQuiet: { backgroundColor: '#2d3b52' },
+  btn: { backgroundColor: colors.accent, ...theme.btn, paddingVertical: 9, paddingHorizontal: 14, alignItems: 'center' },
+  btnQuiet: { backgroundColor: colors.quiet, ...theme.quietBtn },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
   off: { opacity: 0.35 },
 }));

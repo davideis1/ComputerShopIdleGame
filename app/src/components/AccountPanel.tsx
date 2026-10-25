@@ -4,6 +4,7 @@ import { useAuth } from '@/AuthProvider';
 import { useGame, SyncStatus } from '@/GameProvider';
 import { AuthModal } from '@/components/AuthModal';
 import { colors, theme, themed } from '@/theme';
+import { Panel } from '@/components/ui';
 
 const statusLine = (s: SyncStatus, at: number | null): string => {
   const when = at ? new Date(at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
@@ -26,8 +27,7 @@ export function AccountPanel() {
   const [busy, setBusy] = useState(false);
 
   return (
-    <View style={styles.panel}>
-      <Text style={styles.title}>Account</Text>
+    <Panel title="Account" icon="👤">
       {!!auth.notice && <Text style={styles.warn}>{auth.notice}</Text>}
       {auth.status !== 'in' || !auth.user ? (
         <>
@@ -66,7 +66,7 @@ export function AccountPanel() {
       <AuthModal visible={authOpen !== null} initialMode={authOpen ?? 'in'} onClose={() => setAuthOpen(null)} />
       <DeleteModal visible={delOpen} onClose={() => setDelOpen(false)} />
       <EmailModal visible={mailOpen} onClose={() => setMailOpen(false)} />
-    </View>
+    </Panel>
   );
 }
 
@@ -162,10 +162,10 @@ const styles = themed(() => ({
   body: { color: colors.dim, fontSize: 14, lineHeight: 20 },
   strong: { color: colors.text, fontWeight: '700' },
   sub: { color: colors.dim, fontSize: 12, lineHeight: 17 },
-  warn: { color: '#e8b04a', fontSize: 13, lineHeight: 18 },
+  warn: { color: colors.warn, fontSize: 13, lineHeight: 18 },
   row: { flexDirection: 'row', gap: 10 },
-  btn: { flex: 1, backgroundColor: colors.accent, borderRadius: Math.min(8, theme.radius), paddingVertical: 11, alignItems: 'center' },
-  quiet: { backgroundColor: '#2d3b52' },
+  btn: { flex: 1, backgroundColor: colors.accent, ...theme.btn, paddingVertical: 11, alignItems: 'center' },
+  quiet: { backgroundColor: colors.quiet, ...theme.quietBtn },
   danger: { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.danger },
   dangerFill: { backgroundColor: colors.danger },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
