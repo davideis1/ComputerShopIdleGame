@@ -269,17 +269,22 @@
   }
 
   const isAddon = (k) => k === 'game' || k === 'acc' || k === 'cgame' || k === 'cacc';
+  const sizeMemo = new Map(); // item sizes never change; this is on the hot path (every purchase checks shelf room)
   function itemSize(key) { // shelf spaces per unit: a PC is 1, small items less
-    if (CS.Con && (key[0] === 'c' || key[0] === 'x' || key[0] === 'y')) return CS.Con.size(key);
-    if (key[0] === 'g' || key[0] === 'a') {
+    let v = sizeMemo.get(key);
+    if (v !== undefined) return v;
+    if (CS.Con && (key[0] === 'c' || key[0] === 'x' || key[0] === 'y')) v = CS.Con.size(key);
+    else if (key[0] === 'g' || key[0] === 'a') {
       const a = CS.ADDON_BY_ID[key.slice(2)];
-      return a ? CS.GROUP_BY_ID[a.group].size : 1;
-    }
-    return 1;
+      v = a ? CS.GROUP_BY_ID[a.group].size : 1;
+    } else v = 1;
+    sizeMemo.set(key, v);
+    return v;
   }
   function slotsUsed(s) {
     let n = 0;
-    for (const k in s.stock) n += s.stock[k] * itemSize(k);
+    const st = s.stock;
+    for (const k in st) { const q = st[k]; if (q) n += q * itemSize(k); } // most keys are long-gone items at 0
     return n;
   }
   const totalStock = (s) => Math.ceil(slotsUsed(s) - 1e-9);
@@ -339,11 +344,13 @@
   /* ---------- actions ---------- */
   function buyUnits(s, it, n, d) {
     if (!it.buyable) return 0;
-    const room = Math.floor((d.cap - slotsUsed(s) + 1e-9) / (it.size || 1));
+    const used = d.used != null ? d.used : slotsUsed(s);
+    const room = Math.floor((d.cap - used + 1e-9) / (it.size || 1));
     const afford = Math.floor(s.cash / it.cost);
     let k = Math.max(0, Math.min(n, room, afford));
     if (it.allocCap != null) k = Math.min(k, Math.max(0, it.allocCap - it.stock)); // launch allocation
     if (!k) return 0;
+    if (d.used != null) d.used += k * (it.size || 1);
     s.cash -= k * it.cost;
     s.stock[it.key] = (s.stock[it.key] || 0) + k;
     it.stock += k;
@@ -466,6 +473,7 @@
   function serviceAt(y) {
     const k = Math.round(y * 50);
     if (svcCache.k === k) return svcCache.v;
+    y = k / 50; // the bucket's own year, so the result doesn't depend on what ran before
     const list = CS.SERVICES.filter((x) => y >= x.from && y < x.to);
     const w = list.reduce((a, x) => a + x.w, 0);
     const avg = w > 0 ? list.reduce((a, x) => a + x.w * x.price, 0) / w : 0;
@@ -517,6 +525,26 @@
       claimsPaid: s.stats.claimsPaid || 0,
       claimsDue: s.claims || 0,
     };
+  }
+  /** What a phone should remind the player about if they leave now: [{ id, seconds (from now), title, body }].
+      Used by the app's local notifications (app/src/notify.ts). */
+  function remindersAt(s) {
+    const d = derive(s);
+    const out = [];
+    const cap = d.offlineCap;
+    out.push({ id: 'night', seconds: cap, title: '🌙 The night shift has clocked off', body: s.name + ' traded for ' + Math.round(cap / 360) / 10 + ' hours without you. Come back to collect the takings and restock.' });
+    // nobody restocks (no clerk, no buyers): when do the PCs on the shelf run out? (~half of served shoppers buy one)
+    if (!d.restock && !(d.mgr && d.mgr.count)) {
+      const pcs = getItems(s, d).filter((i) => (i.kind === 'pre' || i.kind === 'bp') && i.stock > 0).reduce((a, i) => a + i.stock, 0);
+      const rate = Math.min(d.lambda, d.serve) * 0.5;
+      const secs = rate > 0 ? pcs / rate : Infinity;
+      if (pcs > 0 && secs > 120 && secs < cap) out.push({ id: 'empty', seconds: secs, title: '🛒 Your shelves are probably empty', body: 'Nobody is restocking while you are away. Hire a Stock Clerk so the shop keeps selling.' });
+    }
+    // the next console launch while away (the calendar crawls offline)
+    const perSec = (C.OFFLINE_CAL_RATE * calSpeed(s)) / C.YEAR_SECONDS;
+    const next = d.aisleConsole && CS.PLATFORMS ? CS.PLATFORMS.filter((p) => p.year > d.y && (p.year - d.y) / perSec < cap).sort((a, b) => a.year - b.year)[0] : null;
+    if (next) out.push({ id: 'launch', seconds: (next.year - d.y) / perSec, title: '🎮 ' + next.name + ' launches today', body: 'Queues round the block and stock is limited. Get your allocation in.' });
+    return out.filter((r) => r.seconds >= 60);
   }
   /** Warranty claims trickle in over time; returns what was paid this step. */
   function payClaims(s, dt) {
@@ -572,6 +600,7 @@
     s.hustleCd = Math.max(0, s.hustleCd - dt);
     const d = derive(s);
     const items = getItems(s, d);
+    d.used = slotsUsed(s); // shelf space in use, kept current by this step's purchases (all of which come before sales)
     let spent = 0;
 
     // purchasing managers place their own orders
@@ -598,9 +627,10 @@
       for (const it of items) {
         if (s.bAcc < 1) break;
         if (it.kind !== 'bp' || !it.canBuild || it.stock >= it.target) continue;
-        const room = Math.floor(d.cap - slotsUsed(s) + 1e-9);
+        const room = Math.floor(d.cap - d.used + 1e-9);
         const k = Math.max(0, Math.min(Math.floor(s.bAcc), it.target - it.stock, room, Math.floor(s.cash / it.cost)));
         if (!k) continue;
+        d.used += k;
         s.cash -= k * it.cost;
         s.stock[it.key] = (s.stock[it.key] || 0) + k;
         it.stock += k;
@@ -731,7 +761,7 @@
   }
 
   function advance(s, seconds, calRate, rep) {
-    const h = seconds > 7200 ? 5 : seconds > 300 ? 2 : 1;
+    const h = seconds > 7200 ? 10 : seconds > 300 ? 2 : 1; // long gaps take 10 s steps: rate-based accumulators make that ~1-3% off and 40% faster
     let left = seconds;
     let fresh = [];
     while (left > 1e-9) {
@@ -743,8 +773,16 @@
     return fresh;
   }
 
-  /** Catch up after the game was closed. Returns a report for the welcome-back screen. */
+  /** Catch up after the game was closed, in one go. Returns a report for the welcome-back screen. */
   function offline(s, elapsed) {
+    const job = offlineStart(s, elapsed);
+    offlineRun(job, Infinity);
+    return job.rep;
+  }
+  /** The same catch-up in slices, so a phone can keep drawing frames (and show progress) while it runs:
+      const job = offlineStart(s, secs); while (!offlineRun(job, 200)) await nextFrame(); use job.rep.
+      Same steps, same result as offline(). job.done / job.total give the progress. */
+  function offlineStart(s, elapsed) {
     const d0 = derive(s);
     const eff = Math.max(0, Math.min(elapsed, d0.offlineCap));
     const rep = newReport();
@@ -754,12 +792,27 @@
     rep.cap = d0.offlineCap;
     rep.cash0 = s.cash;
     rep.year0 = d0.y;
+    rep.ach = [];
     s.stats.offline += eff;
-    rep.ach = advance(s, eff, C.OFFLINE_CAL_RATE, rep);
     s.lastAway = { elapsed, cap: d0.offlineCap, capped: elapsed > eff };
-    rep.cash1 = s.cash;
-    rep.year1 = yearOf(s);
-    return rep;
+    return { s, rep, total: eff, left: eff, h: eff > 7200 ? 10 : eff > 300 ? 2 : 1, finished: false };
+  }
+  /** Runs up to maxSteps steps of a catch-up job. Returns true once it is finished (the report is then complete). */
+  function offlineRun(job, maxSteps) {
+    let n = 0;
+    while (job.left > 1e-9 && n < maxSteps) {
+      const dt = Math.min(job.h, job.left);
+      const a = step(job.s, dt, C.OFFLINE_CAL_RATE, job.rep);
+      if (a) job.rep.ach = job.rep.ach.concat(a);
+      job.left -= dt;
+      n++;
+    }
+    if (job.left <= 1e-9 && !job.finished) {
+      job.finished = true;
+      job.rep.cash1 = job.s.cash;
+      job.rep.year1 = yearOf(job.s);
+    }
+    return job.finished;
   }
 
   const HUSTLE_CD = 3; // seconds between hustles
@@ -895,8 +948,8 @@
   CS.E = {
     SEG, K, ADDON_SCALE, kindBoost, isAddon, sellUnits, itemWeight, popularityMap, infl, refPrice, newState, migrate, serialize, deserialize, yearOf, eraAt, eventsAt, derive,
     partAvail, partRel, partPrice, bpInfo, designInfo, totalStock, getItems, buy, buyUnits, setTarget,
-    upLevel, upCost, upUnlocked, buyUp, createBp, deleteBp, step, advance, offline, hustle, newProducts,
-    HUSTLE_CD, hustleStreak, reputationView, repMult, serviceAt, serviceView, SVC_ITEM, newReport, checkAch, dateStr, unitsSold, pendingTokens, nextTokenAt, tokenAt, prestige, tokenCost, buyTokenUp, tl, calSpeed, startYear,
+    upLevel, upCost, upUnlocked, buyUp, createBp, deleteBp, step, advance, offline, offlineStart, offlineRun, hustle, newProducts,
+    HUSTLE_CD, hustleStreak, remindersAt, reputationView, repMult, serviceAt, serviceView, SVC_ITEM, newReport, checkAch, dateStr, unitsSold, pendingTokens, nextTokenAt, tokenAt, prestige, tokenCost, buyTokenUp, tl, calSpeed, startYear,
   };
   if (typeof module !== 'undefined') module.exports = CS;
 })(typeof window !== 'undefined' ? window : globalThis);

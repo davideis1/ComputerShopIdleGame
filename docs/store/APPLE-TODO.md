@@ -25,7 +25,7 @@ Details for each step are in `RELEASE.md`, `LISTING.md` and `game-center.md`.
 - [ ] `cd app && npx eas-cli@latest login && npx eas-cli@latest init` (writes the EAS project id into app.json; commit it).
 - [ ] `npx eas-cli@latest build --platform ios --profile production` (EAS creates certificates and the provisioning profile).
 - [ ] `npx eas-cli@latest submit --platform ios --latest`, then install from TestFlight.
-- [ ] Test on a real iPhone: new game, offline catch-up, sign up / sign in / cloud sync, password reset email, Game Center, haptics, all four themes.
+- [ ] Test on a real iPhone: new game, offline catch-up, sign up / sign in / cloud sync, password reset email, Game Center, haptics, all five themes, reminders (switch on in Menu → Look, leave the app, check the night-shift notification), the catch-up progress bar after a long break.
 
 ## Store listing & review
 - [ ] Fill the listing from `LISTING.md`: description, keywords, privacy policy and support URLs, App Privacy answers, age rating, review notes (demo account).
