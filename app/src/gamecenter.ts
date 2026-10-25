@@ -1,9 +1,9 @@
 // Apple Game Center: sign-in and achievements. The game's trophies (CS.ACH) are the achievements; their ids are the
 // Game Center ids too, so App Store Connect must use exactly the ids in docs/store/game-center.md.
 // Everything here is a quiet no-op without Game Center (Android, Expo Go, player signed out or never signed in).
-import CS from '@core';
 import GC, { GcPlayer } from '../modules/game-center';
 import { GameState } from './game';
+import { trophyProgress } from './trophies';
 import type { GcProofData } from './api';
 
 export const gcAvailable = !!GC;
@@ -33,19 +33,10 @@ export async function gcStart() {
   try { setPlayer(await GC.authenticate()); } catch { /* no Game Center on this device */ }
 }
 
-/** Percent complete per achievement: 100 once earned, else its progress in whole steps. */
-export function gcProgress(s: GameState): Record<string, number> {
-  const out: Record<string, number> = {};
-  for (const a of CS.ACH) {
-    out[a.id] = s.ach[a.id] ? 100 : Math.max(0, Math.min(99, Math.floor((a.p ? a.p(s) : 0) * 100)));
-  }
-  return out;
-}
-
 /** Report whatever rose since the last report. Cheap to call often; one request at a time. */
 export async function gcReport(s: GameState) {
   if (!GC || !player.authenticated || sending || !s) return;
-  const all = gcProgress(s), rise: Record<string, number> = {};
+  const all = trophyProgress(s), rise: Record<string, number> = {};
   for (const id in all) if (all[id] > (sent[id] ?? 0)) rise[id] = all[id];
   if (!Object.keys(rise).length) return;
   sending = true;

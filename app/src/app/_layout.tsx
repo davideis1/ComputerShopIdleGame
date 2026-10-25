@@ -2,7 +2,7 @@ import { Tabs } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Fragment, ReactNode, useEffect } from 'react';
-import { Text, View } from 'react-native';
+import { Platform, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { PageBackground } from '@/components/ui';
 import { AuthProvider, useAuth } from '@/AuthProvider';
@@ -76,7 +76,7 @@ function AppTabs() {
             : { backgroundColor: theme.id === 'rgb' ? '#0d0f1d' : colors.card, borderTopColor: theme.id === 'rgb' ? '#2d3566' : colors.edge },
           tabBarActiveTintColor: colors.accent,
           tabBarInactiveTintColor: colors.dim,
-          tabBarLabelStyle: { fontSize: 9 }, // seven tabs must fit on a phone
+          tabBarLabelStyle: { fontSize: Platform.OS === 'android' ? 8 : 9 }, // eight tabs must fit on a phone (Roboto runs wider than iOS's font)
           tabBarItemStyle: { paddingHorizontal: 0 },
           sceneStyle: { backgroundColor: 'transparent' }, // the gradient page background shows through
         }}

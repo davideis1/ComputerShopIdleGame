@@ -53,7 +53,8 @@ function boxFor(id: ThemeId, p: Palette): ViewStyle {
     case 'xp': return { ...base, borderWidth: 2, borderColor: p.edge };
     case 'flat': return { ...base, shadowColor: '#101828', shadowOpacity: 0.14, shadowRadius: 4, shadowOffset: { width: 0, height: 1 }, elevation: 2 };
     case 'rgb': return { ...base, borderWidth: 1, borderColor: '#2d3566' };
-    case 'holo': return { ...base, borderWidth: 1, borderColor: 'rgba(255,255,255,0.95)', shadowColor: '#5a46be', shadowOpacity: 0.18, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 3 };
+    // Android draws the elevation shadow through a see-through background (faint boxes behind headings): solid there
+    case 'holo': return { ...base, ...(Platform.OS === 'android' ? { backgroundColor: '#fbf9ff' } : {}), borderWidth: 1, borderColor: 'rgba(255,255,255,0.95)', shadowColor: '#5a46be', shadowOpacity: 0.18, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 3 };
   }
 }
 

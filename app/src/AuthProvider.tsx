@@ -2,7 +2,7 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import * as api from './api';
-import { gcProof } from './gamecenter';
+import { gsLogin } from './gameservices';
 
 type User = api.ApiUser;
 type Result = { ok: true } | { ok: false; message: string };
@@ -16,11 +16,12 @@ type Ctx = {
   setEmail: (email: string, password: string) => Promise<Result>;
   /** Ends this device's session. Pass `expired` when the server already rejected the token. */
   signOut: (expired?: boolean) => Promise<void>;
-  /** Accounts without a password (made with Game Center) pass null and prove themselves with Game Center. */
+  /** Accounts without a password (made with Game Center / Google Play Games) pass null and prove themselves with it. */
   deleteAccount: (password: string | null) => Promise<Result>;
-  signInGameCenter: () => Promise<Result & { created?: boolean }>;
-  linkGameCenter: () => Promise<Result>;
-  unlinkGameCenter: () => Promise<Result>;
+  /** The platform's game service (Game Center on iPhone, Google Play Games on Android). */
+  signInGameService: () => Promise<Result & { created?: boolean }>;
+  linkGameService: () => Promise<Result>;
+  unlinkGameService: () => Promise<Result>;
   setPassword: (newPassword: string, password?: string) => Promise<Result>;
   /** Set when the server rejected our token on its own ("session expired"); the UI shows it once. */
   notice: string | null;
@@ -120,30 +121,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     SecureStore.setItemAsync(USER_KEY, JSON.stringify(u)).catch(() => {});
   }, []);
 
-  const signInGameCenter = useCallback(async () => {
-    const g = await gcProof();
-    if ('error' in g) return g.message ? { ok: false, message: g.message } : fail(g.error);
-    const r = await api.gcSignIn(g.proof, g.name, label());
+  const signInGameService = useCallback(async () => {
+    const g = await gsLogin();
+    if ('error' in g) return g.message ? { ok: false as const, message: g.message } : fail(g.error);
+    const r = g.kind === 'gc' ? await api.gcSignIn(g.proof, g.name, label()) : await api.pgSignIn(g.code, g.name, label());
     if (!r.ok) return fail(r.error);
     await adopt(r.data.token, r.data.user);
     return { ok: true as const, created: !!r.data.created };
   }, [adopt]);
 
-  const linkGameCenter = useCallback(async (): Promise<Result> => {
+  const linkGameService = useCallback(async (): Promise<Result> => {
     const t = tokenRef.current;
     if (!t) return fail('bad_token');
-    const g = await gcProof();
+    const g = await gsLogin();
     if ('error' in g) return g.message ? { ok: false, message: g.message } : fail(g.error);
-    const r = await api.gcLink(t, g.proof);
+    const r = g.kind === 'gc' ? await api.gcLink(t, g.proof) : await api.pgLink(t, g.code);
     if (!r.ok) return fail(r.error);
     keepUser(r.data.user);
     return { ok: true };
   }, [keepUser]);
 
-  const unlinkGameCenter = useCallback(async (): Promise<Result> => {
+  const unlinkGameService = useCallback(async (): Promise<Result> => {
     const t = tokenRef.current;
     if (!t) return fail('bad_token');
-    const r = await api.gcUnlink(t);
+    const r = Platform.OS === 'ios' ? await api.gcUnlink(t) : await api.pgUnlink(t);
     if (!r.ok) return fail(r.error);
     keepUser(r.data.user);
     return { ok: true };
@@ -161,20 +162,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const deleteAccount = useCallback(async (password: string | null): Promise<Result> => {
     const t = tokenRef.current;
     if (!t) return fail('bad_token');
-    let proof: api.GcProofData | undefined;
+    let proof: api.GcProofData | undefined, code: string | undefined;
     if (password === null) {
-      const g = await gcProof();
+      const g = await gsLogin();
       if ('error' in g) return g.message ? { ok: false, message: g.message } : fail(g.error);
-      proof = g.proof;
+      if (g.kind === 'gc') proof = g.proof; else code = g.code;
     }
-    const r = await api.deleteAccount(t, password ?? '', proof);
+    const r = await api.deleteAccount(t, password ?? '', proof, code);
     if (!r.ok) return fail(r.error);
     await clear();
     return { ok: true };
   }, [clear]);
 
   return (
-    <AuthContext.Provider value={{ status, token, user, signIn, signUp, forgot, setEmail, signOut, deleteAccount, signInGameCenter, linkGameCenter, unlinkGameCenter, setPassword, notice, clearNotice: () => setNotice(null) }}>
+    <AuthContext.Provider value={{ status, token, user, signIn, signUp, forgot, setEmail, signOut, deleteAccount, signInGameService, linkGameService, unlinkGameService, setPassword, notice, clearNotice: () => setNotice(null) }}>
       {children}
     </AuthContext.Provider>
   );

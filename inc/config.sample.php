@@ -23,6 +23,12 @@ return [
     // 'public_url'  => 'https://example.com',  // optional: base of the link in reset emails (default: this request's host)
     'forgot_max_per_ip_hour' => 5,
 
+    // Sign in with Google Play Games (Android app). The OAuth *web* client of the "Game server" credential in the Play Console
+    // (Play Games Services -> Configuration); see docs/store/play-games.md. Leave empty until it exists: the endpoint then
+    // answers pg_not_configured.
+    'pg_client_id'     => '',
+    'pg_client_secret' => '',
+
     // How long a login lasts (seconds). Idle games are left open for days, so 30 days.
     'session_lifetime' => 2592000,
 

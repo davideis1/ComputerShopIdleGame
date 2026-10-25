@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!-- placeholder until the Game Services project exists; sign-in just reports "not signed in" -->
+  <string name="game_services_project_id" translatable="false">0</string>
+</resources>

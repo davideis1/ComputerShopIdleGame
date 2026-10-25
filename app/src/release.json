@@ -7,6 +7,15 @@
  },
  "changelog": [
   {
+   "build": "next",
+   "title": "Android and Google Play Games",
+   "changes": [
+    "The Android app is up to date with everything above, including the Service tab, reminders and the new look.",
+    "On Android your trophies become Google Play Games achievements, and you can sign in with Google Play Games: no username or password needed, and your shop syncs to the cloud.",
+    "Already have an account? Link Google Play Games in Menu → Account to sign in on any Android phone."
+   ]
+  },
+  {
    "build": 29,
    "title": "The website catches up with the app",
    "changes": [

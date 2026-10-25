@@ -1,0 +1,24 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="expo.modules.mbplaygames" >
+4
+5    <uses-sdk android:minSdkVersion="24" />
+5-->INJECTED
+5-->INJECTED
+6
+7    <application>
+7-->/Users/davideisenberg/Documents/ComputerShopIdleGame/app/modules/play-games/android/src/main/AndroidManifest.xml:2:3-6:17
+8
+9        <!--
+10         the Play Console's Game Services project id; the app overrides the placeholder in res/values via
+11         app/plugins/withPlayGames.js (Play Console -> Play Games Services -> Configuration)
+12        -->
+13        <meta-data
+13-->/Users/davideisenberg/Documents/ComputerShopIdleGame/app/modules/play-games/android/src/main/AndroidManifest.xml:5:5-118
+14            android:name="com.google.android.gms.games.APP_ID"
+14-->/Users/davideisenberg/Documents/ComputerShopIdleGame/app/modules/play-games/android/src/main/AndroidManifest.xml:5:16-66
+15            android:value="@string/game_services_project_id" />
+15-->/Users/davideisenberg/Documents/ComputerShopIdleGame/app/modules/play-games/android/src/main/AndroidManifest.xml:5:67-115
+16    </application>
+17
+18</manifest>

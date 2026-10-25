@@ -9,9 +9,11 @@ require __DIR__ . '/../inc/gamecenter.php';
 $uid = (int) $user['id'];
 
 if (!empty($body['unlink'])) {
-    $st = db()->prepare('SELECT has_password FROM users WHERE id = ?');
+    $st = db()->prepare('SELECT has_password, pg_player_id FROM users WHERE id = ?');
     $st->execute([$uid]);
-    if (!(int) $st->fetchColumn()) {
+    $u = $st->fetch();
+    // without a password the account needs another way in: Play Games counts
+    if (!(int) $u['has_password'] && $u['pg_player_id'] === null) {
         json_out(['ok' => false, 'error' => 'needs_password'], 409);
     }
     db()->prepare('UPDATE users SET gc_player_id = NULL WHERE id = ?')->execute([$uid]);

@@ -50,7 +50,7 @@ The build appears in TestFlight after processing. Test it on a real iPhone, then
    `eas submit --platform android` works if you add a Google service-account key (see Expo's docs).
 4. New personal developer accounts must run a **closed test with a minimum number of testers for a minimum number of days
    (12 testers for 14 days at the time of writing; check the current rule)** before they can publish to production.
-5. The app has **never been run on Android** (no emulator here). Test the internal-testing build on a real Android phone first.
+5. The app now runs on an Android 17 emulator (debug and release builds, 2026-10-25), but has not been on a real Android phone: test the internal-testing build on one first. The checklist is `ANDROID-TODO.md`; Google Play Games setup is `play-games.md`.
 
 ## 5. Versioning
 `version` in `app.json` is the user-visible number (1.0.0). Build numbers (iOS `buildNumber`, Android `versionCode`) are incremented

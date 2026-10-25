@@ -1,0 +1,36 @@
+// Per-trophy rows shared by the store tools (gc-achievements.js for Game Center, pg-achievements.js for Google Play Games):
+//   trophy id -> [points, badge label, badge caption, earned description]
+// Points are valid on both: Game Center takes <= 100 each and <= 1000 in total; Play Games a multiple of 5 from 5 to 200.
+'use strict';
+module.exports = {
+  a_first: [5, '1', 'SOLD', 'You sold your very first computer.'],
+  a_s100: [10, '100', 'SOLD', 'You sold 100 computers.'],
+  a_s1k: [25, '1K', 'SOLD', 'You sold 1,000 computers.'],
+  a_s10k: [50, '10K', 'SOLD', 'You sold 10,000 computers.'],
+  a_s100k: [75, '100K', 'SOLD', 'You sold 100,000 computers.'],
+  a_s1m: [90, '1M', 'SOLD', 'You sold a million computers.'],
+  a_c10k: [10, '$10K', 'CASH', 'You had $10,000 in the till.'],
+  a_c1m: [25, '$1M', 'CASH', 'You had a million dollars in the bank.'],
+  a_c1b: [75, '$1B', 'CASH', 'You had a billion dollars in the bank.'],
+  a_c1t: [90, '$1T', 'CASH', 'You had a trillion dollars in the bank.'],
+  a_y1996: [10, '1996', 'YEAR', 'Your shop made it to 1996.'],
+  a_y2000: [20, 'Y2K', 'YEAR', 'Your shop survived the year 2000.'],
+  a_y2010: [30, '2010', 'YEAR', 'Your shop made it to 2010.'],
+  a_y2020: [50, '2020', 'YEAR', 'Your shop made it to 2020.'],
+  a_today: [65, 'NOW', 'YEAR', 'Your shop made it all the way to today.'],
+  a_y2030: [30, '2030', 'YEAR', 'Your shop made it to 2030.'],
+  a_end: [50, '2035', 'YEAR', 'Your shop reached the end of the roadmap: October 2035.'],
+  a_b1: [10, '1', 'BUILT', 'You built your first PC.'],
+  a_b100: [30, '100', 'BUILT', 'You built 100 PCs.'],
+  a_b3: [20, '3', 'DESIGNS', 'You had three PC designs on sale at once.'],
+  a_game100: [15, '100', 'GAMES', 'You sold 100 PC games.'],
+  a_acc100: [15, '100', 'GEAR', 'You sold 100 accessories.'],
+  a_mgr1: [15, '1', 'BUYERS', 'You hired your first purchasing manager.'],
+  a_mgr4: [40, '4', 'BUYERS', 'You had buyers in four categories at once.'],
+  a_con100: [20, '100', 'CONSOLES', 'You sold 100 consoles.'],
+  a_con1k: [40, '1K', 'CONSOLES', 'You sold 1,000 consoles.'],
+  a_cg1k: [40, '1K', 'CONSOLE GAMES', 'You sold 1,000 console games.'],
+  a_fix1k: [15, '1K', 'REPAIRS', 'You completed 1,000 repair jobs.'],
+  a_warr1k: [15, '1K', 'WARRANTIES', 'You sold 1,000 extended warranties.'],
+  a_hustle: [15, '100', 'HUSTLES', 'You hustled 100 customers.'],
+};

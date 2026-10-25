@@ -5,7 +5,7 @@ import { useGame, SyncStatus } from '@/GameProvider';
 import { AuthModal } from '@/components/AuthModal';
 import { colors, theme, themed } from '@/theme';
 import { Panel } from '@/components/ui';
-import { gcAvailable, gcPlayer, onGcPlayer } from '@/gamecenter';
+import { gsAvailable, gsLinked, gsPlayer, onGsPlayer, PHONE_NAME, SERVICE_NAME } from '@/gameservices';
 
 const statusLine = (s: SyncStatus, at: number | null): string => {
   const when = at ? new Date(at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
@@ -29,9 +29,9 @@ export function AccountPanel() {
   const [pwOpen, setPwOpen] = useState(false);
   const [gcBusy, setGcBusy] = useState(false);
   const [gcError, setGcError] = useState<string | null>(null);
-  const [gc, setGc] = useState(gcPlayer);
-  useEffect(() => onGcPlayer(setGc), []);
-  const gcReady = gcAvailable && gc.authenticated;
+  const [gc, setGc] = useState(gsPlayer);
+  useEffect(() => onGsPlayer(setGc), []);
+  const gcReady = gsAvailable && gc.authenticated;
   const gcRun = async (fn: () => Promise<{ ok: boolean; message?: string; created?: boolean }>, done: (r: any) => string) => {
     setGcBusy(true); setGcError(null);
     const r = await fn();
@@ -50,8 +50,8 @@ export function AccountPanel() {
           </Text>
           {gcReady && (
             <Pressable style={[styles.btn, gcBusy && { opacity: 0.6 }]} disabled={gcBusy}
-              onPress={() => gcRun(auth.signInGameCenter, (r) => (r.created ? '🎮 Account created with Game Center. Your shop now syncs to the cloud.' : '🎮 Signed in with Game Center.'))}>
-              {gcBusy ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>🎮 Continue with Game Center{gc.name ? ' as ' + gc.name : ''}</Text>}
+              onPress={() => gcRun(auth.signInGameService, (r) => (r.created ? '🎮 Account created with ' + SERVICE_NAME + '. Your shop now syncs to the cloud.' : '🎮 Signed in with ' + SERVICE_NAME + '.'))}>
+              {gcBusy ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>🎮 Continue with {SERVICE_NAME}{gc.name ? ' as ' + gc.name : ''}</Text>}
             </Pressable>
           )}
           {!!gcError && <Text style={styles.warn}>{gcError}</Text>}
@@ -66,7 +66,7 @@ export function AccountPanel() {
           <Text style={styles.sub}>{statusLine(sync.status, sync.at)}</Text>
           {auth.user.hasPassword === false ? (
             <>
-              <Text style={styles.sub}>This account signs in with Game Center. Set a password to also sign in on the website (username {auth.user.username}).</Text>
+              <Text style={styles.sub}>This account signs in with {SERVICE_NAME}. Set a password to also sign in on the website (username {auth.user.username}).</Text>
               <Pressable style={[styles.btn, styles.quiet]} onPress={() => setPwOpen(true)}><Text style={styles.btnText}>Set a password</Text></Pressable>
             </>
           ) : (
@@ -79,17 +79,17 @@ export function AccountPanel() {
               </Pressable>
             </>
           )}
-          {auth.user.gameCenter ? (
+          {gsLinked(auth.user) ? (
             <View style={styles.rowCenter}>
-              <Text style={[styles.sub, { flex: 1 }]}>🎮 Linked to Game Center: it signs you in to this account on any iPhone.</Text>
+              <Text style={[styles.sub, { flex: 1 }]}>🎮 Linked to {SERVICE_NAME}: it signs you in to this account on any {PHONE_NAME}.</Text>
               {auth.user.hasPassword !== false && (
-                <Pressable hitSlop={8} disabled={gcBusy} onPress={() => gcRun(auth.unlinkGameCenter, () => 'Game Center unlinked.')}><Text style={styles.link}>Unlink</Text></Pressable>
+                <Pressable hitSlop={8} disabled={gcBusy} onPress={() => gcRun(auth.unlinkGameService, () => SERVICE_NAME + ' unlinked.')}><Text style={styles.link}>Unlink</Text></Pressable>
               )}
             </View>
           ) : gcReady ? (
             <Pressable style={[styles.btn, styles.quiet, gcBusy && { opacity: 0.6 }]} disabled={gcBusy}
-              onPress={() => gcRun(auth.linkGameCenter, () => '🎮 Linked: Game Center now signs you in to this account.')}>
-              {gcBusy ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>🎮 Link Game Center</Text>}
+              onPress={() => gcRun(auth.linkGameService, () => '🎮 Linked: ' + SERVICE_NAME + ' now signs you in to this account.')}>
+              {gcBusy ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>🎮 Link {SERVICE_NAME}</Text>}
             </Pressable>
           ) : null}
           {!!gcError && <Text style={styles.warn}>{gcError}</Text>}
@@ -158,7 +158,7 @@ function EmailModal({ visible, onClose }: { visible: boolean; onClose: () => voi
   );
 }
 
-/** First password for a Game Center account (so it can sign in on the website too). */
+/** First password for a Game Center / Play Games account (so it can sign in on the website too). */
 function PasswordModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { setPassword: save, user } = useAuth();
   const { notify } = useGame();
@@ -185,7 +185,7 @@ function PasswordModal({ visible, onClose }: { visible: boolean; onClose: () => 
         <ScrollView contentContainerStyle={styles.center} keyboardShouldPersistTaps="handled">
           <View style={styles.sheet}>
             <Text style={styles.title}>Set a password</Text>
-            <Text style={styles.body}>Your username is <Text style={styles.strong}>{user?.username}</Text>. With a password you can also play on the website and on phones without Game Center.</Text>
+            <Text style={styles.body}>Your username is <Text style={styles.strong}>{user?.username}</Text>. With a password you can also play on the website and on phones without {SERVICE_NAME}.</Text>
             <TextInput style={styles.input} placeholder="New password (8+ characters)" placeholderTextColor={colors.dim} value={pw} onChangeText={setPw} secureTextEntry autoCapitalize="none" textContentType="newPassword" />
             <TextInput style={styles.input} placeholder="Repeat it" placeholderTextColor={colors.dim} value={pw2} onChangeText={setPw2} secureTextEntry autoCapitalize="none" textContentType="newPassword" />
             {!!error && <Text style={styles.error}>{error}</Text>}
@@ -207,7 +207,7 @@ function DeleteModal({ visible, onClose }: { visible: boolean; onClose: () => vo
   const [word, setWord] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const viaGc = user?.hasPassword === false; // no password: Game Center confirms it is you
+  const viaGc = user?.hasPassword === false; // no password: the game service confirms it is you
   const ready = (viaGc || password.length > 0) && word.trim() === 'DELETE';
 
   const go = async () => {
@@ -231,7 +231,7 @@ function DeleteModal({ visible, onClose }: { visible: boolean; onClose: () => vo
               This permanently deletes the account <Text style={styles.strong}>{user?.username}</Text> and the shop saved in the cloud. It cannot be undone. The shop on this phone is not touched and keeps working without an account.
             </Text>
             {viaGc
-              ? <Text style={styles.sub}>🎮 Game Center will confirm it's you.</Text>
+              ? <Text style={styles.sub}>🎮 {SERVICE_NAME} will confirm it's you.</Text>
               : <TextInput style={styles.input} placeholder="Your password" placeholderTextColor={colors.dim} value={password} onChangeText={setPassword} secureTextEntry autoCapitalize="none" />}
             <TextInput style={styles.input} placeholder="Type DELETE to confirm" placeholderTextColor={colors.dim} value={word} onChangeText={setWord} autoCapitalize="characters" autoCorrect={false} />
             {!!error && <Text style={styles.error}>{error}</Text>}

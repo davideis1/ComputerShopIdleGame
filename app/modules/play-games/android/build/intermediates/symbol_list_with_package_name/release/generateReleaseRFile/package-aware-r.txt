@@ -1,0 +1,2 @@
+expo.modules.mbplaygames
+string game_services_project_id

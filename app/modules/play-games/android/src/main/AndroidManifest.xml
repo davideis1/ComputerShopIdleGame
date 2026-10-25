@@ -1,0 +1,7 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <application>
+    <!-- the Play Console's Game Services project id; the app overrides the placeholder in res/values via
+         app/plugins/withPlayGames.js (Play Console -> Play Games Services -> Configuration) -->
+    <meta-data android:name="com.google.android.gms.games.APP_ID" android:value="@string/game_services_project_id" />
+  </application>
+</manifest>

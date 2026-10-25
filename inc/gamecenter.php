@@ -101,11 +101,11 @@ function gc_new_username(string $name): string
 /** The user object every auth reply returns. */
 function auth_user_payload(int $uid): array
 {
-    $st = db()->prepare('SELECT id, username, email, gc_player_id, has_password FROM users WHERE id = ?');
+    $st = db()->prepare('SELECT id, username, email, gc_player_id, pg_player_id, has_password FROM users WHERE id = ?');
     $st->execute([$uid]);
     $u = $st->fetch();
     return [
         'id' => (int) $u['id'], 'username' => $u['username'], 'email' => mask_email($u['email']),
-        'gameCenter' => $u['gc_player_id'] !== null, 'hasPassword' => (bool) $u['has_password'],
+        'gameCenter' => $u['gc_player_id'] !== null, 'playGames' => $u['pg_player_id'] !== null, 'hasPassword' => (bool) $u['has_password'],
     ];
 }
