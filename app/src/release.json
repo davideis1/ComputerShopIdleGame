@@ -8,6 +8,15 @@
  "changelog": [
   {
    "build": "next",
+   "title": "The website catches up with the app",
+   "changes": [
+    "Item cards show performance and demand meters, upgrades show level bars, and locked trophies show how close you are.",
+    "Your shop rating and progress through the year now sit in the header, and panels have icons like in the app.",
+    "Coming back after a long break shows a progress bar instead of freezing the page."
+   ]
+  },
+  {
+   "build": "next",
    "title": "More ways to restock",
    "changes": [
     "Six new restock upgrades, from the 1997 Conveyor Stock Room to the 2032 Autonomous Supply Swarm, so your shelves keep up as the shop grows.",
