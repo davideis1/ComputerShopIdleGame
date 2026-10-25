@@ -291,6 +291,13 @@
     { id: 'clerk', grp: 'Stock', name: 'Stock Clerk (auto-restock)', icon: '📦', desc: 'Restocks +0.3 units/s toward your targets', year: 1993, base: 450, grow: 1.5, max: 40, kind: 'restock', per: 0.3, up: 0.5 },
     { id: 'warehouse', grp: 'Stock', name: 'Warehouse Forklift Crew', icon: '🚜', desc: 'Restocks +2 units/s', year: 2000, base: 38000, grow: 1.3, max: 40, kind: 'restock', per: 2, up: 2 },
     { id: 'robot', grp: 'Stock', name: 'Robotic Fulfilment', icon: '🦾', desc: 'Restocks +12 units/s', year: 2015, base: 330000, grow: 1.3, max: 40, kind: 'restock', per: 12, up: 10 },
+    // more tiers between and after those, so restocking can keep pace with the era (and a speed multiplier)
+    { id: 'conveyor', grp: 'Stock', name: 'Conveyor Stock Room', icon: '🛤️', desc: 'Restocks +0.9 units/s', year: 1997, base: 7000, grow: 1.35, max: 40, kind: 'restock', per: 0.9, up: 1 },
+    { id: 'dock', grp: 'Stock', name: 'Loading Dock Scheduling', icon: '🗓️', desc: '+8% restock speed from every crew', year: 2003, base: 30000, grow: 1.45, max: 25, kind: 'restockMult', per: 0.08 },
+    { id: 'racking', grp: 'Stock', name: 'Pallet Racking & Scanners', icon: '🏭', desc: 'Restocks +5 units/s', year: 2007, base: 120000, grow: 1.3, max: 40, kind: 'restock', per: 5, up: 4 },
+    { id: 'grid', grp: 'Stock', name: 'Automated Storage Grid', icon: '🧱', desc: 'Restocks +40 units/s', year: 2021, base: 2.5e6, grow: 1.3, max: 40, kind: 'restock', per: 40, up: 25 },
+    { id: 'drones', grp: 'Stock', name: 'Drone Delivery Docks', icon: '🚁', desc: 'Restocks +150 units/s', year: 2027, base: 1.5e7, grow: 1.3, max: 40, kind: 'restock', per: 150, up: 90 },
+    { id: 'swarm', grp: 'Stock', name: 'Autonomous Supply Swarm', icon: '🐝', desc: 'Restocks +600 units/s', year: 2032, base: 8e7, grow: 1.3, max: 40, kind: 'restock', per: 600, up: 300 },
     // Workshop
     { id: 'workshop', grp: 'Workshop', name: 'Build Workshop', icon: '🛠️', desc: 'Unlocks custom PC building. Buy parts, design blueprints, sell your own machines.', year: 1996, base: 12000, grow: 1, max: 1, kind: 'workshop', per: 1 },
     { id: 'techs', grp: 'Workshop', name: 'Build Technician', icon: '👷', desc: 'Builds 1 PC per 40s (paid wage)', year: 1996, base: 1200, grow: 1.35, max: 80, kind: 'build', per: 0.025, up: 0.8, req: 'workshop' },

@@ -1062,6 +1062,7 @@
       case 'loyal': return '+' + Math.round(v * 100) + '% customers';
       case 'night': return '+' + v + 'h offline';
       case 'serveMult': case 'buildMult': return '+' + Math.round(v * 100) + '%';
+      case 'restockMult': return '+' + Math.round(v * 100) + '% restock speed';
       case 'bench': return '+' + v + ' slots';
       case 'attach': return '+' + Math.round(v * 100) + '% add-on sales';
       default: return '';

@@ -140,7 +140,7 @@ function bot(s) {
     const pick = (kind) => avail.filter((u) => u.kind === kind).sort((a, b) => eff(b) - eff(a))[0];
     const need = [];
     const sr = Math.min(dd.lambda, dd.serve) * 0.8;
-    if (dd.restock < sr * 1.3) need.push(pick('restock'));
+    if (dd.restock < sr * 1.3) { need.push(pick('restock')); need.push(pick('restockMult')); }
     if (dd.cap < sr * 120 + 12) need.push(pick('cap'));
     if (dd.lambda > dd.serve) need.push(pick('serve'));
     else need.push(pick('lambda'));

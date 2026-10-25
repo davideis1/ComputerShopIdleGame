@@ -164,7 +164,7 @@
     const y = yearOf(s);
     const ev = eventsAt(y);
     const lv = (id) => s.up[id] || 0;
-    let lambda = 0.06, serve = 0.25, restock = 0, build = 0, buildMult = 1, serveMult = 1;
+    let lambda = 0.06, serve = 0.25, restock = 0, restockMult = 1, build = 0, buildMult = 1, serveMult = 1;
     let cap = 12, disc = 0, night = 4, bench = 2, loyal = 0, upkeep = 0, upsell = 0;
     let aisleGame = false, aisleAcc = false, aisleConsole = false, office = false, svcDesk = false, svc = 0, warranty = 0;
     CS.UPGRADES.forEach((u) => {
@@ -175,6 +175,7 @@
         case 'serve': serve += u.per * L; break;
         case 'serveMult': serveMult += u.per * L; break;
         case 'restock': restock += u.per * L; break;
+        case 'restockMult': restockMult += u.per * L; break;
         case 'build': build += u.per * L; break;
         case 'buildMult': buildMult += u.per * L; break;
         case 'cap': cap += u.per * L; break;
@@ -202,7 +203,7 @@
       ev,
       lambda: lambda * (1 + loyal) * (1 + 0.01 * achCount) * (1 + 0.1 * tl(s, 't_income')) * ev.demand * repMult(s) * (s.boost && s.stats.play <= s.boost.until ? s.boost.demand : 1),
       serve: serve * serveMult,
-      restock,
+      restock: restock * restockMult,
       build: build * buildMult,
       cap: Math.round(cap * (1 + 0.1 * tl(s, 't_cap'))),
       profit: 1 + 0.03 * tl(s, 't_profit'),
