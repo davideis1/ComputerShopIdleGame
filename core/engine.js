@@ -58,6 +58,7 @@
       ib: {}, // consoles sold per platform: your installed base
       pcRel: 0.9, // recent quality of the PCs this shop sells; decides which games can run
       rate: { rev: 0, up: 0 },
+      rep: 3, // shop rating, 1-5 stars (see reputationTick)
       settings: { theme: 'auto' },
       meta: meta || newMeta(),
     };
@@ -198,7 +199,7 @@
     const out = {
       y,
       ev,
-      lambda: lambda * (1 + loyal) * (1 + 0.01 * achCount) * (1 + 0.1 * tl(s, 't_income')) * ev.demand,
+      lambda: lambda * (1 + loyal) * (1 + 0.01 * achCount) * (1 + 0.1 * tl(s, 't_income')) * ev.demand * repMult(s),
       serve: serve * serveMult,
       restock,
       build: build * buildMult,
@@ -412,6 +413,49 @@
     return { ws, tot, p: Math.min(0.95, 1 - Math.exp(-tot / K)) };
   }
 
+  /* ---------- Reputation ----------
+     A 1-5 star rating that drifts toward what recent customers experienced: could they find stock, did they get served,
+     were the PCs any good, and did the repair counter keep up. It scales how many shoppers come (-15% at 1★, +15% at 5★). */
+  const REP_TAU = 600, REP_RATE_TAU = 120; // seconds: how slowly the rating moves / how far back it remembers
+  const REP_FACTORS = [
+    { id: 'stock', label: 'Stock on the shelves', w: 0.35, tip: 'Shoppers found what they wanted out of stock. Raise restock targets or hire a buyer.' },
+    { id: 'speed', label: 'Checkout speed', w: 0.3, tip: 'Shoppers walked out of long queues. Hire sales staff or add checkouts.' },
+    { id: 'quality', label: 'Quality of the PCs you sell', w: 0.25, tip: 'The PCs you sell are behind the times. Stock newer models or build better ones.' },
+    { id: 'repairs', label: 'Repairs', w: 0.1, tip: 'Open the Service Desk, and keep up with walk-in repair jobs.' },
+  ];
+  const repMult = (s) => 0.85 + 0.075 * ((s.rep == null ? 3 : s.rep) - 1);
+  const clamp01 = (v) => Math.max(0, Math.min(1, v));
+  /** Factor scores 0..1 from the remembered rates. */
+  function repScores(s, d) {
+    const r = s.rate;
+    const arr = (r.srv || 0) + (r.busy || 0);
+    return {
+      stock: r.srv > 1e-6 ? 1 - clamp01((r.so || 0) / r.srv) : 0.5,
+      speed: arr > 1e-6 ? 1 - clamp01((2 * (r.busy || 0)) / arr) : 0.5,
+      quality: clamp01((s.pcRel - 0.4) / 0.8), // pcRel runs ~0.6-1.25 in play: 0.8 scores 0.5
+      repairs: !d.service ? 0.3 : d.svcDemand > 0 ? 0.6 + 0.4 * Math.min(1, d.svcCap / d.svcDemand) : 1,
+    };
+  }
+  function repTarget(sc) {
+    return 1 + 4 * REP_FACTORS.reduce((a, f) => a + f.w * sc[f.id], 0);
+  }
+  function reputationTick(s, d, dt, served, busy, stockouts) {
+    const r = s.rate, f = 1 - Math.exp(-dt / REP_RATE_TAU);
+    r.srv = (r.srv || 0) + (served / dt - (r.srv || 0)) * f;
+    r.busy = (r.busy || 0) + (busy / dt - (r.busy || 0)) * f;
+    r.so = (r.so || 0) + (stockouts / dt - (r.so || 0)) * f;
+    const target = repTarget(repScores(s, d));
+    s.rep = (s.rep == null ? 3 : s.rep) + (target - (s.rep == null ? 3 : s.rep)) * (1 - Math.exp(-dt / REP_TAU));
+  }
+  /** What the reputation panel shows (web and app): stars, where it is heading, and what each factor costs. */
+  function reputationView(s, d) {
+    const sc = repScores(s, d);
+    const factors = REP_FACTORS.map((f) => ({ id: f.id, label: f.label, score: sc[f.id], cost: 4 * f.w * (1 - sc[f.id]), tip: f.tip }));
+    const worst = factors.slice().sort((a, b) => b.cost - a.cost)[0];
+    const stars = s.rep == null ? 3 : s.rep, n = Math.round(stars);
+    return { stars, label: '★'.repeat(n) + '☆'.repeat(5 - n), target: repTarget(sc), effect: repMult(s) - 1, factors, worst: worst.cost > 0.15 ? worst : null };
+  }
+
   /* ---------- Service Desk ---------- */
   const SVC_BASE = 0.04; // the owner fixes a PC every 25 s
   const SVC_SHARE = 0.18; // walk-in repair jobs per arriving shopper, with a typical service menu
@@ -567,6 +611,7 @@
     }
 
     // customers
+    const so0 = s.stats.stockouts;
     const served = Math.min(d.lambda, d.serve) * dt;
     const busy = Math.max(0, d.lambda - d.serve) * dt;
     s.stats.lost += busy;
@@ -659,6 +704,8 @@
       rep.upkeep += upkeep;
       rep.spent += spent;
     }
+
+    reputationTick(s, d, dt, served, busy, s.stats.stockouts - so0);
 
     const f = 1 - Math.exp(-dt / 20);
     s.rate.rev += (revenue / dt - s.rate.rev) * f;
@@ -847,7 +894,7 @@
     SEG, K, ADDON_SCALE, kindBoost, isAddon, sellUnits, itemWeight, popularityMap, infl, refPrice, newState, migrate, serialize, deserialize, yearOf, eraAt, eventsAt, derive,
     partAvail, partRel, partPrice, bpInfo, designInfo, totalStock, getItems, buy, buyUnits, setTarget,
     upLevel, upCost, upUnlocked, buyUp, createBp, deleteBp, step, advance, offline, hustle, newProducts,
-    HUSTLE_CD, hustleStreak, serviceAt, serviceView, SVC_ITEM, newReport, checkAch, dateStr, unitsSold, pendingTokens, nextTokenAt, tokenAt, prestige, tokenCost, buyTokenUp, tl, calSpeed, startYear,
+    HUSTLE_CD, hustleStreak, reputationView, repMult, serviceAt, serviceView, SVC_ITEM, newReport, checkAch, dateStr, unitsSold, pendingTokens, nextTokenAt, tokenAt, prestige, tokenCost, buyTokenUp, tl, calSpeed, startYear,
   };
   if (typeof module !== 'undefined') module.exports = CS;
 })(typeof window !== 'undefined' ? window : globalThis);

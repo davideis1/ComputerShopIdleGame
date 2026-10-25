@@ -9,6 +9,7 @@ import { E } from '@/game';
 import { colors, money, num, theme, themed } from '@/theme';
 import { Scene } from '@/components/Scene';
 import { ServicePanel } from '@/components/ServicePanel';
+import { ReputationPanel } from '@/components/ReputationPanel';
 
 /** "+$1.2K" that rises and fades over the Hustle button after a sale. */
 function Floater({ text, good }: { text: string; good: boolean }) {
@@ -57,7 +58,10 @@ export default function Shop() {
         <View style={styles.heroRow}>
           <View style={{ flex: 1, gap: 4 }}>
             <Text style={styles.shopName} numberOfLines={1} adjustsFontSizeToFit>{s.name || 'Computer Shop'}</Text>
-            <View style={styles.eraChip}><Text style={styles.eraText}>{v.era.name}</Text></View>
+            <View style={styles.chipRow}>
+              <View style={styles.eraChip}><Text style={styles.eraText}>{v.era.name}</Text></View>
+              <Text style={styles.starChip}>★ {(s.rep ?? 3).toFixed(1)}</Text>
+            </View>
           </View>
           <View style={{ alignItems: 'flex-end', gap: 4 }}>
             <Text style={styles.cash} numberOfLines={1}>{money(s.cash)}</Text>
@@ -130,6 +134,8 @@ export default function Shop() {
         )}
       </Panel>
 
+      <ReputationPanel s={s} />
+
       <Panel title="Shop Report" icon="📊">
         <View style={styles.grid}>
           {v.stats.map((st) => <Stat key={st.label} label={st.label} value={st.value} style={styles.mini} />)}
@@ -183,6 +189,8 @@ const styles = themed(() => {
     shopName: { color: colors.text, fontSize: 22, fontWeight: '800', fontFamily: theme.titleFont },
     eraChip: { alignSelf: 'flex-start', backgroundColor: colors.accent, borderRadius: Math.min(10, theme.radius + 4), paddingHorizontal: 8, paddingVertical: 3 },
     eraText: { color: colors.onAccent, fontSize: 11, fontWeight: '700' },
+    chipRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    starChip: { color: colors.warn, fontSize: 12, fontWeight: '800' },
     cash: id === 'win95'
       ? { color: '#33ff33', backgroundColor: '#000', paddingHorizontal: 8, paddingVertical: 2, fontSize: 24, fontWeight: '700', fontFamily: theme.monoFont, overflow: 'hidden' }
       : id === 'rgb'
