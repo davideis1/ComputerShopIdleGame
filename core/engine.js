@@ -553,8 +553,8 @@
       if (pendingTokens(s) < 1 && secs > 60 && secs < cap) out.push({ id: 'tokens', seconds: secs, title: '🎫 A Franchise Token is ready', body: 'Your shop has made enough to cash in. Open the HQ tab to claim it.' });
     }
     // a Service Desk that turns jobs away all night, with nobody managing it
-    if (d.service && d.svcDemand > d.svcCap * 1.2 && !(s.mgr && s.mgr.svc)) {
-      out.push({ id: 'service', seconds: Math.min(cap, 3600), title: '🛎️ Your Service Desk is turning jobs away', body: 'More repair jobs are walking in than the desk can handle. Hire technicians (or a Service manager).' });
+    if (d.service && d.svcDemand > d.svcCap * 1.2 && !(d.mgr && d.mgr.cats.svc && d.mgr.cats.svc.on)) {
+      out.push({ id: 'service', seconds: Math.min(cap, 3600), title: '🛎️ Your Service Desk is turning jobs away', body: 'More repair jobs are walking in than the desk can handle. Hire technicians in the Service tab, or a Service Desk manager.' });
     }
     const kinds = opt.kinds || {};
     return out.filter((r) => r.seconds >= 60 && kinds[r.id] !== false);

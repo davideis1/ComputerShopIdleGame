@@ -63,5 +63,59 @@ for (let i = 0; i < 600; i++) E.step(w, 1, 1);
 ok(w.stats.claimsPaid > 0 && w.claims < due, 'claims are paid out over time');
 ok(Math.abs(w.stats.claimsPaid - (due - w.claims)) < 1e-6, 'every claim paid comes out of what was held back');
 
+// ---- the Service Desk manager
+const mk = () => {
+  const m = E.newState();
+  m.cash = 3e6; m.cal = 2005 - 1993;
+  Object.assign(m.up, { clerk: 20, sales: 30, barcode: 20, ads_news: 30, ads_tv: 30, purchasing: 1 });
+  return m;
+};
+{
+  const m = mk();
+  ok(!CS.M.available(E.derive(m), 'svc'), 'the manager needs the Service Desk');
+  m.up.svc_desk = 1;
+  for (let i = 0; i < 20; i++) E.step(m, 1, 1);
+  ok(CS.M.available(E.derive(m), 'svc'), '...and is available once the desk is open');
+  const w0 = E.derive(m).upkeep;
+  ok(CS.M.hire(m, 'svc', 0).ok, 'a Service Desk manager can be hired');
+  ok(E.derive(m).upkeep > w0, 'their wage is part of the upkeep');
+  const cap0 = E.derive(m).svcCap;
+  for (let i = 0; i < 400; i++) E.step(m, 1, 1);
+  const d = E.derive(m);
+  ok(d.svcCap > cap0 * 5, 'capacity grew by itself (' + Math.round(cap0 * 60) + ' -> ' + Math.round(d.svcCap * 60) + ' jobs/min)');
+  ok(d.svcCap >= d.svcDemand * 0.95, 'it keeps up with walk-ins (capacity ' + d.svcCap.toFixed(2) + ' vs ' + d.svcDemand.toFixed(2) + ' /s)');
+  ok((m.up.warranty || 0) > 0, 'it grows Warranty Pitch');
+  ok(m.mgr.svc.log.length > 0 && m.mgr.svc.plan.length === 2 && m.mgr.svc.stats.ordered > 0, 'it keeps a notebook, a plan and stats');
+
+  // off duty: nothing happens
+  const o = mk(); o.up.svc_desk = 1;
+  CS.M.hire(o, 'svc', 0); CS.M.setCfg(o, 'svc', 'on', false);
+  const up0 = JSON.stringify(o.up);
+  for (let i = 0; i < 300; i++) E.step(o, 1, 1);
+  ok(JSON.stringify(o.up) === up0, 'off duty: it buys nothing');
+
+  // budget: a poor shop is not bankrupted by its manager
+  const p = mk(); p.up.svc_desk = 1; p.cash = 30000;
+  CS.M.hire(p, 'svc', 0); CS.M.setCfg(p, 'svc', 'reserveCash', 25000);
+  const cash0 = p.cash;
+  CS.M.svcTick(p, E.derive(p), p.mgr.svc, CS.M.cfgOf(p, 'svc'), E.derive(p).mgr.cats.svc);
+  ok(cash0 - p.cash <= 5000 + 1e-6 || p.cash >= 25000, 'it respects the cash reserve (cash ' + Math.round(p.cash) + ' >= 25000)');
+
+  // presets and settings
+  CS.M.setCfg(m, 'svc', 'preset', 'ahead');
+  ok(CS.M.cfgOf(m, 'svc').headroom === 30 && CS.M.cfgOf(m, 'svc').maxSpendPct === 50, 'a preset sets headroom and budget');
+  CS.M.setCfg(m, 'svc', 'headroom', 5);
+  ok(CS.M.cfgOf(m, 'svc').preset === 'custom', 'changing a setting by hand makes the preset custom');
+  const r = E.deserialize(E.serialize(m));
+  ok(r.mgr.svc && r.mgrCfg.svc.headroom === 5, 'the manager survives save and load');
+  const old = JSON.parse(E.serialize(mk())); delete old.mgr.svc; delete old.mgrCfg.svc;
+  ok(E.deserialize(JSON.stringify(old)).mgr.svc === null, 'old saves without the manager load fine');
+  // the overload reminder stops when a manager is on duty
+  const q = mk(); q.up.svc_desk = 1;
+  ok(E.remindersAt(q).some((x) => x.id === 'service'), 'an unmanaged overloaded desk gets the reminder');
+  CS.M.hire(q, 'svc', 0);
+  ok(!E.remindersAt(q).some((x) => x.id === 'service'), '...but not with a manager on duty');
+}
+
 console.log(fails ? `\n${fails} check(s) failed` : '\nall service checks passed');
 process.exit(fails ? 1 : 0);

@@ -60,6 +60,7 @@ $v = static function (string $f): string { return (string) @filemtime(__DIR__ . 
     <section id="tab-catalog" class="tab" hidden></section>
     <section id="tab-buyers" class="tab" hidden></section>
     <section id="tab-workshop" class="tab" hidden></section>
+    <section id="tab-service" class="tab" hidden></section>
     <section id="tab-upgrades" class="tab" hidden></section>
     <section id="tab-franchise" class="tab" hidden></section>
     <section id="tab-menu" class="tab" hidden></section>
@@ -70,6 +71,7 @@ $v = static function (string $f): string { return (string) @filemtime(__DIR__ . 
     <button data-tab="catalog"><i>📦</i><span>Stock</span><em id="badge-catalog" hidden>!</em></button>
     <button data-tab="buyers" id="nav-buyers" hidden><i>👔</i><span>Managers</span><em id="badge-buyers" hidden>!</em></button>
     <button data-tab="workshop"><i>🛠️</i><span>Workshop</span></button>
+    <button data-tab="service" id="nav-service" hidden><i>🛎️</i><span>Service</span></button>
     <button data-tab="upgrades"><i>📈</i><span>Upgrades</span><em id="badge-upgrades" hidden>!</em></button>
     <button data-tab="franchise" id="nav-franchise" hidden><i>🎫</i><span>HQ</span><em id="badge-franchise" hidden>!</em></button>
     <button data-tab="menu"><i>⚙️</i><span>Menu</span></button>

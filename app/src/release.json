@@ -8,6 +8,14 @@
  "changelog": [
   {
    "build": "next",
+   "title": "Service tab and Service Desk manager",
+   "changes": [
+    "The Service Desk has its own tab: jobs, capacity, the era's service menu, warranties, and all the repair upgrades in one place.",
+    "New hire in the Managers tab: a Service Desk manager who keeps repair capacity ahead of walk-ins and grows your Warranty Pitch for you, within a budget you set."
+   ]
+  },
+  {
+   "build": "next",
    "title": "A smoother app",
    "changes": [
     "Your cash and income now show at the top of every screen in the app.",

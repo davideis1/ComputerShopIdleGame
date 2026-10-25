@@ -234,7 +234,6 @@
         </div></div>
       <div class="panel"><div class="title"><span>⭐ Reputation</span><span id="repStars" class="num"></span></div><div class="pbody" id="repBody"></div></div>
       <div class="panel"><div class="title">Shop Report</div><div class="pbody"><div class="grid" id="statGrid"></div></div></div>
-      <div class="panel" id="svcPanel" hidden><div class="title"><span>🛎️ Service Desk</span><span id="svcRate" class="num"></span></div><div class="pbody" id="svcBody"></div></div>
       <div class="panel"><div class="title">Recent Sales</div><div class="pbody"><ul id="log"></ul></div></div>
       <div class="panel"><div class="title">The Times</div><div class="pbody" id="times"></div></div>`;
     const defs = [
@@ -273,11 +272,21 @@
       + v.factors.map((f) => `<div class="repf"><small>${esc(f.label)}</small><span class="repbar"><i style="width:${Math.round(f.score * 100)}%"></i></span><small class="num">${f.cost >= 0.05 ? '−' + f.cost.toFixed(1) + '★' : '✓'}</small></div>`).join('')
       + (v.worst ? `<small class="warn">${esc(v.worst.tip)}</small>` : ''));
   }
+  function buildService() {
+    $('#tab-service').innerHTML = `
+      <div class="panel" id="svcPanel"><div class="title"><span>🛎️ Service Desk</span><span id="svcRate" class="num"></span></div><div class="pbody" id="svcBody"></div></div>
+      <div class="panel" id="svcMgrPanel"><div class="title">Service Desk manager</div><div class="pbody"><div id="svcMgrBody"></div><button class="small" data-tab="buyers">Open Managers</button></div></div>
+      <h3 class="sec" id="uph-Service">Service upgrades</h3><div class="list two" id="upl-Service"></div>`;
+  }
   /** Service Desk panel: a teaser with an Open button, then jobs, capacity, the era's service menu and warranties. */
   function renderService(d) {
     const v = E.serviceView(S, d);
-    $('#svcPanel').hidden = !v.available;
-    if (!v.available) return;
+    if (!v.available) { setHtml($('#svcBody'), '<div>The Service Desk opens in ' + CS.UP_BY_ID.svc_desk.year + '.</div>'); return; }
+    const mg = S.mgr && S.mgr.svc, cfg = mg && CS.M.cfgOf(S, 'svc');
+    setHtml($('#svcMgrBody'), !v.open ? '<small>Open the desk first.</small>'
+      : mg ? `<div>${CS.MGR_TRAITS[mg.trait].icon} <b>${esc(mg.name)}</b> keeps the desk staffed: ${cfg.on ? 'on duty' : '😴 off duty'}, ${money(mg.stats.spent)} spent on ${num(mg.stats.ordered)} upgrades.</div>`
+      : '<div>Hire a manager in the Managers tab to add repair capacity and Warranty Pitch for you.</div>');
+    renderUpGroup('Service', d);
     setText($('#svcRate'), v.open ? money(v.income) + '/min' : '');
     if (!v.open) {
       setHtml($('#svcBody'), `<div>Fix customers' computers and sell extended warranties: steady money that takes no shelf space.</div>
@@ -286,7 +295,7 @@
     }
     const mini = (l, x) => `<div class="mini"><small>${l}</small><b class="num">${x}</b></div>`;
     setHtml($('#svcBody'), `<div class="grid">${mini('Repair jobs / min', num(v.jobs))}${mini('Walk-ins / min', num(v.walkIns))}${mini('Capacity / min', num(v.capacity))}${mini('PC buyers taking a warranty', Math.round(v.warrantyShare * 100) + '%')}${mini('Repairs done', num(v.repairs))}${mini('Repair income', money(v.repairRevenue))}${mini('Warranties sold', num(v.warranties))}${mini('Warranty income', money(v.warrantyRevenue))}${mini('Claims paid', money(v.claimsPaid))}${mini('Claims still to come', money(v.claimsDue))}</div>`
-      + (v.busy ? `<div class="warn">🚪 Turning away ${num(v.turnedAway)} jobs a minute. Hire technicians in Upgrades → Service.</div>` : '')
+      + (v.busy ? `<div class="warn">🚪 Turning away ${num(v.turnedAway)} jobs a minute. Hire technicians in the Service tab, or a Service Desk manager in Managers.</div>` : '')
       + `<small>On the menu: ${v.menu.map((x) => x.icon + ' ' + esc(x.name) + ' ' + money(x.price)).join(' · ')}</small>`);
   }
   function spawnWalker(buy) {
@@ -390,7 +399,6 @@
     setText(c.acc, num(S.stats.soldAcc));
     setText(c.cons, num(S.stats.soldConsoles || 0));
     setText(c.cgm, num((S.stats.soldCGames || 0) + (S.stats.soldCAcc || 0)));
-    renderService(d);
     renderOffer();
     renderReputation(d);
 
@@ -653,7 +661,20 @@
       { k: 'log', t: 'toggle', l: 'Keep a notebook of decisions' },
     ] },
   ];
-  const specFor = (cat) => (CS.MGR_CATS.find((c) => c.id === cat).designer ? DESIGN_SPEC : MC_SPEC);
+  const SVC_SPEC = [
+    { grp: 'Strategy', ctl: [
+      { k: 'preset', t: 'select', l: 'Preset', o: () => Object.entries(CS.SVC_PRESETS).map(([v, p]) => [v, p.label]).concat([['custom', 'Custom (your own settings)']]) },
+      { k: 'headroom', t: 'range', l: 'Spare repair capacity to keep', min: 0, max: 50, step: 5, f: (v) => (v ? '+' + v + '% over walk-ins' : 'none') },
+      { k: 'techs', t: 'toggle', l: 'Add repair capacity (technicians, benches, support lines)' },
+      { k: 'warranty', t: 'toggle', l: 'Keep growing Warranty Pitch' },
+    ] },
+    { grp: 'Budget', ctl: [
+      { k: 'maxSpendPct', t: 'range', l: 'Spend per review (share of your cash)', min: 5, max: 100, step: 5, f: (v) => v + '%' },
+      { k: 'reserveCash', t: 'num', l: 'Never spend below ($)', min: 0 },
+    ] },
+    { grp: 'Reports', ctl: [{ k: 'log', t: 'toggle', l: 'Keep a notebook of decisions' }] },
+  ];
+  const specFor = (cat) => { const c = CS.MGR_CATS.find((x) => x.id === cat); return c.svc ? SVC_SPEC : c.designer ? DESIGN_SPEC : MC_SPEC; };
   const brandCache = {};
   function brandsOf(cat) {
     if (!brandCache[cat]) {
@@ -691,7 +712,7 @@
       <div class="panel" id="byLocked"><div class="title">Purchasing Office</div><div class="pbody" id="byLockedBody"></div></div>
       <div id="byMain" class="tab" hidden>
         <div class="panel"><div class="title"><span>Purchasing Office</span><span id="byWages" class="num"></span></div><div class="pbody">
-          <small>Hire a buyer for each product category. They watch sales trends, decide what to stock and how much, and place the orders themselves. Tune how each one works below (collapse a buyer with its arrow to compare them), and pin or skip individual products from the Stock tab.</small>
+          <small>Hire a buyer for each product category, a designer for your PCs and a manager for the Service Desk. Buyers watch sales trends, decide what to stock and how much, and place the orders themselves. Tune how each one works below (collapse a buyer with its arrow to compare them), and pin or skip individual products from the Stock tab.</small>
           <div class="grid" id="bySum"></div>
           <div class="row mgAll"><button class="small" data-act="mgcollapseall" data-v="1">Collapse all</button><button class="small" data-act="mgcollapseall" data-v="0">Expand all</button></div></div></div>`;
     CS.MGR_CATS.forEach((c) => {
@@ -706,7 +727,7 @@
           <div class="grid mgStats"></div>
           <div class="alert mgStance" hidden></div>
           <h4 class="mgh">Skills</h4><div class="mgSkills"></div>
-          <h4 class="mgh">${c.designer ? 'Current designs' : "This week's plan"}</h4><div class="mgPlan"></div>`;
+          <h4 class="mgh">${c.svc ? 'Desk status' : c.designer ? 'Current designs' : "This week's plan"}</h4><div class="mgPlan"></div>`;
       specFor(c.id).forEach((g) => {
         const ctls = g.ctl.filter((x) => (!x.hide || !x.hide.includes(c.id)) && (!x.only || x.only.includes(c.id)));
         if (!ctls.length) return;
@@ -719,7 +740,7 @@
     html += '</div>';
     $('#tab-buyers').innerHTML = html;
     shopRefs.by = {};
-    [['mgrs', 'Buyers employed'], ['orders', 'Units ordered'], ['saved', 'Saved by negotiating'], ['wages', 'Wages / min']].forEach(([id, l]) => {
+    [['mgrs', 'Managers employed'], ['orders', 'Units ordered'], ['saved', 'Saved by negotiating'], ['wages', 'Wages / min']].forEach(([id, l]) => {
       const m = node(`<div class="mini"><small>${l}</small><b class="num">–</b></div>`);
       $('#bySum').appendChild(m);
       shopRefs.by[id] = $('b', m);
@@ -785,7 +806,7 @@
       if (!mg) {
         const need = $('.mgNeed', mgEl);
         need.hidden = avail;
-        if (!avail) setText(need, c.id === 'bp' || c.designer ? 'Needs the Build Workshop.' : c.id === 'game' ? 'Needs the Software Aisle.' : c.id === 'con' ? 'Needs the Console Corner.' : 'Needs the Accessories Wall.');
+        if (!avail) setText(need, c.svc ? 'Needs the Service Desk.' : c.id === 'bp' || c.designer ? 'Needs the Build Workshop.' : c.id === 'game' ? 'Needs the Software Aisle.' : c.id === 'con' ? 'Needs the Console Corner.' : 'Needs the Accessories Wall.');
         const cands = avail ? M.candidates(S, c.id) : [];
         syncList($('.mgCands', mgEl), cands.map((x, i) => Object.assign({ idx: i }, x)), (x) => x.name, candCard, (cn, x) => {
           const tr = CS.MGR_TRAITS[x.trait];
@@ -811,11 +832,11 @@
       if (document.activeElement !== onBox) onBox.checked = !!cfg.on;
       const st = $('.mgStats', mgEl);
       if (!st._built) {
-        (c.designer ? [['ord', 'Designs made'], ['spent', 'Design fees'], ['saved', 'Quality bonus'], ['plan', 'Active designs']] : [['ord', 'Units ordered'], ['spent', 'Spent'], ['saved', 'Saved (deals)'], ['plan', 'Products planned']]).forEach(([id, l]) => st.appendChild(node(`<div class="mini" data-s="${id}"><small>${l}</small><b class="num">–</b></div>`)));
+        (c.svc ? [['ord', 'Upgrades bought'], ['spent', 'Spent'], ['saved', 'Saved (haggling)'], ['plan', 'Capacity / min']] : c.designer ? [['ord', 'Designs made'], ['spent', 'Design fees'], ['saved', 'Quality bonus'], ['plan', 'Active designs']] : [['ord', 'Units ordered'], ['spent', 'Spent'], ['saved', 'Saved (deals)'], ['plan', 'Products planned']]).forEach(([id, l]) => st.appendChild(node(`<div class="mini" data-s="${id}"><small>${l}</small><b class="num">–</b></div>`)));
         st._built = true;
       }
       const sv = (id, v) => setText($('[data-s=' + id + '] b', st), v);
-      sv('ord', num(mg.stats.ordered)); sv('spent', money(mg.stats.spent)); sv('saved', c.designer ? '+' + (m.eff.negotiate) + '%' : money(mg.stats.saved)); sv('plan', String(mg.plan.length));
+      sv('ord', num(mg.stats.ordered)); sv('spent', money(mg.stats.spent)); sv('saved', c.svc ? money(mg.stats.saved) : c.designer ? '+' + (m.eff.negotiate) + '%' : money(mg.stats.saved)); sv('plan', c.svc ? num(E.derive(S).svcCap * 60) : String(mg.plan.length));
       const stance = $('.mgStance', mgEl);
       stance.hidden = !(cfg.on && mg.stance);
       if (!stance.hidden) { stance.className = 'alert mgStance warn'; setText(stance, mg.stance === 'prebuy' ? '🛒 Buying ahead of a price spike.' : '⏳ Holding back while prices are inflated.'); }
@@ -833,7 +854,7 @@
       const wk = cfg.on ? '' : '<div class="empty-note">Off duty: nothing is being planned or ordered. Targets you set by hand apply.</div>';
       setHtml($('.mgPlan', mgEl), wk + (plan.length ? plan.map((p) => {
         const it = byKey[p.k];
-        return `<div class="mgp"><span class="mgpn">${esc(p.name)}</span><span class="mgpv num">${it ? it.stock : 0} / ${p.t}</span><span class="mgpt">${trendArrow(p.tr)} ${esc(p.why)} · ${p.v.toFixed(p.v < 10 ? 1 : 0)}/min</span></div>`;
+        return `<div class="mgp"><span class="mgpn">${esc(p.name)}</span><span class="mgpv num">${p.k.startsWith('svc:') ? p.t : (it ? it.stock : 0) + ' / ' + p.t}</span><span class="mgpt">${trendArrow(p.tr)} ${esc(p.why)}${p.v ? ' · ' + p.v.toFixed(p.v < 10 ? 1 : 0) + '/min' : ''}</span></div>`;
       }).join('') : (cfg.on ? '<div class="empty-note">Nothing worth stocking yet. Loosen the filters or wait for new products.</div>' : '')));
       // controls
       specFor(c.id).forEach((g) => g.ctl.forEach((x) => {
@@ -1014,7 +1035,7 @@
   }
 
   /* ---------- UPGRADES tab ---------- */
-  const GROUPS = ['Marketing', 'Checkout', 'Stock', 'Shop', 'Workshop', 'Service'];
+  const GROUPS = ['Marketing', 'Checkout', 'Stock', 'Shop', 'Workshop']; // 'Service' upgrades live in the Service tab
   function buildUpgrades() {
     $('#tab-upgrades').innerHTML = `
       <div class="panel"><div class="title">Shop Overview</div><div class="pbody"><div class="grid" id="upSum"></div><small id="upHint"></small></div></div>
@@ -1053,13 +1074,8 @@
       <div class="acts"><button class="primary grow" data-act="up" data-id="${u.id}"></button><button data-act="upmax" data-id="${u.id}" class="small">Max</button></div></div>`);
     return { el, lv: $('.lv', el), now: $('.now', el), req: $('.req', el), buy: $('[data-act=up]', el), max: $('[data-act=upmax]', el) };
   }
-  function renderUpgrades(d) {
-    const rs = shopRefs.up;
-    setText(rs.lambda, num(d.lambda)); setText(rs.serve, num(d.serve)); setText(rs.restock, d.restock ? num(d.restock) : '–'); setText(rs.cap, num(d.cap));
-    syncFilterUI($('#upTools'));
-    const bottleneck = d.lambda > d.serve * 1.05 ? 'Checkout is your bottleneck: customers are leaving. Upgrade checkout!' : d.serve > d.lambda * 1.5 ? 'Checkout has spare capacity — more marketing will pay off.' : 'Marketing and checkout are well balanced.';
-    setText($('#upHint'), bottleneck);
-    GROUPS.forEach((g) => {
+  /** One group of upgrade cards (Upgrades tab; the Service tab renders its own group the same way). */
+  function renderUpGroup(g, d) {
       const list = CS.UPGRADES.filter((u) => u.grp === g && d.y >= u.year - 2 && !(u.req && !S.up[u.req] && d.y < u.year)).filter((u) => {
         if (FILT.up.f === 'all') return true;
         const maxed = E.upLevel(S, u.id) >= u.max;
@@ -1080,7 +1096,14 @@
         n.max.hidden = u.max === 1;
         setDis(n.max, !unlocked || maxed || S.cash < cost);
       });
-    });
+  }
+  function renderUpgrades(d) {
+    const rs = shopRefs.up;
+    setText(rs.lambda, num(d.lambda)); setText(rs.serve, num(d.serve)); setText(rs.restock, d.restock ? num(d.restock) : '–'); setText(rs.cap, num(d.cap));
+    syncFilterUI($('#upTools'));
+    const bottleneck = d.lambda > d.serve * 1.05 ? 'Checkout is your bottleneck: customers are leaving. Upgrade checkout!' : d.serve > d.lambda * 1.5 ? 'Checkout has spare capacity — more marketing will pay off.' : 'Marketing and checkout are well balanced.';
+    setText($('#upHint'), bottleneck);
+    GROUPS.forEach((g) => renderUpGroup(g, d));
   }
 
   /* ---------- FRANCHISE HQ tab ---------- */
@@ -1295,6 +1318,7 @@
     const pend = E.pendingTokens(S);
     const showHQ = S.meta.resets > 0 || S.meta.tokens > 0 || pend > 0 || S.cal >= 20;
     $('#nav-franchise').hidden = !showHQ;
+    $('#nav-service').hidden = !(d.service || d.y >= CS.UP_BY_ID.svc_desk.year);
     $('#nav-buyers').hidden = !(d.office || d.y >= CS.UP_BY_ID.purchasing.year);
     $('#tokStat').hidden = !(S.meta.tokens > 0 || pend > 0);
     setText($('#tokens'), '🎫 ' + num(S.meta.tokens) + (pend > 0 ? ' (+' + num(pend) + ')' : ''));
@@ -1525,6 +1549,7 @@
     renderHeader(d);
     switch (tab) {
       case 'shop': renderShop(d, items); break;
+      case 'service': renderService(d); break;
       case 'catalog': renderCatalog(d, items); break;
       case 'buyers': renderBuyers(d, items); break;
       case 'workshop': renderWorkshop(d, items); break;
@@ -1613,7 +1638,7 @@
     chooseState().then((c) => {
       S = c.state;
       announceNew(true); // silently mark what already exists
-      buildShop(); buildCatalog(); buildBuyers(); buildWorkshop(); buildUpgrades(); buildFranchise(); buildMenu();
+      buildShop(); buildCatalog(); buildBuyers(); buildWorkshop(); buildService(); buildUpgrades(); buildFranchise(); buildMenu();
       applyTheme(true);
       eraShown = E.eraAt(E.yearOf(S)).name;
       last = Date.now();

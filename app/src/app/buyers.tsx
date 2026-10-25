@@ -226,7 +226,7 @@ export default function Buyers() {
   return (
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Panel title="Purchasing Office" icon="👔" right={v.wages}>
-        <Text style={styles.body}>Hire a buyer for each product category. They watch sales trends, decide what to stock and how much, and place the orders themselves. Tune how each one works below.</Text>
+        <Text style={styles.body}>Hire a buyer for each product category, a designer for your PCs and a manager for the Service Desk. Buyers watch sales trends, decide what to stock and how much, and place the orders themselves. Tune how each one works below.</Text>
         <View style={styles.grid}>
           {v.stats.map((st) => <Stat key={st.label} label={st.label} value={st.value} style={styles.mini} />)}
         </View>

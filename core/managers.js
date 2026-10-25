@@ -24,6 +24,14 @@
         negotiate: '+1% quality on every custom PC you build per level.',
         logistics: 'Faster design cycles and more concepts considered each round.',
       } },
+    // not a stock buyer either: keeps the Service Desk's repair capacity ahead of walk-ins (see svcTick)
+    { id: 'svc', name: 'Service Desk', icon: '🛎️', kinds: [], needs: 'service', tab: 'svc', designer: true, svc: true,
+      skillNames: { forecast: 'Planning', negotiate: 'Haggling', logistics: 'Speed' },
+      skillDescs: {
+        forecast: 'Plans ahead: +3% spare repair capacity per level on top of your headroom setting.',
+        negotiate: '-0.5% off every upgrade the manager buys, per level.',
+        logistics: 'Reviews the desk more often and can buy more per review (1 more every 3 levels).',
+      } },
   ];
   const CAT = {};
   CS.MGR_CATS.forEach((c) => (CAT[c.id] = c));
@@ -78,6 +86,14 @@
     premium: { label: 'High end', desc: 'Standard and Premium parts only, for enthusiasts.', cfg: { tiers: ['Standard', 'Premium'], diversity: 0.85, maxDesigns: 3 } },
     range: { label: 'Full range', desc: 'Spreads designs across the price ladder.', cfg: { tiers: ['Budget', 'Standard', 'Premium'], diversity: 0.4, maxDesigns: 6 } },
   };
+  /* ---------- Service Desk manager ---------- */
+  const SVC_EVERY = 45; // seconds between reviews at Speed 0
+  CS.SVC_PRESETS = {
+    balanced: { label: 'Balanced', desc: 'A little spare capacity, spends up to a quarter of your cash per review.', cfg: { headroom: 10, maxSpendPct: 25, techs: true, warranty: true } },
+    lean: { label: 'Lean', desc: 'Just enough capacity, careful with cash.', cfg: { headroom: 0, maxSpendPct: 10, techs: true, warranty: true } },
+    ahead: { label: 'Stay ahead', desc: 'Plenty of spare capacity so no job is ever turned away.', cfg: { headroom: 30, maxSpendPct: 50, techs: true, warranty: true } },
+  };
+  const svcDefaults = () => ({ on: true, preset: 'balanced', headroom: 10, maxSpendPct: 25, reserveCash: 0, techs: true, warranty: true, log: true, pins: {} });
   const designDefaults = () => ({
     on: true, preset: 'demand', tiers: ['Budget', 'Standard', 'Premium'], diversity: 0.85, maxDesigns: 4, reserveSlots: 0,
     priceMode: 'auto', fixedMarkup: 0.6, minMarkup: 0.25, maxMarkup: 1.5, minMargin: 0, maxBuildCost: 0,
@@ -85,7 +101,7 @@
     namePrefix: '', log: true, pins: {},
   });
 
-  const defaults = (cat) => cat === 'design' ? designDefaults() : ({
+  const defaults = (cat) => cat === 'svc' ? svcDefaults() : cat === 'design' ? designDefaults() : ({
     on: true, preset: 'balanced', priority: 'balanced',
     coverage: { pre: 3, bp: 3, game: 4, acc: 5, con: 4 }[cat], safety: 20, maxSkus: cat === 'acc' ? 14 : cat === 'con' ? 12 : 6,
     reserveCash: 0, maxOrderPct: 50, maxSpacePct: { pre: 60, bp: 30, game: 20, acc: 30, con: 25 }[cat],
@@ -133,7 +149,7 @@
       };
       out.wages += mg.wage * infl * wageF;
       out.count++;
-      if (c.designer && cfg.on && d.workshop) out.designBonus = 0.01 * eff.negotiate;
+      if (c.id === 'design' && cfg.on && d.workshop) out.designBonus = 0.01 * eff.negotiate;
     });
     return out;
   }
@@ -508,6 +524,50 @@
   }
   function designFee(cost) { return 12 * cost; }
 
+  /** One review of the Service Desk: buy repair capacity until it covers walk-ins plus headroom, and keep Warranty Pitch growing. */
+  function svcTick(s, d, mg, cfg, m) {
+    const now = s.stats.play;
+    mg.planT = now;
+    const want = d.svcDemand * (1 + cfg.headroom / 100 + 0.03 * m.eff.forecast);
+    const buys = 1 + Math.floor(m.eff.logistics / 3);
+    let budget = Math.max(0, (s.cash - cfg.reserveCash) * (cfg.maxSpendPct / 100));
+    const buy = (u) => {
+      const cost = E.upCost(s, u);
+      if (cost > budget || s.cash - cost < cfg.reserveCash || !E.buyUp(s, u.id)) return false;
+      const back = cost * m.disc; // haggling: a refund on what it just paid
+      s.cash += back;
+      budget -= cost - back;
+      mg.stats.ordered++; mg.stats.spent += cost - back; mg.stats.saved += back;
+      return true;
+    };
+    if (cfg.techs) {
+      for (let i = 0; i < buys; i++) {
+        const dd = E.derive(s);
+        const gap = want - dd.svcCap;
+        if (gap <= 1e-9) break;
+        const opts = CS.UPGRADES.filter((u) => u.kind === 'svc' && E.upUnlocked(s, u) && E.upLevel(s, u.id) < u.max);
+        // the cheapest upgrade that closes the gap on its own, else the best capacity for the money
+        const fits = opts.filter((u) => u.per >= gap).sort((a, b) => E.upCost(s, a) - E.upCost(s, b))[0];
+        const u = fits || opts.sort((a, b) => b.per / E.upCost(s, b) - a.per / E.upCost(s, a))[0];
+        if (!u || !buy(u)) {
+          if (u) note(mg, cfg, now, 'svcbudget', '💸 Wanted ' + u.name + ' but it is over this review\'s budget (' + cfg.maxSpendPct + '% of cash).', 600);
+          break;
+        }
+        note(mg, cfg, now, 'svcbuy' + u.id, '➕ Added ' + u.name + ' (capacity ' + Math.round(dd.svcCap * 60) + ' → ' + Math.round(E.derive(s).svcCap * 60) + ' jobs/min).', 120);
+      }
+    }
+    if (cfg.warranty) {
+      const u = CS.UP_BY_ID.warranty;
+      if (E.upUnlocked(s, u) && E.upLevel(s, u.id) < u.max && buy(u)) note(mg, cfg, now, 'svcwarr', '📜 Bought Warranty Pitch level ' + E.upLevel(s, u.id) + ' (' + Math.round(E.derive(s).warranty * 100) + '% of PC buyers).', 120);
+    }
+    const d2 = E.derive(s);
+    mg.plan = [
+      { k: 'svc:cap', name: 'Repair capacity (jobs/min)', t: Math.round(d2.svcCap * 60), v: d2.svcDemand * 60, tr: null, why: 'walk-ins' },
+      { k: 'svc:warr', name: 'PC buyers taking a warranty (%)', t: Math.round(d2.warranty * 100), v: 0, tr: null, why: 'of PC sales' },
+    ];
+    if (d2.svcDemand > d2.svcCap * 1.05) note(mg, cfg, now, 'svcshort', '🚪 Still turning away ' + Math.round((d2.svcDemand - d2.svcCap) * 60) + ' jobs a minute (nothing affordable or unlocked).', 900);
+  }
+
   function tick(s, d, items, dt) {
     if (!d.mgr || !d.mgr.count) return;
     CS.MGR_CATS.forEach((c) => {
@@ -515,6 +575,13 @@
       if (!m || !m.on) return;
       const mg = s.mgr[c.id];
       mg.tAcc = (mg.tAcc || 0) + dt;
+      if (c.svc) {
+        if (mg.tAcc >= SVC_EVERY / (1 + 0.25 * m.eff.logistics) || mg.planT == null) {
+          mg.tAcc = 0;
+          svcTick(s, d, mg, cfgOf(s, c.id), m);
+        }
+        return;
+      }
       if (c.designer) {
         if (mg.tAcc >= DESIGN_EVERY / (1 + 0.25 * m.eff.logistics) || mg.planT == null) {
           mg.tAcc = 0;
@@ -609,7 +676,7 @@
     if (!s.mgrCfg[catId]) { // first hire in this category: start from the trait's favourite preset
       const cfg = defaults(catId);
       s.mgrCfg[catId] = cfg;
-      applyPreset(s, catId, CAT[catId].designer ? 'demand' : CS.MGR_TRAITS[c.trait].preset || 'balanced');
+      applyPreset(s, catId, CAT[catId].svc ? 'balanced' : CAT[catId].designer ? 'demand' : CS.MGR_TRAITS[c.trait].preset || 'balanced');
     }
     cfgOf(s, catId).on = true;
     (s.mgr[catId].log).unshift({ t: s.stats.play, txt: '👋 ' + c.name + ' joins as ' + CAT[catId].name + ' buyer.' });
@@ -646,10 +713,10 @@
     return true;
   }
   function applyPreset(s, catId, presetId) {
-    const p = (CAT[catId].designer ? CS.DESIGN_PRESETS : CS.MGR_PRESETS)[presetId];
+    const p = (CAT[catId].svc ? CS.SVC_PRESETS : CAT[catId].designer ? CS.DESIGN_PRESETS : CS.MGR_PRESETS)[presetId];
     if (!p) return;
     const cfg = cfgOf(s, catId);
-    if (CAT[catId].designer) { Object.assign(cfg, JSON.parse(JSON.stringify(p.cfg)), { preset: presetId }); return; }
+    if (CAT[catId].designer) { Object.assign(cfg, JSON.parse(JSON.stringify(p.cfg)), { preset: presetId }); return; } // designer and Service Desk
     const base = defaults(catId);
     const o = Object.assign({}, p.cfg);
     if (o.coverage == null) o.coverage = base.coverage;
@@ -661,7 +728,7 @@
     if (!(key in cfg) || key === 'pins') return;
     cfg[key] = val;
     if (key !== 'on' && key !== 'preset' && key !== 'log' && key !== 'reserveCash' && key !== 'maxOrderPct' && key !== 'maxSpacePct' && key !== 'maxSkus' && key !== 'blocked' && key !== 'groups' && key !== 'maxPrice' && key !== 'maxAge' && key !== 'anticipate' && key !== 'preBuy' && !CAT[catId].designer) cfg.preset = 'custom';
-    if (CAT[catId].designer && ['tiers', 'diversity', 'maxDesigns'].includes(key)) cfg.preset = 'custom';
+    if (CAT[catId].designer && ['tiers', 'diversity', 'maxDesigns', 'headroom', 'maxSpendPct'].includes(key)) cfg.preset = 'custom';
     if (key === 'preset') applyPreset(s, catId, val);
   }
   /** Hand an auto-designed blueprint over to the player (the designer leaves it alone). */
@@ -680,7 +747,7 @@
 
   CS.M = {
     init, derive, decorate, noteSale, velocity, tick, restock, candidates, hire, fire, refresh, train, applyPreset, setCfg, setPin,
-    designFee, takeOver, cfgOf, defaults, bonusFor, refreshCost, trainCost, available, effSkills, wageFor, MAX_LEVEL, wageInfl, DECIDE_EVERY,
+    designFee, svcTick, takeOver, cfgOf, defaults, bonusFor, refreshCost, trainCost, available, effSkills, wageFor, MAX_LEVEL, wageInfl, DECIDE_EVERY,
   };
   if (typeof module !== 'undefined') module.exports = CS;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -33,7 +33,7 @@ export function ServicePanel({ s, onChange }: { s: GameState; onChange: () => vo
   return (
     <Panel title="Service Desk" icon="🛎️" right={money(v.income) + '/min'}>
       <View style={styles.grid}>{tiles.map(([l, x]) => <Stat key={l} label={l} value={x} style={styles.mini} />)}</View>
-      {v.busy && <Text style={styles.warn}>🚪 Turning away {num(v.turnedAway)} jobs a minute. Hire technicians in Upgrades → Service.</Text>}
+      {v.busy && <Text style={styles.warn}>🚪 Turning away {num(v.turnedAway)} jobs a minute. Hire technicians in the Service tab, or a Service Desk manager in Managers.</Text>}
       <Text style={styles.sub}>On the menu</Text>
       <View style={styles.menu}>
         {v.menu.map((x: { id: string; icon: string; name: string; price: number }) => (
