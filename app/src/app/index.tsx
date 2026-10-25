@@ -8,6 +8,7 @@ import { buildShopView, buyRec, recButtonLabel } from '@/shop';
 import { E } from '@/game';
 import { colors, money, num, theme, themed } from '@/theme';
 import { Scene } from '@/components/Scene';
+import { ServicePanel } from '@/components/ServicePanel';
 
 /** "+$1.2K" that rises and fades over the Hustle button after a sale. */
 function Floater({ text, good }: { text: string; good: boolean }) {
@@ -134,6 +135,8 @@ export default function Shop() {
           {v.stats.map((st) => <Stat key={st.label} label={st.label} value={st.value} style={styles.mini} />)}
         </View>
       </Panel>
+
+      <ServicePanel s={s} onChange={refresh} />
 
       <Panel title="Recent Sales" icon="🧾">
         {log.length ? log.map((l, i) => (

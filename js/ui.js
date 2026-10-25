@@ -231,6 +231,7 @@
           <small class="advnote">Estimates from your recent sales. Payback = how long an upgrade takes to earn back its cost.</small>
         </div></div>
       <div class="panel"><div class="title">Shop Report</div><div class="pbody"><div class="grid" id="statGrid"></div></div></div>
+      <div class="panel" id="svcPanel" hidden><div class="title"><span>🛎️ Service Desk</span><span id="svcRate" class="num"></span></div><div class="pbody" id="svcBody"></div></div>
       <div class="panel"><div class="title">Recent Sales</div><div class="pbody"><ul id="log"></ul></div></div>
       <div class="panel"><div class="title">The Times</div><div class="pbody" id="times"></div></div>`;
     const defs = [
@@ -245,6 +246,22 @@
       grid.appendChild(m);
       shopRefs.cells[id] = $('b', m);
     });
+  }
+  /** Service Desk panel: a teaser with an Open button, then jobs, capacity, the era's service menu and warranties. */
+  function renderService(d) {
+    const v = E.serviceView(S, d);
+    $('#svcPanel').hidden = !v.available;
+    if (!v.available) return;
+    setText($('#svcRate'), v.open ? money(v.income) + '/min' : '');
+    if (!v.open) {
+      setHtml($('#svcBody'), `<div>Fix customers' computers and sell extended warranties: steady money that takes no shelf space.</div>
+        <button class="primary" data-act="up" data-id="svc_desk" ${S.cash < v.openCost ? 'disabled' : ''}>Open the Service Desk for ${money(v.openCost)}</button>`);
+      return;
+    }
+    const mini = (l, x) => `<div class="mini"><small>${l}</small><b class="num">${x}</b></div>`;
+    setHtml($('#svcBody'), `<div class="grid">${mini('Repair jobs / min', num(v.jobs))}${mini('Walk-ins / min', num(v.walkIns))}${mini('Capacity / min', num(v.capacity))}${mini('PC buyers taking a warranty', Math.round(v.warrantyShare * 100) + '%')}${mini('Repairs done', num(v.repairs))}${mini('Repair income', money(v.repairRevenue))}${mini('Warranties sold', num(v.warranties))}${mini('Warranty income', money(v.warrantyRevenue))}${mini('Claims paid', money(v.claimsPaid))}${mini('Claims still to come', money(v.claimsDue))}</div>`
+      + (v.busy ? `<div class="warn">🚪 Turning away ${num(v.turnedAway)} jobs a minute. Hire technicians in Upgrades → Service.</div>` : '')
+      + `<small>On the menu: ${v.menu.map((x) => x.icon + ' ' + esc(x.name) + ' ' + money(x.price)).join(' · ')}</small>`);
   }
   function spawnWalker(buy) {
     const st = $('#street');
@@ -347,6 +364,7 @@
     setText(c.acc, num(S.stats.soldAcc));
     setText(c.cons, num(S.stats.soldConsoles || 0));
     setText(c.cgm, num((S.stats.soldCGames || 0) + (S.stats.soldCAcc || 0)));
+    renderService(d);
 
     renderAdvisor(d, items);
 
@@ -968,7 +986,7 @@
   }
 
   /* ---------- UPGRADES tab ---------- */
-  const GROUPS = ['Marketing', 'Checkout', 'Stock', 'Shop', 'Workshop'];
+  const GROUPS = ['Marketing', 'Checkout', 'Stock', 'Shop', 'Workshop', 'Service'];
   function buildUpgrades() {
     $('#tab-upgrades').innerHTML = `
       <div class="panel"><div class="title">Shop Overview</div><div class="pbody"><div class="grid" id="upSum"></div><small id="upHint"></small></div></div>
@@ -1211,6 +1229,8 @@
       <tr><td>Accessories sold</td><td>${num(st.soldAcc)}</td></tr>
       <tr><td>Consoles sold</td><td>${num(st.soldConsoles || 0)}</td></tr>
       <tr><td>Console games & accessories sold</td><td>${num((st.soldCGames || 0) + (st.soldCAcc || 0))}</td></tr>
+      <tr><td>Repairs done</td><td>${num(st.repairs || 0)}</td></tr>
+      <tr><td>Extended warranties sold</td><td>${num(st.warranties || 0)}</td></tr>
       <tr><td>Hustles</td><td>${num(st.hustles)}</td></tr>
       <tr><td>Franchises opened</td><td>${num(S.meta.resets)}</td></tr>
       <tr><td>Offline limit</td><td>${d.offlineCap / 3600}h</td></tr></table>`);

@@ -298,6 +298,13 @@
     { id: 'bench', grp: 'Workshop', name: 'Design Bench', icon: '📐', desc: '+1 blueprint slot', year: 1996, base: 6000, grow: 2.2, max: 12, kind: 'bench', per: 1, req: 'workshop' },
     { id: 'cnc', grp: 'Workshop', name: 'Assembly Line', icon: '🏭', desc: 'Builds +0.4 PCs/s', year: 2005, base: 12000, grow: 1.3, max: 40, kind: 'build', per: 0.4, up: 6, req: 'workshop' },
     { id: 'roboline', grp: 'Workshop', name: 'Robotic Build Cells', icon: '🤖', desc: 'Builds +3 PCs/s', year: 2018, base: 100000, grow: 1.3, max: 40, kind: 'build', per: 3, up: 40, req: 'workshop' },
+    // Service: repairs and warranties (see CS.SERVICES); no stock, no shelf space
+    { id: 'svc_desk', grp: 'Service', name: 'Service Desk', icon: '🛎️', desc: 'Open a repair counter: walk-in repair jobs, plus extended warranties on every PC you sell. Takes no shelf space.', year: 1994, base: 5000, grow: 1, max: 1, kind: 'svc_desk', per: 1, verb: 'Open' },
+    { id: 'svc_tech', grp: 'Service', name: 'Repair Technician', icon: '🧑‍🔧', desc: 'Handles +0.03 repair jobs/s (paid wage)', year: 1994, base: 900, grow: 1.35, max: 80, kind: 'svc', per: 0.03, up: 0.5, req: 'svc_desk' },
+    { id: 'warranty', grp: 'Service', name: 'Warranty Pitch', icon: '📜', desc: '+3% of PC buyers add an extended warranty', year: 1994, base: 3000, grow: 1.6, max: 8, kind: 'warranty', per: 0.03, req: 'svc_desk' },
+    { id: 'svc_bench', grp: 'Service', name: 'Diagnostic Bench', icon: '🩺', desc: 'Handles +0.3 repair jobs/s', year: 1998, base: 15000, grow: 1.25, max: 50, kind: 'svc', per: 0.3, up: 2, req: 'svc_desk' },
+    { id: 'svc_remote', grp: 'Service', name: 'Remote Support Line', icon: '🎧', desc: 'Handles +3 repair jobs/s', year: 2008, base: 200000, grow: 1.25, max: 50, kind: 'svc', per: 3, up: 15, req: 'svc_desk' },
+    { id: 'svc_ai', grp: 'Service', name: 'AI Triage', icon: '🤖', desc: 'Handles +25 repair jobs/s', year: 2022, base: 2e6, grow: 1.25, max: 50, kind: 'svc', per: 25, up: 80, req: 'svc_desk' },
   ];
   CS.UP_BY_ID = {};
   CS.UPGRADES.forEach((u) => (CS.UP_BY_ID[u.id] = u));
@@ -343,6 +350,23 @@
     { id: 'aiwinter', from: 2029.2, to: 2029.9, name: 'AI Winter', demand: 0.88, text: 'The AI hype cools off. Shoppers decide last year\'s PC is fine after all.' },
     { id: 'solar', from: 2030.6, to: 2031.1, name: 'Solar Storm Shortage', partCost: 1.3, gpuCost: 1.2, text: 'A solar storm knocks out two chip fabs. Parts are scarce and pricey.' },
     { id: 'quantum', from: 2032.1, to: 2033.3, name: 'Quantum Hype Bubble', demand: 1.35, text: 'Quantum computing is on every magazine cover. Nobody knows what it does; everybody wants one.' },
+  ];
+
+  /* ---------- Services (Service Desk) ----------
+     Walk-in repair jobs: price in 1993 dollars (inflated by year), w = how common it is while offered. */
+  CS.SERVICES = [
+    { id: 'virus', name: 'Virus Removal', icon: '🦠', from: 1993, to: 2099, price: 79, w: 1.0 },
+    { id: 'ram', name: 'Memory Upgrade, Fitted', icon: '📏', from: 1993, to: 2099, price: 59, w: 0.8 },
+    { id: 'dialup', name: 'Dial-Up Internet Setup', icon: '📞', from: 1993, to: 2003, price: 49, w: 1.2 },
+    { id: 'tuneup', name: 'Tune-Up & Defrag', icon: '🧹', from: 1995, to: 2012, price: 49, w: 0.8 },
+    { id: 'data', name: 'Data Recovery', icon: '💾', from: 1997, to: 2099, price: 249, w: 0.4 },
+    { id: 'y2k', name: 'Y2K Compliance Check', icon: '🐛', from: 1998.5, to: 2000.05, price: 39, w: 2.0 },
+    { id: 'gpu', name: 'Graphics Card Install & Drivers', icon: '🎮', from: 2000, to: 2099, price: 69, w: 0.6 },
+    { id: 'wifi', name: 'Wi-Fi Setup', icon: '📶', from: 2003, to: 2099, price: 69, w: 0.9 },
+    { id: 'screen', name: 'Cracked Screen Repair', icon: '📱', from: 2010, to: 2099, price: 129, w: 1.2 },
+    { id: 'aipc', name: 'AI PC Setup', icon: '🤖', from: 2024, to: 2099, price: 99, w: 0.9 },
+    { id: 'glasses', name: 'Smart-Glasses Pairing', icon: '🥽', from: 2027, to: 2099, price: 79, w: 0.8 },
+    { id: 'quantum', name: 'Quantum Driver Exorcism', icon: '⚛️', from: 2031, to: 2099, price: 149, w: 0.6 },
   ];
 
   /* ---------- Retail seasons (every year; from/to are fractions of the year) ----------
@@ -426,6 +450,8 @@
     { id: 'a_con100', name: 'Player Two', desc: 'Sell 100 consoles', ok: (s) => (s.stats.soldConsoles || 0) >= 100, p: (s) => (s.stats.soldConsoles || 0) / 100 },
     { id: 'a_con1k', name: 'Console Wars', desc: 'Sell 1,000 consoles', ok: (s) => (s.stats.soldConsoles || 0) >= 1000, p: (s) => (s.stats.soldConsoles || 0) / 1000 },
     { id: 'a_cg1k', name: 'Backlog Builder', desc: 'Sell 1,000 console games', ok: (s) => (s.stats.soldCGames || 0) >= 1000, p: (s) => (s.stats.soldCGames || 0) / 1000 },
+    { id: 'a_fix1k', name: 'Have You Tried Turning It Off?', desc: 'Complete 1,000 repair jobs', ok: (s) => (s.stats.repairs || 0) >= 1000, p: (s) => (s.stats.repairs || 0) / 1000 },
+    { id: 'a_warr1k', name: 'Peace of Mind', desc: 'Sell 1,000 extended warranties', ok: (s) => (s.stats.warranties || 0) >= 1000, p: (s) => (s.stats.warranties || 0) / 1000 },
     { id: 'a_hustle', name: 'Door-to-Door', desc: 'Hustle 100 times', ok: (s) => s.stats.hustles >= 100, p: (s) => s.stats.hustles / 100 },
   ];
 })(typeof window !== 'undefined' ? window : globalThis);

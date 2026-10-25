@@ -110,6 +110,25 @@
       case 'aisle_game': return d.aisleGame || pm.gross <= 0 ? null : { gain: pm.gross * 0.12, why: 'PC games sell to almost every shopper. Better PCs mean better game sales.' };
       case 'office': return d.office || pm.gross <= 0 || !(s.up.clerk > 0) ? null : { gain: pm.gross * 0.05, why: 'Buyers watch trends and manage your stock levels, so you do not have to.' };
       case 'workshop': return d.workshop || d.y < 1996 || pm.gross <= 0 ? null : { gain: pm.gross * 0.2, why: 'Build and sell your own PCs: fatter margins than prebuilts.' };
+      case 'svc_desk': {
+        if (d.service || pm.gross <= 0) return null;
+        const d2 = E.derive(cloneWith(s, u.id));
+        const gain = Math.min(d2.svcDemand, d2.svcCap) * d2.svc.price + pm.rev * 0.6 * d2.warranty * 0.12 * 0.6;
+        return { gain, why: 'Repairs and extended warranties: money that takes no shelf space. ' + n(d2.svcDemand * 60) + ' repair jobs a minute are walking past.' };
+      }
+      case 'svc': {
+        if (!d.service || d.svcDemand <= d.svcCap) return null;
+        const d2 = E.derive(cloneWith(s, u.id));
+        const dDone = Math.min(d2.svcDemand, d2.svcCap) - Math.min(d.svcDemand, d.svcCap);
+        const gain = dDone * d.svc.price - Math.max(0, d2.upkeep - d.upkeep);
+        if (gain <= 0) return null;
+        return { gain, why: 'The Service Desk turns away ' + n((d.svcDemand - d.svcCap) * 60) + ' repair jobs a minute: handles ' + n(dDone * 60) + ' more, ' + per(gain) + '.' };
+      }
+      case 'warranty': {
+        if (!d.service) return null;
+        const gain = pm.rev * 0.6 * u.per * 0.12 * 0.6;
+        return { gain, why: '+' + pct(u.per) + ' of PC buyers add an extended warranty (most of it is profit), ' + per(gain) + '.' };
+      }
       case 'night': {
         if (!(s.lastAway && s.lastAway.capped)) return null;
         return { gain: pm.gross * 0.12, why: 'You were away ' + dur(s.lastAway.elapsed) + ' but the shop only traded for ' + dur(s.lastAway.cap) + '. Longer unattended hours earn more.' };

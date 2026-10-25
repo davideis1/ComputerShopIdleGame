@@ -138,6 +138,12 @@ function bot(s) {
       need.push(pick('buildMult'));
     }
     need.push(pick('disc'));
+    if (mode === 'full') {
+      // Service Desk: open it once the shop has a little money, then keep capacity ahead of walk-ins
+      if (!dd.service && s.cash > 15000) need.push(CS.UP_BY_ID.svc_desk);
+      if (dd.service && dd.svcCap < dd.svcDemand) need.push(pick('svc'));
+      if (dd.service) need.push(pick('warranty'));
+    }
     let bought = false;
     for (const u of need.filter(Boolean)) {
       if (s.cash > E.upCost(s, u) + reserve && E.buyUp(s, u.id)) { bought = true; break; }
@@ -146,7 +152,7 @@ function bot(s) {
   }
 }
 
-const SPLIT = { pre: 'pre', bp: 'custom', game: 'add-on', acc: 'add-on', console: 'console', cgame: 'console', cacc: 'console' };
+const SPLIT = { pre: 'pre', bp: 'custom', game: 'add-on', acc: 'add-on', console: 'console', cgame: 'console', cacc: 'console', svc: 'service', warranty: 'service' };
 /** Play one franchise for `mins` minutes of real time; returns its numbers. */
 function play(s, run) {
   const split = {};
@@ -209,7 +215,7 @@ for (let run = 1; run <= runs; run++) {
   const r = play(s, run);
   rows.push({ run, bought, ...r });
   if (run === 1) {
-    log('revenue split', ['pre', 'custom', 'add-on', 'console'].map((k) => k + ' ' + r.share(k).toFixed(1) + '%').join(', '));
+    log('revenue split', ['pre', 'custom', 'add-on', 'console', 'service'].map((k) => k + ' ' + r.share(k).toFixed(1) + '%').join(', '));
     log('add-on share incl. console games & accessories (stats)', (100 * s.stats.addonRevenue / s.stats.revenue).toFixed(1) + '%', 'games', fmt(s.stats.soldGames), 'acc', fmt(s.stats.soldAcc), 'consoles', fmt(s.stats.soldConsoles || 0), 'pcRel', s.pcRel.toFixed(2));
     // Offline equivalence check: 8h offline vs 10 minutes online from the same save
     const a = E.deserialize(E.serialize(s));
@@ -233,9 +239,9 @@ for (let run = 1; run <= runs; run++) {
 // Summary: one row per franchise. tok/h = tokens claimable at the end / hours played; the key prestige-pacing number.
 const m = (v) => (v == null ? '   -' : String(Math.round(v)).padStart(4));
 console.log(`\nsim.js ${mins}m x ${runs}, bot=${mode}, stop=${stop}, seed=${opt('seed', 1)}  (${((Date.now() - t0) / 1000).toFixed(1)}s)`);
-console.log('run  start  played  HQ ups  2000  2010  2020  today   2035  1st tok  revenue    tokens  tok/h   pre  cust  addon  cons');
+console.log('run  start  played  HQ ups  2000  2010  2020  today   2035  1st tok  revenue    tokens  tok/h   pre  cust  addon  cons   svc');
 rows.forEach((r) => console.log(
-  `${String(r.run).padStart(3)}  ${Math.floor(r.start)}  ${m(r.played)}m  ${String(r.bought).padStart(6)}  ${m(r.marks[2000])}m ${m(r.marks[2010])}m ${m(r.marks[2020])}m ${m(r.marks.today)}m  ${m(r.marks.end)}m  ${m(r.firstToken)}m   ${fmt(r.revenue).padStart(8)}  ${String(r.tokens).padStart(6)}  ${(r.tokens / (r.played / 60)).toFixed(1).padStart(5)}  ${['pre', 'custom', 'add-on', 'console'].map((k) => r.share(k).toFixed(0).padStart(4) + '%').join(' ')}`,
+  `${String(r.run).padStart(3)}  ${Math.floor(r.start)}  ${m(r.played)}m  ${String(r.bought).padStart(6)}  ${m(r.marks[2000])}m ${m(r.marks[2010])}m ${m(r.marks[2020])}m ${m(r.marks.today)}m  ${m(r.marks.end)}m  ${m(r.firstToken)}m   ${fmt(r.revenue).padStart(8)}  ${String(r.tokens).padStart(6)}  ${(r.tokens / (r.played / 60)).toFixed(1).padStart(5)}  ${['pre', 'custom', 'add-on', 'console', 'service'].map((k) => r.share(k).toFixed(0).padStart(4) + '%').join(' ')}`,
 ));
 if (opt('save', '')) { require('fs').writeFileSync(opt('save'), E.serialize(s)); console.log('saved', opt('save'), E.dateStr(E.yearOf(s))); }
 if (problems.length) { console.error('\nPROBLEMS:\n' + problems.join('\n')); process.exit(1); }

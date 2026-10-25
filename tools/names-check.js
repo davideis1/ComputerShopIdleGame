@@ -37,7 +37,7 @@ const strings = new Set();
   if (typeof o === 'function') return;
   if (Array.isArray(o)) return o.forEach((x) => walk(x, d + 1));
   if (typeof o === 'object') Object.values(o).forEach((x) => walk(x, d + 1));
-})([CS.PRODUCTS, CS.PARTS, CS.UPGRADES, CS.TOKEN_UPGRADES, CS.EVENTS, CS.HEADLINES, CS.ACH, CS.ADDONS, CS.PLATFORMS, CS.CONSOLES, CS.CGAMES, CS.CACCS, CS.GROUPS, CS.ERAS], 0);
+})([CS.PRODUCTS, CS.PARTS, CS.UPGRADES, CS.TOKEN_UPGRADES, CS.EVENTS, CS.HEADLINES, CS.ACH, CS.ADDONS, CS.PLATFORMS, CS.CONSOLES, CS.CGAMES, CS.CACCS, CS.GROUPS, CS.ERAS, CS.SERVICES, CS.SEASONS], 0);
 
 // 2. forbidden: real marks, and the retired puns
 const REAL = ['Compaq', 'Gateway', 'Dell', 'Apple', 'Macintosh', 'MacBook', 'iMac', 'Microsoft', 'Windows', 'Intel', 'Pentium', 'Nvidia', 'GeForce', 'Radeon', 'Ryzen', 'Athlon', 'Kingston', 'Samsung', 'Logitech', 'Corsair', 'Seagate', 'Lenovo', 'Razer', 'Hewlett', 'Alienware', 'Surface', 'Nintendo', 'Sega', 'Sony', 'PlayStation', 'Xbox', 'Atari', 'Rockstar', 'Blizzard', 'Valve', 'Bethesda', 'Activision', 'Ubisoft', 'Capcom',

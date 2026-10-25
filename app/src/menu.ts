@@ -41,6 +41,8 @@ export function buildMenuView(s: GameState, filter: TroFilter): MenuView {
       { label: 'Accessories sold', value: num(st.soldAcc) },
       { label: 'Consoles sold', value: num(st.soldConsoles || 0) },
       { label: 'Console games & accessories sold', value: num((st.soldCGames || 0) + (st.soldCAcc || 0)) },
+      { label: 'Repairs done', value: num(st.repairs || 0) },
+      { label: 'Extended warranties sold', value: num(st.warranties || 0) },
       { label: 'Hustles', value: num(st.hustles) },
       { label: 'Franchises opened', value: num(s.meta.resets) },
       { label: 'Offline limit', value: d.offlineCap / 3600 + 'h' },
