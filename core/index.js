@@ -10,5 +10,6 @@ require('./engine.js');
 require('./consoles.js');
 require('./names.js');
 require('./managers.js');
+require('./offers.js');
 require('./advisor.js');
 module.exports = globalThis.CS;
