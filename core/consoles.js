@@ -302,7 +302,7 @@
         const tot = ws.reduce((a, b) => a + b, 0);
         if (tot <= 0) return;
         const p = Math.min(0.95, 1 - Math.exp(-tot / K));
-        for (let i = 0; i < hw.length; i++) ex[i] += (served * seg.share * p * ws[i]) / tot * A_HW;
+        for (let i = 0; i < hw.length; i++) ex[i] += (served * seg.share * p * ws[i]) / tot * A_HW * E.kindBoost(d, 'console');
       });
       hw.forEach((i, k) => { out[i.key] = ex[k]; cRate += ex[k]; });
     }
@@ -319,7 +319,7 @@
         const tot = ws.reduce((a, b) => a + b, 0);
         if (tot <= 0) return;
         const p = Math.min(0.95, 1 - Math.exp(-tot / K));
-        for (let i = 0; i < gi.length; i++) ex[i] += ((served * seg.share * p * ws[i]) / tot) * grp.A * attach;
+        for (let i = 0; i < gi.length; i++) ex[i] += ((served * seg.share * p * ws[i]) / tot) * grp.A * attach * E.kindBoost(d, grp.kind);
       });
       gi.forEach((i, k) => (out[i.key] = ex[k]));
     });

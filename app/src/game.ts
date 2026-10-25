@@ -43,7 +43,7 @@ export function hustle(s: GameState): { result: HustleResult; log?: { text: stri
   const n = r.extras ? r.extras.length : 0;
   return {
     result: { kind: 'sold', text: '+', rev: r.rev },
-    log: { text: 'Hustled: ' + r.sold.name + (n ? ' + ' + n + ' add-on' + (n > 1 ? 's' : '') : ''), amt: r.rev },
+    log: { text: (r.units > 1 ? '🏢 Business order: ' + r.units + '× ' : 'Hustled: ') + r.sold.name + (n ? ' + ' + n + ' add-on' + (n > 1 ? 's' : '') : '') + (r.streak > 1 ? ' 🔥' + r.streak : ''), amt: r.rev },
     ach: E.checkAch(s) || [],
   };
 }

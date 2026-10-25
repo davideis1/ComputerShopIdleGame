@@ -201,7 +201,7 @@ Playwright e2e scripts live only in session scratchpads. Commit a small smoke su
 1. **Fix pass (1 PR):** hidden-tab offline handling (§3.1), advisor `mem` reset (§3.2), achievement text (§3.3), lifetime stats (§3.4), local-clock cap (§3.6), CLAUDE.md cleanup (§3.7).
 2. **Tooling (1 PR):** PR CI (§7.1) + full-core `sim.js` with a prestige metric (§7.2). Do this before balance work so the numbers can be trusted. *Done in `tooling-ci-sim`; baseline numbers are in `CLAUDE.md`.*
 3. **Prestige pacing (1–2 PRs):** Time Warp / Head Start HQ upgrades, retune tokens using the new metric (§4.1); token-ready + era toasts in the app. *Done in `prestige-pacing` (Time Warp limited to before 2015; see `CLAUDE.md` Franchise/HQ). The post-today plateau (§4.2) is still open.*
-4. **Seasonal calendar + scaled Hustle (1 PR):** small, visible and makes both active and idle play better (§5.3, §4.4).
+4. **Seasonal calendar + scaled Hustle (1 PR):** small, visible and makes both active and idle play better (§5.3, §4.4). *Done in `seasons-hustle`.*
 5. **Service Desk & warranties (1–2 PRs):** the headline new feature (§5.1).
 6. **Decision events and reputation (2 PRs)** (§5.2, §5.4).
 7. **App:** chunked catch-up + local notifications (§6.1, §6.4), then TestFlight.

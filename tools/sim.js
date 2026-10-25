@@ -11,6 +11,7 @@
      --seed=N     random seed (default 1)
      --quiet      only the summary table (what CI runs)
      --items      also list what the shop stocks at the end
+     --hustle     the bot also hustles every 3 s the whole run (an always-active player), to price active play
      --save=FILE  write the last franchise's save there (E.serialize), e.g. to seed a simulator for screenshots
    Exits non-zero if the economy breaks (NaN/negative-infinite cash, no revenue, the calendar stalls). */
 const args = process.argv.slice(2);
@@ -163,6 +164,7 @@ function play(s, run) {
       best = Math.max(best, avg);
     }
     if (t % 5 === 0) bot(s);
+    if (flag('hustle') && s.hustleCd <= 0) E.hustle(s);
     const evs = [];
     E.step(s, 1, 1, null, evs);
     evs.forEach((e) => { if (e.it) { const k = SPLIT[e.it.kind] || e.it.kind; split[k] = (split[k] || 0) + e.rev; } });
