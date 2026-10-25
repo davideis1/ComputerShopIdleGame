@@ -7,7 +7,8 @@ import { APP_VERSION, PRIVACY_URL, SUPPORT_URL } from '@/config';
 import { buildMenuView, setShopName, TRO_FILTERS, TroFilter } from '@/menu';
 import { colors, theme, themed, THEME_IDS, THEME_LABELS } from '@/theme';
 import { Bar, Panel } from '@/components/ui';
-import { enable as enableNotifications } from '@/notify';
+import { recentReleases, WhatsNewModal } from '@/components/WhatsNewModal';
+import { enable as enableNotifications, LEAD_CHOICES, REMINDER_KINDS } from '@/notify';
 import { gcAvailable, gcPlayer, gcShowAchievements, onGcPlayer } from '@/gamecenter';
 
 export default function Menu() {
@@ -15,6 +16,7 @@ export default function Menu() {
   const { token } = useAuth();
   const [filter, setFilter] = useState<TroFilter>('all');
   const [name, setName] = useState<string | null>(null); // what's being typed, until the box loses focus
+  const [newsOpen, setNewsOpen] = useState(false);
   const toggleNotify = async (on: boolean) => {
     if (on && !(await enableNotifications())) {
       Alert.alert('Notifications are off', 'Allow notifications for Mega Byte Computers in the Settings app, then switch reminders on here.');
@@ -88,11 +90,40 @@ export default function Menu() {
         <View style={styles.rowBetween}>
           <View style={{ flex: 1 }}>
             <Text style={styles.label}>Reminders while you're away</Text>
-            <Text style={styles.sub}>When the night shift ends, shelves run dry or a console launches.</Text>
+            <Text style={styles.sub}>Choose what to be told about below.</Text>
           </View>
           <Switch value={!!s.settings?.notify} onValueChange={toggleNotify} />
         </View>
       </Panel>
+
+      {!!s.settings?.notify && (
+        <Panel title="Reminders" icon="🔔">
+          {REMINDER_KINDS.map((k) => (
+            <View key={k.id} style={styles.rowBetween}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.label}>{k.label}</Text>
+                <Text style={styles.sub}>{k.hint}</Text>
+              </View>
+              <Switch
+                value={s.settings?.notifyKinds?.[k.id] !== false}
+                onValueChange={(v) => { s.settings = { ...s.settings, notifyKinds: { ...s.settings?.notifyKinds, [k.id]: v } }; refresh(); }}
+              />
+            </View>
+          ))}
+          <Text style={styles.label}>Tell me that the night shift is over…</Text>
+          <View style={styles.chips}>
+            {LEAD_CHOICES.map((c) => {
+              const on = (s.settings?.notifyLead ?? 0) === c.min;
+              return (
+                <Pressable key={c.min} onPress={() => { s.settings = { ...s.settings, notifyLead: c.min }; refresh(); }} style={[styles.chip, on && styles.chipOn]}>
+                  <Text style={[styles.chipText, on && { color: colors.onAccent }]}>{c.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Text style={styles.sub}>Reminders are set when you leave the app and cleared when you come back.</Text>
+        </Panel>
+      )}
 
       <AccountPanel />
 
@@ -149,10 +180,12 @@ export default function Menu() {
           Idle computer shop, 1993 → 2035 (the last decade is pure speculation). Every brand and product name is a made-up parody; this game is not affiliated with or endorsed by any real company. Offline progress is capped by your shop's Night Lock-Up, and Franchise Tokens, HQ upgrades and trophies carry over when you open a new franchise.
         </Text>
         <View style={styles.linkRow}>
+          <Pressable onPress={() => setNewsOpen(true)} hitSlop={8}><Text style={styles.link}>📰 What's new</Text></Pressable>
           <Pressable onPress={() => Linking.openURL(PRIVACY_URL)} hitSlop={8}><Text style={styles.link}>Privacy policy</Text></Pressable>
           <Pressable onPress={() => Linking.openURL(SUPPORT_URL)} hitSlop={8}><Text style={styles.link}>Support</Text></Pressable>
         </View>
       </Panel>
+      <WhatsNewModal visible={newsOpen} entries={recentReleases()} onClose={() => setNewsOpen(false)} />
     </ScrollView>
   );
 }

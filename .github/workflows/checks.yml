@@ -37,6 +37,9 @@ jobs:
           node tools/sim.js 330 3 --quiet | tee sim.txt
           { echo '### sim.js'; echo '```'; cat sim.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Release info in sync
+        run: node tools/sync-release.js --check
+
       - name: PHP syntax
         run: |
           set -e

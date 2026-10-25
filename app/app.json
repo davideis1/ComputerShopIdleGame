@@ -3,7 +3,7 @@
     "name": "Mega Byte Computers",
     "slug": "mega-byte-computers",
     "scheme": "computershopidle",
-    "version": "1.0.0",
+    "version": "1.1.24",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
