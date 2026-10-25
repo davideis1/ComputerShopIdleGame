@@ -89,7 +89,21 @@ export const DESIGN_SPEC: Group[] = [
 ];
 
 const catDef = (id: string) => CS.MGR_CATS.find((c: any) => c.id === id);
-const specFor = (cat: string) => (catDef(cat).designer ? DESIGN_SPEC : MC_SPEC);
+export const SVC_SPEC: Group[] = [
+  { grp: 'Strategy', ctl: [
+    { k: 'preset', t: 'select', l: 'Preset', o: presetOpts(CS.SVC_PRESETS) },
+    { k: 'headroom', t: 'range', l: 'Spare repair capacity to keep', min: 0, max: 50, step: 5, f: (v) => (v ? '+' + v + '% over walk-ins' : 'none') },
+    { k: 'techs', t: 'toggle', l: 'Add repair capacity (technicians, benches, support lines)' },
+    { k: 'warranty', t: 'toggle', l: 'Keep growing Warranty Pitch' },
+  ] },
+  { grp: 'Budget', ctl: [
+    { k: 'maxSpendPct', t: 'range', l: 'Spend per review (share of your cash)', min: 5, max: 100, step: 5, f: (v) => v + '%' },
+    { k: 'reserveCash', t: 'num', l: 'Never spend below ($)', min: 0 },
+  ] },
+  { grp: 'Reports', ctl: [{ k: 'log', t: 'toggle', l: 'Keep a notebook of decisions' }] },
+];
+
+const specFor = (cat: string) => (catDef(cat).svc ? SVC_SPEC : catDef(cat).designer ? DESIGN_SPEC : MC_SPEC);
 
 function brandsOf(cat: string): string[] {
   const set = new Set<string>();
@@ -163,7 +177,7 @@ export function buildBuyersView(s: GameState): BuyersView {
     const empty = { cands: [], refreshLabel: '', canRefresh: false, person: '', trait: '', on: false, stats: [], stance: '', skills: [], planTitle: '', plan: [], offNote: false, emptyPlan: false, groups: [], log: [], summary: '', need: '' };
 
     if (!mg) {
-      const need = avail ? '' : c.id === 'bp' || c.designer ? 'Needs the Build Workshop.' : c.id === 'game' ? 'Needs the Software Aisle.' : c.id === 'con' ? 'Needs the Console Corner.' : 'Needs the Accessories Wall.';
+      const need = avail ? '' : c.svc ? 'Needs the Service Desk.' : c.id === 'bp' || c.designer ? 'Needs the Build Workshop.' : c.id === 'game' ? 'Needs the Software Aisle.' : c.id === 'con' ? 'Needs the Console Corner.' : 'Needs the Accessories Wall.';
       const cands: CandView[] = (avail ? M.candidates(s, c.id) : []).map((x: any, idx: number) => {
         const tr = CS.MGR_TRAITS[x.trait];
         const bonus = M.bonusFor(s, x.wage, d.y);
@@ -191,8 +205,8 @@ export function buildBuyersView(s: GameState): BuyersView {
     });
     const plan = mg.plan.slice().sort((a: any, b: any) => b.t - a.t).map((p: any) => ({
       name: p.name,
-      stock: (byKey[p.k] ? byKey[p.k].stock : 0) + ' / ' + p.t,
-      why: trendArrow(p.tr) + ' ' + p.why + ' · ' + p.v.toFixed(p.v < 10 ? 1 : 0) + '/min',
+      stock: p.k.startsWith('svc:') ? String(p.t) : (byKey[p.k] ? byKey[p.k].stock : 0) + ' / ' + p.t,
+      why: trendArrow(p.tr) + ' ' + p.why + (p.v ? ' · ' + p.v.toFixed(p.v < 10 ? 1 : 0) + '/min' : ''),
     }));
 
     const groups = specFor(c.id).map((g) => {
@@ -219,13 +233,15 @@ export function buildBuyersView(s: GameState): BuyersView {
       person: tr.icon + ' ' + mg.name + ' (' + tr.name + ')',
       trait: tr.desc + ' Wage ' + money(m.wage * 60) + '/min.',
       on: !!cfg.on,
-      stats: (c.designer
+      stats: (c.svc
+        ? [['Upgrades bought', num(mg.stats.ordered)], ['Spent', money(mg.stats.spent)], ['Saved (haggling)', money(mg.stats.saved)], ['Capacity / min', num(d.svcCap * 60)]]
+        : c.designer
         ? [['Designs made', num(mg.stats.ordered)], ['Design fees', money(mg.stats.spent)], ['Quality bonus', '+' + m.eff.negotiate + '%'], ['Active designs', String(mg.plan.length)]]
         : [['Units ordered', num(mg.stats.ordered)], ['Spent', money(mg.stats.spent)], ['Saved (deals)', money(mg.stats.saved)], ['Products planned', String(mg.plan.length)]]
       ).map(([label, value]) => ({ label, value })),
       stance: cfg.on && mg.stance ? (mg.stance === 'prebuy' ? '🛒 Buying ahead of a price spike.' : '⏳ Holding back while prices are inflated.') : '',
       skills,
-      planTitle: c.designer ? 'Current designs' : "This week's plan",
+      planTitle: c.svc ? 'Desk status' : c.designer ? 'Current designs' : "This week's plan",
       plan, offNote: !cfg.on, emptyPlan: !plan.length && !!cfg.on,
       groups,
       log: (mg.log || []).slice(0, 8).map((l: any) => l.txt),
@@ -235,7 +251,7 @@ export function buildBuyersView(s: GameState): BuyersView {
   return {
     locked: null,
     stats: [
-      { label: 'Buyers employed', value: n + ' / ' + CS.MGR_CATS.length },
+      { label: 'Managers employed', value: n + ' / ' + CS.MGR_CATS.length },
       { label: 'Units ordered', value: num(ordered) },
       { label: 'Saved by negotiating', value: money(saved) },
       { label: 'Wages / min', value: money(d.mgr.wages * 60) },

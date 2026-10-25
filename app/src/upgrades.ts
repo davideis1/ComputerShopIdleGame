@@ -6,7 +6,8 @@ import { money, num } from './theme';
 export type Upgrade = any; // core/data.js CS.UPGRADES entry
 export type UpFilter = 'all' | 'afford' | 'open';
 
-export const UP_GROUPS = ['Marketing', 'Checkout', 'Stock', 'Shop', 'Workshop', 'Service'];
+export const UP_GROUPS = ['Marketing', 'Checkout', 'Stock', 'Shop', 'Workshop']; // the Upgrades tab
+export const SERVICE_GROUPS = ['Service']; // the Service tab
 export const UP_FILTERS: { id: UpFilter; label: string }[] = [
   { id: 'all', label: 'All' },
   { id: 'afford', label: 'Affordable now' },
@@ -50,14 +51,14 @@ export type UpView = {
   sections: { title: string; data: UpRow[] }[];
 };
 
-export function buildUpgradesView(s: GameState, filter: UpFilter): UpView {
+export function buildUpgradesView(s: GameState, filter: UpFilter, groups: string[] = UP_GROUPS): UpView {
   const d = E.derive(s);
   const hint =
     d.lambda > d.serve * 1.05 ? 'Checkout is your bottleneck: customers are leaving. Upgrade checkout!'
     : d.serve > d.lambda * 1.5 ? 'Checkout has spare capacity — more marketing will pay off.'
     : 'Marketing and checkout are well balanced.';
 
-  const sections = UP_GROUPS.map((g) => {
+  const sections = groups.map((g) => {
     const data: UpRow[] = CS.UPGRADES
       .filter((u: Upgrade) => u.grp === g && d.y >= u.year - 2 && !(u.req && !s.up[u.req] && d.y < u.year))
       .map((u: Upgrade): UpRow => {

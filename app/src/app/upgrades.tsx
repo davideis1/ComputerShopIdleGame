@@ -6,7 +6,7 @@ import { colors, theme, themed } from '@/theme';
 import * as Haptics from 'expo-haptics';
 import { Bar, Panel, Stat } from '@/components/ui';
 
-function UpgradeCard({ row, onBuy, onMax }: { row: UpRow; onBuy: () => void; onMax: () => void }) {
+export function UpgradeCard({ row, onBuy, onMax }: { row: UpRow; onBuy: () => void; onMax: () => void }) {
   const { u } = row;
   const off = !row.canBuy;
   const m = /Lv (\d+)\/(\d+)/.exec(row.lv || '');
