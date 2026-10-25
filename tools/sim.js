@@ -11,6 +11,7 @@
      --seed=N     random seed (default 1)
      --quiet      only the summary table (what CI runs)
      --items      also list what the shop stocks at the end
+     --offers=decline  ignore every offer card (default: a simple policy takes the good ones)
      --hustle     the bot also hustles every 3 s the whole run (an always-active player), to price active play
      --save=FILE  write the last franchise's save there (E.serialize), e.g. to seed a simulator for screenshots
    Exits non-zero if the economy breaks (NaN/negative-infinite cash, no revenue, the calendar stalls). */
@@ -83,7 +84,19 @@ function hireBuyers(s, reserve) {
   }
 }
 
+// Offer cards (core/offers.js): take bulk orders, containers with room, ads it can afford, reviews with fair odds;
+// keep PCs from the crypto miner.
+function answerOffer(s) {
+  const o = s.offer;
+  if (!o) return;
+  if (opt('offers', '') === 'decline') { CS.Offers.resolve(s, 1); return; }
+  const take = o.id === 'bulk' || o.id === 'y2k' || (o.id === 'clearance' && s.cash > o.cost * o.units * 2)
+    || (o.id === 'review' && o.odds >= 0.5) || (o.id === 'ad' && s.cash > o.cost * 3);
+  CS.Offers.resolve(s, take ? 0 : 1);
+}
+
 function bot(s) {
+  answerOffer(s);
   const d = E.derive(s);
   const has = (cat) => mode === 'full' && !!s.mgr && !!s.mgr[cat];
   const all = E.getItems(s, d).filter((i) => i.buyable || i.canBuild);

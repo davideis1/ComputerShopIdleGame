@@ -2,6 +2,7 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, u
 import { AppState } from 'react-native';
 import * as api from './api';
 import { useAuth } from './AuthProvider';
+import CS from '@core';
 import { E, GameState, HustleResult, hustle as doHustle, LogLine, newGame, saleLines, tick } from './game';
 import { clearGame, clearSyncMeta, deviceId, loadGame, loadSyncMeta, saveGame, saveSyncMeta } from './storage';
 import { noteBrowse, noteBuy } from './walkers';
@@ -23,6 +24,7 @@ type Ctx = {
   notify: (text: string) => void; // show a banner on whichever tab is open
   saveNow: () => Promise<void>;
   prestige: () => number; // sell up and open a new franchise; returns the tokens gained (0 if none ready)
+  decide: (choice: number) => void; // answer the open offer card (core/offers.js)
   away: Away;
   dismissAway: () => void;
   reset: () => Promise<ResetResult>;
@@ -90,12 +92,19 @@ export function GameProvider({ children }: { children: ReactNode }) {
   // Era changes and the first claimable token get a banner, like the web build (js/ui.js renderHeader).
   // Only moving forward counts: a new franchise or an adopted cloud save going back in time stays quiet.
   const eraShown = useRef<{ name: string; from: number } | null>(null);
+  const offerSeen = useRef<number | null>(null);
   const milestones = useCallback(() => {
     const g = game.current;
     if (!g) return;
     const era = E.eraAt(E.yearOf(g));
     if (eraShown.current && era.from > eraShown.current.from) say('🕰️ New era: ' + era.name + ' — ' + era.blurb, 5000);
     eraShown.current = era;
+    // a new offer card: say so wherever the player is
+    if (g.offer && g.offer.at !== offerSeen.current) {
+      offerSeen.current = g.offer.at;
+      const ov = CS.Offers.view(g);
+      if (ov) say('📨 ' + ov.title + ' — open the Shop tab to decide (' + CS.Offers.WAIT + 's).', 6000);
+    }
     if (E.pendingTokens(g) >= 1 && !g.seen.tok) {
       g.seen.tok = 1;
       say('🎫 Franchise Tokens are available! Open the HQ tab to cash them in for permanent upgrades.', 6000);
@@ -350,6 +359,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return r.gain;
   }, [say, push]);
 
+  const decide = useCallback((choice: number) => {
+    if (!game.current) return;
+    const r = CS.Offers.resolve(game.current, choice);
+    if (!r) return;
+    say(r.text);
+    if (r.rev) pushLog([{ text: r.text.replace(/^\S+ /, ''), amt: r.rev }]);
+    announce(E.checkAch(game.current) || []);
+    force((n) => n + 1);
+  }, [say, pushLog, announce]);
+
   const saveNow = useCallback(async () => {
     if (!game.current) return;
     await saveGame(game.current);
@@ -387,7 +406,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   return (
     <GameContext.Provider
       value={{
-        game: game.current, frame, refresh, log: log.current, toast, hustleResult, hustle, prestige, notify: say, saveNow, away,
+        game: game.current, frame, refresh, log: log.current, toast, hustleResult, hustle, prestige, decide, notify: say, saveNow, away,
         dismissAway: () => setAway(null), reset, sync: { status, at: sync.at }, conflict, resolveConflict, syncNow,
       }}
     >

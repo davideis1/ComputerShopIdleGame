@@ -365,3 +365,7 @@ details.mgd summary { cursor: pointer; padding: 10px; font-weight: 700; min-heig
 .repf { display: grid; grid-template-columns: 1fr 90px 44px; gap: 8px; align-items: center; padding: 2px 0; }
 .repbar { height: 8px; background: var(--inset); border-radius: 4px; overflow: hidden; box-shadow: var(--bevel-in); }
 .repbar i { display: block; height: 100%; background: var(--accent); }
+
+/* Decision card */
+.panel.offer { box-shadow: var(--box), 0 0 0 2px var(--warn); }
+.panel.offer .btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }

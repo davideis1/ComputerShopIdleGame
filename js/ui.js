@@ -218,8 +218,10 @@
     logDirty = true;
   }
   let shopRefs;
+  let offerSeen = null; // the offer we already announced
   function buildShop() {
     $('#tab-shop').innerHTML = `
+      <div class="panel offer" id="offerPanel" hidden><div class="title"><span id="offerTitle"></span><span id="offerLeft" class="num"></span></div><div class="pbody" id="offerBody"></div></div>
       <div class="panel"><div class="title"><span>Storefront</span><span id="stockInfo" class="num"></span></div>
         <div class="scene"><div class="sign" id="sign"></div><div class="street" id="street"></div><div class="shopfront" id="shelf"></div></div></div>
       <button id="hustle" class="primary" data-act="hustle"><span id="hustleTxt">🤝 Hustle a customer</span><span class="hbar" id="hbar"></span></button>
@@ -247,6 +249,20 @@
       grid.appendChild(m);
       shopRefs.cells[id] = $('b', m);
     });
+  }
+  /** Decision card (core/offers.js): the open offer with its choices and a countdown, or an active boost. */
+  function renderOffer() {
+    const v = CS.Offers.view(S), b = CS.Offers.activeBoost(S);
+    $('#offerPanel').hidden = !v && !b;
+    if (v) {
+      setText($('#offerTitle'), v.icon + ' ' + v.title);
+      setText($('#offerLeft'), Math.ceil(v.left) + 's');
+      setHtml($('#offerBody'), `<div>${esc(v.text)}</div><div class="btns">${v.choices.map((c, i) => `<button class="${i === 0 ? 'primary' : ''}" data-act="offer" data-i="${i}">${esc(c)}</button>`).join('')}</div>`);
+    } else if (b) {
+      setText($('#offerTitle'), '📣 ' + b.label);
+      setText($('#offerLeft'), Math.ceil(b.left) + 's');
+      setHtml($('#offerBody'), `<div class="good">+${Math.round((b.demand - 1) * 100)}% shoppers while it lasts.</div>`);
+    }
   }
   /** Reputation panel: the stars, where they are heading, and what each factor costs. */
   function renderReputation(d) {
@@ -375,6 +391,7 @@
     setText(c.cons, num(S.stats.soldConsoles || 0));
     setText(c.cgm, num((S.stats.soldCGames || 0) + (S.stats.soldCAcc || 0)));
     renderService(d);
+    renderOffer();
     renderReputation(d);
 
     renderAdvisor(d, items);
@@ -1362,6 +1379,11 @@
     const card = t.closest('.card');
     switch (act) {
       case 'hustle': hustle(); break;
+      case 'offer': {
+        const r = CS.Offers.resolve(S, +t.dataset.i);
+        if (r) { toast(esc(r.text)); if (r.rev) logSale(r.text.replace(/^\S+ /, ''), r.rev); announceAch(E.checkAch(S)); }
+        break;
+      }
       case 'buy': E.buy(S, card.dataset.key, t.dataset.n === 'max' ? 'max' : +t.dataset.n); break;
       case 'tgt': {
         const key = card.dataset.key || 'b:' + card.dataset.id;
@@ -1531,6 +1553,11 @@
     const events = [];
     const ach = E.step(S, dt, 1, null, events);
     announceAch(ach);
+    if (S.offer && S.offer.at !== offerSeen) {
+      offerSeen = S.offer.at;
+      const ov = CS.Offers.view(S);
+      if (ov && tab !== 'shop') toast('📨 <b>' + esc(ov.title) + '</b><br><small>Open the Shop tab: you have ' + CS.Offers.WAIT + ' seconds to decide.</small>', 6000);
+    }
     if (events.length) {
       const agg = {};
       events.forEach((ev) => {

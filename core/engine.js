@@ -199,7 +199,7 @@
     const out = {
       y,
       ev,
-      lambda: lambda * (1 + loyal) * (1 + 0.01 * achCount) * (1 + 0.1 * tl(s, 't_income')) * ev.demand * repMult(s),
+      lambda: lambda * (1 + loyal) * (1 + 0.01 * achCount) * (1 + 0.1 * tl(s, 't_income')) * ev.demand * repMult(s) * (s.boost && s.stats.play <= s.boost.until ? s.boost.demand : 1),
       serve: serve * serveMult,
       restock,
       build: build * buildMult,
@@ -706,6 +706,7 @@
     }
 
     reputationTick(s, d, dt, served, busy, s.stats.stockouts - so0);
+    if (CS.Offers) CS.Offers.tick(s, d, items, calRate);
 
     const f = 1 - Math.exp(-dt / 20);
     s.rate.rev += (revenue / dt - s.rate.rev) * f;

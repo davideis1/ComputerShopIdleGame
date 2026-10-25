@@ -10,6 +10,7 @@ import { colors, money, num, theme, themed } from '@/theme';
 import { Scene } from '@/components/Scene';
 import { ServicePanel } from '@/components/ServicePanel';
 import { ReputationPanel } from '@/components/ReputationPanel';
+import { OfferPanel } from '@/components/OfferPanel';
 
 /** "+$1.2K" that rises and fades over the Hustle button after a sale. */
 function Floater({ text, good }: { text: string; good: boolean }) {
@@ -24,7 +25,7 @@ function Floater({ text, good }: { text: string; good: boolean }) {
 }
 
 export default function Shop() {
-  const { game: s, frame, refresh, log, hustleResult, hustle, away, dismissAway } = useGame();
+  const { game: s, frame, refresh, log, hustleResult, hustle, decide, away, dismissAway } = useGame();
   const [advOpen, setAdvOpen] = useState(true);
   const [acted, setActed] = useState(0);
 
@@ -74,6 +75,8 @@ export default function Shop() {
           <Text style={styles.heroSub}>{Math.floor(1993 + s.cal) + 1}</Text>
         </View>
       </View>
+
+      <OfferPanel s={s} decide={decide} />
 
       <Panel title="Storefront" icon="🏪" right={v.stockInfo}>
         <Scene shelves={v.shelves} />

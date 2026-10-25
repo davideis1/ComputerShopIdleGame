@@ -203,6 +203,6 @@ Playwright e2e scripts live only in session scratchpads. Commit a small smoke su
 3. **Prestige pacing (1–2 PRs):** Time Warp / Head Start HQ upgrades, retune tokens using the new metric (§4.1); token-ready + era toasts in the app. *Done in `prestige-pacing` (Time Warp limited to before 2015; see `CLAUDE.md` Franchise/HQ). The post-today plateau (§4.2) is still open.*
 4. **Seasonal calendar + scaled Hustle (1 PR):** small, visible and makes both active and idle play better (§5.3, §4.4). *Done in `seasons-hustle`.*
 5. **Service Desk & warranties (1–2 PRs):** the headline new feature (§5.1). *Done in `service-desk`.*
-6. **Decision events and reputation (2 PRs)** (§5.2, §5.4).
+6. **Decision events and reputation (2 PRs)** (§5.2, §5.4). *Done in `reputation` and `decision-events`.*
 7. **App:** chunked catch-up + local notifications (§6.1, §6.4), then TestFlight.
 8. Later: B2B contracts, challenges, near-future era, multiple locations.
