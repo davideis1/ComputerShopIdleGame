@@ -10,7 +10,7 @@ export const TRO_FILTERS: { id: TroFilter; label: string }[] = [
   { id: 'locked', label: 'Locked' },
 ];
 
-export type Trophy = { id: string; name: string; desc: string; earned: boolean };
+export type Trophy = { id: string; name: string; desc: string; earned: boolean; progress: number }; // progress 0..1
 export type MenuView = {
   stats: { label: string; value: string }[];
   trophies: Trophy[];
@@ -47,7 +47,7 @@ export function buildMenuView(s: GameState, filter: TroFilter): MenuView {
     ],
     trophies: CS.ACH
       .filter((a: any) => filter === 'all' || (filter === 'earned') === !!s.ach[a.id])
-      .map((a: any) => ({ id: a.id, name: a.name, desc: a.desc, earned: !!s.ach[a.id] })),
+      .map((a: any) => ({ id: a.id, name: a.name, desc: a.desc, earned: !!s.ach[a.id], progress: s.ach[a.id] ? 1 : Math.max(0, Math.min(1, a.p ? a.p(s) : 0)) })),
     trophyCount: got + ' / ' + CS.ACH.length + ' (+' + got + '% customers)',
   };
 }

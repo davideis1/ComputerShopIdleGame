@@ -1,0 +1,62 @@
+// Apple Game Center: sign-in and achievements. The game's trophies (CS.ACH) are the achievements; their ids are the
+// Game Center ids too, so App Store Connect must use exactly the ids in docs/store/game-center.md.
+// Everything here is a quiet no-op without Game Center (Android, Expo Go, player signed out or never signed in).
+import CS from '@core';
+import GC, { GcPlayer } from '../modules/game-center';
+import { GameState } from './game';
+
+export const gcAvailable = !!GC;
+let player: GcPlayer = { authenticated: false };
+const listeners = new Set<(p: GcPlayer) => void>();
+/** Highest percent Game Center has accepted per achievement this launch (it never goes down, so we only send rises). */
+const sent: Record<string, number> = {};
+let sending = false;
+
+function setPlayer(p: GcPlayer) {
+  player = p;
+  listeners.forEach((fn) => fn(p));
+}
+export const gcPlayer = () => player;
+export function onGcPlayer(fn: (p: GcPlayer) => void) {
+  listeners.add(fn);
+  return () => { listeners.delete(fn); };
+}
+
+/** Sign in at launch (Apple shows its own sheet or a "Welcome back" banner). */
+export async function gcStart() {
+  if (!GC) return;
+  GC.addListener('onAuthChange', (p) => {
+    if (!p.authenticated) for (const k in sent) delete sent[k]; // another player may sign in: resend everything
+    setPlayer(p);
+  });
+  try { setPlayer(await GC.authenticate()); } catch { /* no Game Center on this device */ }
+}
+
+/** Percent complete per achievement: 100 once earned, else its progress in whole steps. */
+export function gcProgress(s: GameState): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const a of CS.ACH) {
+    out[a.id] = s.ach[a.id] ? 100 : Math.max(0, Math.min(99, Math.floor((a.p ? a.p(s) : 0) * 100)));
+  }
+  return out;
+}
+
+/** Report whatever rose since the last report. Cheap to call often; one request at a time. */
+export async function gcReport(s: GameState) {
+  if (!GC || !player.authenticated || sending || !s) return;
+  const all = gcProgress(s), rise: Record<string, number> = {};
+  for (const id in all) if (all[id] > (sent[id] ?? 0)) rise[id] = all[id];
+  if (!Object.keys(rise).length) return;
+  sending = true;
+  try {
+    await GC.report(rise);
+    Object.assign(sent, rise);
+  } catch { /* offline or not set up in App Store Connect yet: try again next time */ }
+  sending = false;
+}
+
+/** Open Game Center's achievements screen. False if the player isn't signed in. */
+export async function gcShowAchievements(): Promise<boolean> {
+  if (!GC) return false;
+  try { return await GC.showAchievements(); } catch { return false; }
+}

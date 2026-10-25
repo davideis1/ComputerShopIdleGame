@@ -1,4 +1,5 @@
 [
+  {"build":"next","title":"Game Center","changes":["On iPhone, your trophies are now Game Center achievements too, with progress rings for the ones you are still working on.","Trophies in the Menu show how close you are, and a Game Center button opens your achievements."]},
   {"build":"next","title":"A fresh coat of paint","changes":["Every screen in the app now looks the part of its era: Windoze 95 windows, glossy Bliss bars, clean Flat cards and neon RGB.","Item cards show performance and demand meters, upgrades show level bars, and the shop header tracks the year.","Hustling pops the sale over the button, and taps give a little haptic click."]},
   {"build":"next","title":"Fixes","changes":["Leaving the game in a background browser tab now counts as one stretch away, so the welcome-back report shows the whole time and your night-shift upgrades apply.","Menu → Statistics now shows sales and items sold across all your franchises."]},
   {"build":"next","title":"Password reset","changes":["Add an email to your account (optional) and you can reset a forgotten password with an emailed link, on the website or in the app."]},

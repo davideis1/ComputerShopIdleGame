@@ -5,6 +5,7 @@ import { useAuth } from './AuthProvider';
 import { E, GameState, HustleResult, hustle as doHustle, LogLine, newGame, saleLines, tick } from './game';
 import { clearGame, clearSyncMeta, deviceId, loadGame, loadSyncMeta, saveGame, saveSyncMeta } from './storage';
 import { noteBrowse, noteBuy } from './walkers';
+import { gcReport, gcStart, onGcPlayer } from './gamecenter';
 import { brief, Brief, Decision, reconcile, SyncMeta } from './sync';
 
 type Away = { elapsed: number; effective: number; capped: boolean; cash0: number; cash1: number } | null;
@@ -87,7 +88,9 @@ export function GameProvider({ children }: { children: ReactNode }) {
     toastTimer.current = setTimeout(() => setToast(null), ms);
   }, []);
   const announce = useCallback((ach: any[]) => {
-    if (ach.length) say('🏆 ' + ach[0].name + ' — ' + ach[0].desc + ' (+1% customers)');
+    if (!ach.length) return;
+    say('🏆 ' + ach[0].name + ' — ' + ach[0].desc + ' (+1% customers)');
+    gcReport(game.current);
   }, [say]);
   const [frame, force] = useState(0);
   const refresh = useCallback(() => force((n) => n + 1), []);
@@ -267,6 +270,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
   }, [auth.token, ready]);
   useEffect(() => { if (ready && prevToken.current === undefined) prevToken.current = auth.token; }, [ready, auth.token]);
 
+  /* ---------- Game Center ---------- */
+
+  // Sign in once the shop is loaded, then send every trophy and progress ring (again whenever a player signs in).
+  useEffect(() => {
+    if (!ready) return;
+    const off = onGcPlayer((p) => { if (p.authenticated) gcReport(game.current); });
+    gcStart();
+    return off;
+  }, [ready]);
+
   /* ---------- the tick ---------- */
 
   useEffect(() => {
@@ -283,7 +296,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         announce(ach);
       }
       sinceSave.current += dt;
-      if (sinceSave.current >= SAVE_EVERY_S) { sinceSave.current = 0; saveGame(game.current); push(); }
+      if (sinceSave.current >= SAVE_EVERY_S) { sinceSave.current = 0; saveGame(game.current); push(); gcReport(game.current); }
       force((n) => n + 1);
     }, FRAME_MS);
     const sub = AppState.addEventListener('change', (st) => {
