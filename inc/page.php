@@ -2,6 +2,10 @@
 // Minimal HTML shell for the account pages (login, register, account). The game itself is index.php.
 function page_head(string $title): void
 {
+    // The session cookie must go out before any output. Hosts that don't buffer output (shared hosting often doesn't)
+    // refuse to start a session once the page has begun, and the form's security token (csrf) then never matches:
+    // "Your session expired" on submit. (login and register start it earlier through current_user().)
+    start_session();
     send_security_headers();
     header('Cache-Control: no-store');
     $b = h(base_url());
