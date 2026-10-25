@@ -130,19 +130,29 @@
     });
     return e;
   }
+  // A season in a given year, as an event with real dates (cached so the same season-year is the same object).
+  const seasonCache = {};
+  function seasonEvent(x, Y) {
+    const k = x.id + Y;
+    return seasonCache[k] || (seasonCache[k] = Object.assign({}, x, { id: 'season_' + x.id, from: Y + x.from, to: Y + x.to, season: true }));
+  }
   function eventsAt(y) {
-    const r = { demand: 1, gpuCost: 1, partCost: 1, preCost: 1, list: [] };
-    CS.EVENTS.forEach((e) => {
-      if (y >= e.from && y < e.to) {
-        r.list.push(e);
-        r.demand *= e.demand || 1;
-        r.gpuCost *= e.gpuCost || 1;
-        r.partCost *= e.partCost || 1;
-        r.preCost *= e.preCost || 1;
-      }
-    });
+    const r = { demand: 1, gpuCost: 1, partCost: 1, preCost: 1, kinds: {}, list: [] };
+    const take = (e) => {
+      r.list.push(e);
+      r.demand *= e.demand || 1;
+      r.gpuCost *= e.gpuCost || 1;
+      r.partCost *= e.partCost || 1;
+      r.preCost *= e.preCost || 1;
+      if (e.kinds) Object.keys(e.kinds).forEach((k) => (r.kinds[k] = (r.kinds[k] || 1) * e.kinds[k]));
+    };
+    CS.EVENTS.forEach((e) => { if (y >= e.from && y < e.to) take(e); });
+    const Y = Math.floor(y), f = y - Y;
+    (CS.SEASONS || []).forEach((x) => { if (f >= x.from && f < x.to) take(seasonEvent(x, Y)); });
     return r;
   }
+  /** Seasonal boost to how often shoppers pick up a kind of item (games at Christmas, etc.). */
+  const kindBoost = (d, kind) => (d.ev.kinds && d.ev.kinds[kind]) || 1;
 
   /* ---------- derived stats ---------- */
   function derive(s) {
@@ -512,7 +522,7 @@
           const tot = ws.reduce((a, b) => a + b, 0);
           if (tot <= 0) return;
           const p = Math.min(0.95, 1 - Math.exp(-tot / K));
-          for (let i = 0; i < gi.length; i++) exp[i] += (served * seg.share * p * ws[i] / tot) * grp.A * attach;
+          for (let i = 0; i < gi.length; i++) exp[i] += (served * seg.share * p * ws[i] / tot) * grp.A * attach * kindBoost(d, grp.kind);
         });
         gi.forEach((it, i) => {
           const acc = (s.acc[it.key] || 0) + exp[i];
@@ -605,28 +615,40 @@
     return rep;
   }
 
-  /** Active "hard sell": one real customer, rolled randomly, with a boosted chance to buy. */
+  const HUSTLE_CD = 3; // seconds between hustles
+  const STREAK_GAP = 4; // a hustle within this many seconds of the cooldown ending keeps the streak going
+  const STREAK_MAX = 10;
+  /** Active "hard sell": one real customer, rolled randomly, with a boosted chance to buy.
+      Keeps up with the shop: the customer is a business placing a bulk order worth ~4 s of the shop's income
+      (+0.5 s per streak level), so steady hustling roughly doubles income; back-to-back hustles also raise the odds. */
+  /** Current hustle streak, or 0 once the window to keep it going has passed. */
+  const hustleStreak = (s) => (s.hustleAt != null && s.stats.play - s.hustleAt <= HUSTLE_CD + STREAK_GAP ? s.hustleStreak || 0 : 0);
   function hustle(s) {
     if (s.hustleCd > 0) return null;
-    s.hustleCd = 3;
+    const since = s.hustleAt == null ? Infinity : s.stats.play - s.hustleAt;
+    s.hustleStreak = since <= HUSTLE_CD + STREAK_GAP ? Math.min(STREAK_MAX, (s.hustleStreak || 0) + 1) : 1;
+    s.hustleAt = s.stats.play;
+    s.hustleCd = HUSTLE_CD;
     s.stats.hustles++;
+    const streak = s.hustleStreak;
     const d = derive(s);
     const all = getItems(s, d).filter((i) => i.stock > 0);
     const live = all.filter((i) => i.kind === 'pre' || i.kind === 'bp');
-    if (!live.length) return { none: true };
+    if (!live.length) return { none: true, streak };
     let r = Math.random(), seg = SEG[SEG.length - 1];
     for (const sg of SEG) {
       if ((r -= sg.share) < 0) { seg = sg; break; }
     }
     const q = pickSegmentProb(live, seg, d.y);
-    if (Math.random() > Math.min(0.98, q.p + 0.25)) return { passed: true };
+    if (Math.random() > Math.min(0.98, q.p + 0.25 + 0.03 * (streak - 1))) return { passed: true, streak };
     let pick = Math.random() * q.tot, idx = 0;
     for (let i = 0; i < live.length; i++) {
       if ((pick -= q.ws[i]) < 0) { idx = i; break; }
     }
     const it = live[idx];
-    let rev = it.price * d.profit;
-    sellUnits(s, it, 1, null, [], d.profit);
+    const unit = it.price * d.profit;
+    const units = Math.max(1, Math.min(it.stock, Math.round((s.rate.rev * (4 + 0.5 * (streak - 1))) / Math.max(1, unit))));
+    let rev = sellUnits(s, it, units, null, [], d.profit);
     // a hard-sold PC buyer is likely to add on something from each aisle
     const extras = [];
     CS.GROUPS.forEach((grp) => {
@@ -636,13 +658,14 @@
       const ref = grp.ref * Math.pow(grp.grow, d.y - 1993);
       const ws = gi.map((i) => itemWeight(seg, i.rel, i.price, d.y, ref) * i.capF);
       const tot = ws.reduce((a, b) => a + b, 0);
-      if (tot <= 0 || Math.random() > Math.min(0.9, grp.A * 2 * (1 + d.upsell) * (1 - Math.exp(-tot / K)))) return;
+      if (tot <= 0 || Math.random() > Math.min(0.9, grp.A * 2 * (1 + d.upsell) * kindBoost(d, grp.kind) * (1 - Math.exp(-tot / K)))) return;
       let p2 = Math.random() * tot, j = 0;
       for (let i = 0; i < gi.length; i++) { if ((p2 -= ws[i]) < 0) { j = i; break; } }
-      rev += sellUnits(s, gi[j], 1, null, [], d.profit);
+      const k = Math.max(1, Math.min(gi[j].stock, Math.round(units / 3)));
+      rev += sellUnits(s, gi[j], k, null, [], d.profit);
       extras.push(gi[j]);
     });
-    return { sold: it, rev, extras };
+    return { sold: it, units, rev, extras, streak };
   }
 
   /** Returns newly-available prebuilts since last call (for "new model" toasts). */
@@ -723,10 +746,10 @@
   const dateStr = (y) => MONTHS[Math.min(11, Math.floor((y % 1) * 12))] + ' ' + Math.floor(y);
 
   CS.E = {
-    SEG, K, ADDON_SCALE, isAddon, sellUnits, itemWeight, popularityMap, infl, refPrice, newState, migrate, serialize, deserialize, yearOf, eraAt, eventsAt, derive,
+    SEG, K, ADDON_SCALE, kindBoost, isAddon, sellUnits, itemWeight, popularityMap, infl, refPrice, newState, migrate, serialize, deserialize, yearOf, eraAt, eventsAt, derive,
     partAvail, partRel, partPrice, bpInfo, designInfo, totalStock, getItems, buy, buyUnits, setTarget,
     upLevel, upCost, upUnlocked, buyUp, createBp, deleteBp, step, advance, offline, hustle, newProducts,
-    newReport, checkAch, dateStr, unitsSold, pendingTokens, nextTokenAt, tokenAt, prestige, tokenCost, buyTokenUp, tl, calSpeed, startYear,
+    HUSTLE_CD, hustleStreak, newReport, checkAch, dateStr, unitsSold, pendingTokens, nextTokenAt, tokenAt, prestige, tokenCost, buyTokenUp, tl, calSpeed, startYear,
   };
   if (typeof module !== 'undefined') module.exports = CS;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -345,6 +345,17 @@
     { id: 'quantum', from: 2032.1, to: 2033.3, name: 'Quantum Hype Bubble', demand: 1.35, text: 'Quantum computing is on every magazine cover. Nobody knows what it does; everybody wants one.' },
   ];
 
+  /* ---------- Retail seasons (every year; from/to are fractions of the year) ----------
+     demand multiplies all shoppers; kinds multiplies how often shoppers pick up that kind of item
+     (game, acc, console, cgame, cacc). They behave like events: buyers forecast them, the Advisor warns ahead. */
+  CS.SEASONS = [
+    { id: 'lull', from: 0.0, to: 0.1, name: 'January Lull', demand: 0.85, text: 'January lull: everyone spent it all over the holidays.' },
+    { id: 'summer', from: 0.48, to: 0.55, name: 'Summer Game Sale', kinds: { game: 1.8, cgame: 1.5 }, text: 'Summer Game Sale! School is out and the bargain bins are full of games.' },
+    { id: 'school', from: 0.59, to: 0.7, name: 'Back to School', demand: 1.15, kinds: { acc: 1.4 }, text: 'Back to school: students need a computer, a printer and a bag to carry it all.' },
+    { id: 'bfriday', from: 0.893, to: 0.915, name: 'Black Friday', demand: 1.7, text: 'Black Friday doorbusters! The queue started at 4 a.m.' },
+    { id: 'holiday', from: 0.915, to: 0.98, name: 'Holiday Rush', demand: 1.3, kinds: { game: 1.5, acc: 1.2, console: 1.6, cgame: 1.5, cacc: 1.4 }, text: 'Holiday rush: consoles and games are top of every wish list.' },
+  ];
+
   CS.HEADLINES = {
     win95: [
       'Local teen claims he can "surf the information superhighway" from his bedroom',

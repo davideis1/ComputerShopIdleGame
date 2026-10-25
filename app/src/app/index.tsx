@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Bar, Panel, Stat } from '@/components/ui';
 import { useGame } from '@/GameProvider';
 import { buildShopView, buyRec, recButtonLabel } from '@/shop';
+import { E } from '@/game';
 import { colors, money, num, theme, themed } from '@/theme';
 import { Scene } from '@/components/Scene';
 
@@ -76,9 +77,9 @@ export default function Shop() {
       <View>
         <Pressable onPress={doHustle} disabled={cooling} style={({ pressed }) => [styles.hustle, pressed && { transform: [{ scale: 0.98 }] }]}>
           <LinearGradient colors={(cooling ? [colors.quiet, colors.quiet] : theme.grad.btn) as any} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={StyleSheet.absoluteFill} />
-          {cooling && <View style={[styles.hbar, { width: `${100 * (1 - s.hustleCd / 3)}%` }]} />}
+          {cooling && <View style={[styles.hbar, { width: `${100 * (1 - s.hustleCd / E.HUSTLE_CD)}%` }]} />}
           <Text style={styles.hustleText}>
-            {cooling ? '🤝 Hustling… ' + Math.ceil(s.hustleCd) + 's' : '🤝 Hustle a customer'}
+            {(cooling ? '🤝 Hustling… ' + Math.ceil(s.hustleCd) + 's' : '🤝 Hustle a customer') + (E.hustleStreak(s) > 1 ? '  🔥' + E.hustleStreak(s) : '')}
           </Text>
         </Pressable>
         <View style={styles.floatLayer} pointerEvents="none">

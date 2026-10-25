@@ -243,11 +243,17 @@
     }
 
     // upcoming events
-    const evNow = E.eventsAt(year), evSoon = E.eventsAt(year + 0.3);
-    const soonNew = evSoon.list.filter((e) => !evNow.list.includes(e));
+    const KIND_LABEL = { game: 'PC games', acc: 'accessories', console: 'consoles', cgame: 'console games', cacc: 'console accessories' };
+    // scan the next ~4 months in small steps: retail seasons can be just a couple of weeks long
+    const evNow = E.eventsAt(year), soonNew = [];
+    for (let dy = 0.02; dy <= 0.3 + 1e-9; dy += 0.02) {
+      E.eventsAt(year + dy).list.forEach((e) => {
+        if (!evNow.list.some((x) => x.id === e.id) && !soonNew.some((x) => x.id === e.id)) soonNew.push(e);
+      });
+    }
     soonNew.filter((e) => !e.launch).forEach((e) => {
       const months = Math.max(1, Math.round((e.from - year) * 12));
-      add(72, e.demand && e.demand < 1 ? 'warn' : 'info', '📅', e.name + ' in about ' + months + ' month' + (months > 1 ? 's' : '') + ': ' + (e.demand ? (e.demand > 1 ? 'demand +' : 'demand ') + Math.round((e.demand - 1) * 100) + '%' : 'prices will swing') + (e.demand > 1 ? '. Build up stock.' : e.partCost || e.gpuCost || e.preCost ? '. Stock up before prices rise.' : '.'));
+      add(72, e.demand && e.demand < 1 ? 'warn' : 'info', '📅', e.name + ' in about ' + months + ' month' + (months > 1 ? 's' : '') + ': ' + (e.demand ? (e.demand > 1 ? 'demand +' : 'demand ') + Math.round((e.demand - 1) * 100) + '%' : e.kinds ? 'more shoppers pick up ' + Object.keys(e.kinds).map((k) => KIND_LABEL[k] || k).join(' and ') + '. Stock up' : 'prices will swing') + (e.demand > 1 ? '. Build up stock.' : e.partCost || e.gpuCost || e.preCost ? '. Stock up before prices rise.' : '.'));
     });
     evNow.list.forEach((e) => add(38, 'info', '📣', e.name + ' is on: ' + e.text));
 

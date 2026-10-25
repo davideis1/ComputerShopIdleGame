@@ -314,8 +314,9 @@
 
     // hustle
     const hb = $('#hustle');
-    setText($('#hustleTxt'), S.hustleCd > 0 ? '🤝 Hustling… ' + Math.ceil(S.hustleCd) + 's' : '🤝 Hustle a customer');
-    $('#hbar').style.width = (S.hustleCd > 0 ? 100 * (1 - S.hustleCd / 3) : 0) + '%';
+    const streak = E.hustleStreak(S);
+    setText($('#hustleTxt'), (S.hustleCd > 0 ? '🤝 Hustling… ' + Math.ceil(S.hustleCd) + 's' : '🤝 Hustle a customer') + (streak > 1 ? '  🔥' + streak : ''));
+    $('#hbar').style.width = (S.hustleCd > 0 ? 100 * (1 - S.hustleCd / E.HUSTLE_CD) : 0) + '%';
     setDis(hb, S.hustleCd > 0);
 
     // alerts
@@ -1320,7 +1321,7 @@
     if (r.passed) { floatText(hb, 'Just browsing…', 40); spawnWalker(false); return; }
     floatText(hb, '+' + money(r.rev), 42);
     spawnWalker(true);
-    logSale('Hustled: ' + r.sold.name + (r.extras && r.extras.length ? ' + ' + r.extras.length + ' add-on' + (r.extras.length > 1 ? 's' : '') : ''), r.rev);
+    logSale((r.units > 1 ? '🏢 Business order: ' + r.units + '× ' : 'Hustled: ') + r.sold.name + (r.extras && r.extras.length ? ' + ' + r.extras.length + ' add-on' + (r.extras.length > 1 ? 's' : '') : '') + (r.streak > 1 ? ' 🔥' + r.streak : ''), r.rev);
     announceAch(E.checkAch(S));
   }
   document.addEventListener('click', (e) => {
