@@ -1,4 +1,5 @@
 [
+  {"build":"next","title":"Sign in with Game Center","changes":["On iPhone you can now sign in with Game Center: no username or password needed, and your shop syncs to the cloud.","Already have an account? Link Game Center in Menu → Account and it will sign you in on any iPhone.","Game Center accounts can add a password later to play on the website too."]},
   {"build":"next","title":"Reminders","changes":["The app can now remind you when the night shift ends, when your shelves have run dry or when a new console launches. Switch it on in Menu → Look."]},
   {"build":"next","title":"Faster welcome back","changes":["Coming back after hours away is now about three times faster to work out, and the app shows a progress bar instead of freezing."]},
   {"build":"next","title":"Offers and dilemmas","changes":["Every few minutes a choice card lands on the Shop tab: bulk orders, cheap containers of stock, ad deals, a reviewer wanting a free PC, and the odd Y2K consultant or crypto miner.","You have 90 seconds to decide. Good calls bring cash, crowds and stars; some are a gamble."]},

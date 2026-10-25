@@ -3,6 +3,7 @@
 // Errors: bad_email 422, email_taken 409, registration_closed 403, too_many_attempts 429, bad_username / bad_password 422, username_taken 409.
 require __DIR__ . '/../inc/bootstrap.php';
 require __DIR__ . '/../inc/reset.php';
+require __DIR__ . '/../inc/gamecenter.php';
 $body = api_public();
 
 if (!cfg('allow_registration', true)) {
@@ -36,4 +37,4 @@ try {
 }
 $uid = (int) db()->lastInsertId();
 db()->prepare('UPDATE users SET last_login_at = NOW() WHERE id = ?')->execute([$uid]);
-json_out(['ok' => true, 'token' => issue_token($uid, (string) ($body['label'] ?? '')), 'user' => ['id' => $uid, 'username' => $username, 'email' => mask_email($email)]], 201);
+json_out(['ok' => true, 'token' => issue_token($uid, (string) ($body['label'] ?? '')), 'user' => auth_user_payload($uid)], 201);

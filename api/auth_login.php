@@ -3,6 +3,7 @@
 // Errors: bad_credentials 401, too_many_attempts 429. Uses the same throttling as the website's login page.
 require __DIR__ . '/../inc/bootstrap.php';
 require __DIR__ . '/../inc/reset.php';
+require __DIR__ . '/../inc/gamecenter.php';
 $body = api_public();
 
 $username = trim((string) ($body['username'] ?? ''));
@@ -26,4 +27,4 @@ if (password_needs_rehash($u['password_hash'], PASSWORD_DEFAULT)) {
     db()->prepare('UPDATE users SET password_hash = ? WHERE id = ?')->execute([password_hash($password, PASSWORD_DEFAULT), $u['id']]);
 }
 db()->prepare('UPDATE users SET last_login_at = NOW() WHERE id = ?')->execute([$u['id']]);
-json_out(['ok' => true, 'token' => issue_token((int) $u['id'], (string) ($body['label'] ?? '')), 'user' => ['id' => (int) $u['id'], 'username' => $u['username'], 'email' => mask_email($u['email'])]]);
+json_out(['ok' => true, 'token' => issue_token((int) $u['id'], (string) ($body['label'] ?? '')), 'user' => auth_user_payload((int) $u['id'])]);

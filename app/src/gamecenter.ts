@@ -4,6 +4,7 @@
 import CS from '@core';
 import GC, { GcPlayer } from '../modules/game-center';
 import { GameState } from './game';
+import type { GcProofData } from './api';
 
 export const gcAvailable = !!GC;
 let player: GcPlayer = { authenticated: false };
@@ -53,6 +54,17 @@ export async function gcReport(s: GameState) {
     Object.assign(sent, rise);
   } catch { /* offline or not set up in App Store Connect yet: try again next time */ }
   sending = false;
+}
+
+/** A signed proof of the Game Center player for the server (Sign in with Game Center), or { error }. */
+export async function gcProof(): Promise<{ proof: GcProofData; name: string } | { error: string }> {
+  if (!GC || !player.authenticated) return { error: 'gc_unavailable' };
+  try {
+    const p = await GC.identityProof();
+    if ('error' in p) return { error: 'gc_unavailable' };
+    const { name, ...proof } = p;
+    return { proof, name };
+  } catch { return { error: 'gc_unavailable' }; }
 }
 
 /** Open Game Center's achievements screen. False if the player isn't signed in. */
