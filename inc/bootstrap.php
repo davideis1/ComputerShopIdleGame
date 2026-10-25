@@ -3,7 +3,7 @@
 // Written for PHP 7.4+ and MariaDB 10.3+ (PDO, no Composer needed).
 
 define('APP_ROOT', dirname(__DIR__));
-const GAME_END_CAL = 33.8;          // keep in sync with core/data.js (C.END_CAL)
+const GAME_END_CAL = 42.8;          // keep in sync with core/data.js (C.END_CAL); tools/limits-check.js fails if they drift
 const MAX_STATE_BYTES = 400000;     // reject absurdly large saves
 const TOKEN_LIFETIME = 15552000;    // 180 days, sliding: every use pushes the expiry out again
 const MAX_TOKENS_PER_USER = 10;     // oldest tokens are dropped when a user signs in on more devices than this
