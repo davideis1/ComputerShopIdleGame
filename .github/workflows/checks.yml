@@ -30,11 +30,11 @@ jobs:
             echo "::endgroup::"
           done
 
-      # Three franchises with the full bot (each ends at today, buying HQ upgrades between runs); fails if the economy breaks.
+      # Three franchises with the full bot (each plays 1993 -> 2035, buying HQ upgrades between runs); fails if the economy breaks.
       # The table lands in the job summary so balance changes can be compared between PRs.
       - name: Balance run
         run: |
-          node tools/sim.js 250 3 --quiet | tee sim.txt
+          node tools/sim.js 330 3 --quiet | tee sim.txt
           { echo '### sim.js'; echo '```'; cat sim.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
       - name: PHP syntax

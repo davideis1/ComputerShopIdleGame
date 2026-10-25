@@ -23,7 +23,7 @@ function WinButtons() {
 
 /**
  * A panel drawn as a window of the era: Win95 navy title bar with window buttons, XP glossy blue bar, Flat clean
- * heading, RGB heading over a rainbow rule. `right` sits at the end of the title row; `onPressTitle` makes it a toggle.
+ * heading, RGB heading over a rainbow rule, Holo heading over a pearl rule. `right` sits at the end of the title row; `onPressTitle` makes it a toggle.
  */
 export function Panel({ title, icon, right, children, onPressTitle, style, bodyStyle }: {
   title: string; icon?: string; right?: ReactNode; children?: ReactNode; onPressTitle?: () => void; style?: ViewStyle; bodyStyle?: ViewStyle;
@@ -47,7 +47,7 @@ export function Panel({ title, icon, right, children, onPressTitle, style, bodyS
         {label}
         <View style={styles.headRight}>{rightNode}</View>
       </View>
-      {id === 'rgb' ? <LinearGradient colors={g(theme.grad.bar)} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={styles.rule} /> : <View style={styles.flatRule} />}
+      {id === 'rgb' || id === 'holo' ? <LinearGradient colors={g(theme.grad.bar)} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={styles.rule} /> : <View style={styles.flatRule} />}
     </View>
   );
   return (

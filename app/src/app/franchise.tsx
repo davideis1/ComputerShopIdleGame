@@ -47,7 +47,7 @@ export default function Franchise() {
     <View style={{ gap: 12 }}>
       <Panel title="Franchise HQ" icon="🏢" right={<Text style={styles.tokens}>{v.tokens}</Text>}>
         <Text style={styles.body}>
-          Once your shop is a big business it earns Franchise Tokens from its lifetime sales. Cash them in by selling up and opening a brand-new franchise back in 1993. Tokens buy permanent HQ upgrades below.
+          Once your shop is a big business it earns Franchise Tokens from its lifetime sales. Cash them in by selling up and opening a brand-new franchise back in 1993 (or later, with Head Start). Tokens buy permanent HQ upgrades below.
         </Text>
         <View style={styles.grid}>
           {v.stats.map((st) => <Stat key={st.label} label={st.label} value={st.value} style={styles.mini} />)}

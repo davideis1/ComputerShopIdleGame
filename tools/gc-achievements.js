@@ -26,6 +26,8 @@ const GC = {
   a_y2010: [30, '2010', 'YEAR', 'Your shop made it to 2010.'],
   a_y2020: [50, '2020', 'YEAR', 'Your shop made it to 2020.'],
   a_today: [75, 'NOW', 'YEAR', 'Your shop made it all the way to today.'],
+  a_y2030: [30, '2030', 'YEAR', 'Your shop made it to 2030.'],
+  a_end: [50, '2035', 'YEAR', 'Your shop reached the end of the roadmap: October 2035.'],
   a_b1: [10, '1', 'BUILT', 'You built your first PC.'],
   a_b100: [30, '100', 'BUILT', 'You built 100 PCs.'],
   a_b3: [20, '3', 'DESIGNS', 'You had three PC designs on sale at once.'],

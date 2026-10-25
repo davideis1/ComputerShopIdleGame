@@ -113,6 +113,20 @@
     ['misc', 'Generic', 'RGB LED Strip Kit', 2019, 25, 0.6, 1.2],
     ['misc', 'Uplyft-ish', 'Standing Desk', 2021, 350, 0.3, 1.4],
     ['misc', 'Generic', 'USB-C Dock', 2023, 120, 0.4, 1.5],
+    // Near Future (original names: names.js has nothing to rename here)
+    ['vr', 'Visorium', 'Lumen AR Glasses', 2027, 499, 0.25, 1.6],
+    ['mouse', 'Lodestar', 'Gesture Ring', 2028, 119, 0.42, 1.5],
+    ['monitor', 'Vistara', 'Wraparound 49" Holo OLED', 2028, 1299, 0.22, 1.7],
+    ['printer', 'Inkwell', 'Desktop Resin 3D Printer', 2028, 499, 0.25, 1.4],
+    ['keyboard', 'Tallkey', 'Projected Laser Keyboard', 2029, 140, 0.4, 1.4],
+    ['network', 'Linkwise', 'Wi-Fi 8 Mesh Trio', 2029, 349, 0.3, 1.5],
+    ['audio', 'Soundcrest', 'Bone-Conduction Studio Band', 2030, 199, 0.38, 1.6],
+    ['misc', 'Satchel & Co.', 'Solar Charging Desk Mat', 2030, 59, 0.5, 1.2],
+    ['stream', 'Stream Ferret', 'Volumetric Capture Cam', 2031, 399, 0.32, 1.6],
+    ['storage', 'Orient Data', 'Pocket 8TB Crystal Drive', 2032, 179, 0.35, 1.5],
+    ['controller', 'Thrustwell', 'Haptic Glove Pair', 2032, 249, 0.35, 1.6],
+    ['vr', 'Horizon Labs', 'Holo-Desk Projector', 2033, 1499, 0.22, 1.8],
+    ['keyboard', 'Clackwell', 'Thought-Assist Keyboard', 2034, 199, 0.4, 1.6],
   ];
 
   // publisher, title, year, price, margin, quality, req
@@ -187,6 +201,21 @@
     ['Hello-ish', 'No Man\'s Sky-ish', 2018, 40, 0.3, 1.1, 1.3],
     ['Valv', 'Dota-ish 2 Battle Pass', 2014, 20, 0.35, 1.0, 0.9],
     ['Capcomm', 'Resident Evil-ish Village', 2021, 60, 0.3, 1.4, 1.5],
+    // Near Future (original names and publishers)
+    ['Neon Ledger Games', 'Chromecity 2091', 2027, 70, 0.3, 1.4, 1.8],
+    ['Blockyard AB', 'Blockyard Infinite', 2027, 30, 0.35, 1.1, 0.8],
+    ['Snowdrift Entertainment', 'Galaxy Clash III', 2028, 70, 0.3, 1.4, 1.6],
+    ['Ashen Loom', 'Pale Throne', 2028, 70, 0.3, 1.6, 1.8],
+    ['Hayloft Games', 'Rooftop Farm Valley', 2029, 20, 0.35, 1.0, 0.6],
+    ['Oakhaven Softworks', 'Ancient Tomes VI: Northreach', 2029, 80, 0.3, 1.7, 2.0],
+    ['Dicehall Studios', "Tavern's Gate 4", 2030, 70, 0.3, 1.6, 1.7],
+    ['Saga Forge', 'Holo Arena Live', 2031, 40, 0.3, 1.3, 1.6],
+    ['Gasket Games', 'Sublab 4 (Really Confirmed)', 2031, 70, 0.3, 1.7, 2.0],
+    ['Marquee Mayhem', 'Carjack City VII', 2032, 90, 0.3, 1.8, 2.2],
+    ['Cozy Couch Interactive', 'Hooded Blade: Red Planet', 2033, 80, 0.3, 1.4, 1.9],
+    ['Studio Teacup', 'Teacup Time Travellers', 2033, 25, 0.35, 1.1, 0.8],
+    ['Prism Engine Works', 'Meltdown Q (Can It Run?)', 2034, 70, 0.3, 1.6, 2.4],
+    ['Quiver Interactive', 'Hellshufflers 3', 2034, 50, 0.3, 1.3, 1.6],
   ];
 
   const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '').slice(0, 48);

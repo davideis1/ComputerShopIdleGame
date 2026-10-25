@@ -33,15 +33,15 @@ const icon = (e: string) => ({ focused }: { focused: boolean }) => (
   <Text style={{ fontSize: focused ? 21 : 19, opacity: focused ? 1 : 0.55 }}>{e}</Text>
 );
 
-/** The screen title bar in the era's style: Win95 navy, XP glossy blue, Flat white, RGB night with a rainbow rule. */
+/** The screen title bar in the era's style: Win95 navy, XP glossy blue, Flat white, RGB night with a rainbow rule, Holo frosted with a pearl rule. */
 function HeaderBackground() {
   const gr = theme.grad, id = theme.id;
   if (id === 'win95' || id === 'xp') {
     return <LinearGradient colors={gr.bar as any} start={gr.barHorizontal ? { x: 0, y: 0.5 } : { x: 0.5, y: 0 }} end={gr.barHorizontal ? { x: 1, y: 0.5 } : { x: 0.5, y: 1 }} style={{ flex: 1 }} />;
   }
   return (
-    <View style={{ flex: 1, backgroundColor: id === 'flat' ? '#ffffff' : '#0d0f1d', justifyContent: 'flex-end' }}>
-      {id === 'rgb' ? <LinearGradient colors={gr.bar as any} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={{ height: 2 }} /> : <View style={{ height: 1, backgroundColor: colors.edge }} />}
+    <View style={{ flex: 1, backgroundColor: id === 'flat' ? '#ffffff' : id === 'holo' ? 'rgba(255,255,255,0.7)' : '#0d0f1d', justifyContent: 'flex-end' }}>
+      {id === 'rgb' || id === 'holo' ? <LinearGradient colors={gr.bar as any} start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }} style={{ height: 2 }} /> : <View style={{ height: 1, backgroundColor: colors.edge }} />}
     </View>
   );
 }

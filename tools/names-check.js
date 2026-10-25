@@ -1,6 +1,6 @@
 /* Guards the display names:  node tools/names-check.js
-   1. Item ids are frozen (saves store stock, targets and buyer plans under them): compares every id list with
-      tools/names-ids.json. Regenerate that file only when ids are meant to change.
+   1. Item ids are frozen (saves store stock, targets and buyer plans under them): every id in tools/names-ids.json must
+      still exist. New items are fine: add them to the file with --write-ids (never to rename an existing one).
    2. No real trademark and none of the retired puns may appear in anything a player can read.
    3. No "-ish" markers, and no two items in one group with the same name.
    PC hardware brand puns (Microsaft, Dall, Intal...) are allowed by design. */
@@ -13,10 +13,20 @@ const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails++
 // 1. ids
 const gold = JSON.parse(fs.readFileSync(path.join(__dirname, 'names-ids.json'), 'utf8'));
 const now = { ADDONS: CS.ADDONS, CGAMES: CS.CGAMES, CACCS: CS.CACCS, CONSOLES: CS.CONSOLES, PLATFORMS: CS.PLATFORMS, GROUPS: CS.GROUPS, PRODUCTS: CS.PRODUCTS, PARTS: CS.PARTS };
+// New items may be added (then regenerate the file with --write-ids); an existing id must never disappear or change.
+if (process.argv.includes('--write-ids')) {
+  const out = {};
+  Object.keys(gold).forEach((k) => (out[k] = now[k].map((x) => x.id)));
+  fs.writeFileSync(path.join(__dirname, 'names-ids.json'), JSON.stringify(out) + '\n');
+  console.log('wrote tools/names-ids.json');
+  Object.assign(gold, out);
+}
 Object.entries(gold).forEach(([k, ids]) => {
-  const cur = now[k].map((x) => x.id);
-  const same = cur.length === ids.length && cur.every((id, i) => id === ids[i]);
-  ok(same, `ids unchanged: ${k} (${ids.length})` + (same ? '' : ' <- DIFFERENT, saved games would lose items'));
+  const cur = new Set(now[k].map((x) => x.id));
+  const lost = ids.filter((id) => !cur.has(id));
+  const added = now[k].length - (ids.length - lost.length);
+  ok(!lost.length, `ids kept: ${k} (${ids.length})` + (lost.length ? ' <- MISSING ' + lost.slice(0, 5).join(', ') + ': saved games would lose items' : ''));
+  ok(added === 0, `id list up to date: ${k}` + (added ? ` <- ${added} new id(s): run node tools/names-check.js --write-ids` : ''));
 });
 
 // every string a player can see

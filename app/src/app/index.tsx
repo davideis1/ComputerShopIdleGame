@@ -147,7 +147,7 @@ export default function Shop() {
         <Text style={styles.recName}>{v.era.name} <Text style={styles.sub}>({v.era.from}+)</Text></Text>
         <Text style={styles.body}>{v.era.blurb}</Text>
         {v.events.map((e, i) => <Text key={i} style={[styles.body, { color: colors.warn }]}>📣 {e.name} — {e.text}</Text>)}
-        {v.ended && <Text style={[styles.body, { color: colors.good }]}>🎉 You made it to today! The calendar stops here — keep growing your empire.</Text>}
+        {v.ended && <Text style={[styles.body, { color: colors.good }]}>🏁 You reached October 2035, the end of the roadmap! The calendar stops here — keep growing your empire, or open a new franchise.</Text>}
       </Panel>
 
       <Modal visible={!!away} transparent animationType="fade" onRequestClose={dismissAway}>
