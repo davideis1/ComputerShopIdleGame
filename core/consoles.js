@@ -46,6 +46,11 @@
     ['xsx', 'Xbux Series X', 'Microsaft', 2020, 2032, 0.9, 499, 0, 1.8, 0.8],
     ['xss', 'Xbux Series S', 'Microsaft', 2020, 2032, 0.6, 299, 0, 1.5, 0.6],
     ['swatch2', 'Nintendough Swatch 2', 'Nintendough', 2025, 2035, 1.5, 449, 1, 3.0, 0.8],
+    // generation 10 (Near Future; already final names, see names.js)
+    ['xspire', 'Obelisk Spire', 'Obelisk Digital', 2027, 2037, 0.9, 649, 0, 1.8, 0.8],
+    ['ps6', 'Nimbus Six', 'Nimbus Systems', 2028, 2038, 1.3, 599, 0, 3.0, 1.2],
+    ['visor', 'Orbitron Ring Visor', 'Orbitron', 2030, 2037, 0.5, 399, 1, 1.6, 0.4],
+    ['hybrid3', 'Hanami Hybrid 3', 'Hanami Toys', 2032, 2040, 1.5, 499, 1, 3.0, 0.8],
   ];
   CS.PLATFORMS = PL.map(([id, name, maker, year, end, size, price, hand, hype, short]) => ({ id, name, maker, year, end, size, price, hand: !!hand, hype, short }));
   CS.PLAT_BY_ID = {};
@@ -57,6 +62,7 @@
     ['ps3', 'PlayStatic 3 Slim', 2009, 299], ['x360', 'Xbux 360 S', 2010, 199], ['ps4', 'PlayStatic 4 Slim', 2016, 299],
     ['ps4', 'PlayStatic 4 Pro', 2016, 399], ['xone', 'Xbux One X', 2017, 499], ['swatch', 'Nintendough Swatch OLED', 2021, 349],
     ['ps5', 'PlayStatic 5 Slim', 2023, 449], ['ps5', 'PlayStatic 5 Pro', 2024, 699],
+    ['ps6', 'Nimbus Six Slim', 2032, 499], ['xspire', 'Obelisk Spire Lite', 2031, 449],
   ];
   CS.CONSOLES = CS.PLATFORMS.map((p) => ({ id: p.id, plat: p.id, name: p.name, year: p.year, price: p.price, m: p.hand ? 0.12 : 0.08, q: 1, icon: p.hand ? '🕹️' : '🎮' }))
     .concat(REV.map(([plat, name, year, price]) => ({ id: plat + '_' + slug(name), plat, name, year, price, m: 0.09, q: 1.05, icon: CS.PLAT_BY_ID[plat].hand ? '🕹️' : '🎮' })));
@@ -94,6 +100,10 @@
     ['ps5', 'Astro-Bot Playroom', 2020, 0.01, 0], ['ps5', 'Spider-Dude: Miles Moral-es', 2020, 50, 1.3], ['ps5', 'God of Warr Ragnarok-ish', 2022, 70, 1.6], ['ps5', 'Final Fantasia XVI', 2023, 70, 1.3], ['ps5', 'Spider-Dude 2', 2023, 70, 1.5],
     ['xsx', 'Haylo Infinite', 2021, 60, 1.2], ['xsx', 'Forzza Horizon 5', 2021, 60, 1.4], ['xsx', 'Starfeld', 2023, 70, 1.3], ['xsx', 'Forzza Motorsport (2023)', 2023, 70, 1.2],
     ['xss', 'Haylo Infinite', 2021, 60, 1.2], ['xss', 'Forzza Horizon 5', 2021, 60, 1.4],
+    ['xspire', 'Starhelm: Reclaim', 2027, 70, 1.4], ['xspire', 'Velocity Circuit', 2029, 70, 1.3],
+    ['ps6', 'Starfall Saga', 2028, 80, 1.5], ['ps6', 'Ronin Tide', 2029, 80, 1.4], ['ps6', 'Gearhound', 2031, 70, 1.3],
+    ['visor', 'Hoverboard Hero', 2030, 50, 1.2], ['visor', 'Ghost Signal', 2031, 50, 1.2],
+    ['hybrid3', 'Super Petal Quest', 2032, 70, 1.6], ['hybrid3', 'Kart Kingdoms', 2032, 70, 1.5], ['hybrid3', 'Pocket Critters: Nebula', 2033, 60, 1.4],
     ['swatch2', 'Maria Kart 9 World', 2025, 80, 1.7], ['swatch2', 'The Legend of Zalda: Echoes of Pasta', 2025, 70, 1.5], ['swatch2', 'Donkey Kang Bananza-ish', 2025, 70, 1.4], ['swatch2', 'Pokemun Legends Z-A-ish', 2025, 60, 1.3],
   ].filter((r) => r[3] >= 1);
 
@@ -114,6 +124,8 @@
     ['Minecrafty', 2018, ['swatch'], 30, 1.3], ['Doomed Eternal', 2020, ['ps4', 'xone', 'swatch'], 60, 1.4],
     ['Call of Duty-Free: Modern Warfare-house III', 2023, ['ps5', 'xsx', 'xss'], 70, 1.2], ['Elden Rung', 2022, ['ps5', 'xsx', 'xss'], 60, 1.7], ['Hogwash Legacy', 2023, ['ps5', 'xsx', 'swatch'], 70, 1.3],
     ['Black Myth: Wuking', 2024, ['ps5'], 60, 1.5], ['Monster Hunter Wildz', 2025, ['ps5', 'xsx'], 70, 1.4], ['Grand Theft Auto-mobile VI', 2026, ['ps5', 'xsx'], 80, 2.0],
+    ['Chromecity 2091', 2027, ['ps5', 'xsx', 'xspire'], 70, 1.3], ['Pro Pitch FC 29', 2028, ['ps6', 'xspire', 'ps5', 'swatch2'], 70, 1.1], ['Pale Throne', 2028, ['ps6', 'xspire'], 70, 1.6],
+    ['Carjack City VII', 2032, ['ps6', 'xspire'], 90, 1.9], ['Holo Arena Live', 2031, ['ps6', 'xspire', 'visor'], 40, 1.3],
     ['Cyberpunk 2078', 2020, ['ps5', 'xsx'], 60, 1.0], ['Baldur\'s Gate 3', 2023, ['ps5', 'xsx'], 60, 1.7], ['EA Sports FC 25', 2024, ['ps5', 'xsx', 'xss', 'ps4'], 70, 1.1],
   ];
   CS.CGAMES = [];

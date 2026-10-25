@@ -83,6 +83,8 @@ Options (pick one or two):
 - Reconsider `TOKEN_R0 = 2e8` relative to how revenue grows with HQ upgrades. Run `sim.js` with a second-run bot that buys HQ upgrades, and check tokens per hour across runs 1–5. That metric should go up each run.
 
 ### 4.2 Endgame after "today"
+*Addressed in `near-future`: the calendar now carries on to Oct 2035 with two speculative eras (option 1 below); idling past the end barely raises tokens per hour any more.*
+
 At `END_CAL` the calendar stops: no new products, events or eras. A player who doesn't want to prestige has nothing to do. Ideas:
 - **"Near Future" content:** a speculative era after 2026 (parody AR glasses, quantum-ish PCs, holo-consoles) with lower-confidence names, so the calendar can keep going.
 - **Endgame goals:** per-run challenges (see §5.6) and long achievements ("$1 Qa revenue").

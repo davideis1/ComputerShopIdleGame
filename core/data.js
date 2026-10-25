@@ -5,8 +5,9 @@
 
   CS.C = {
     START_YEAR: 1993,
-    END_CAL: 33.8, // calendar stops at "today" (Oct 2026)
-    YEAR_SECONDS: 420, // real seconds per in-game year while playing (~4 hours from 1993 to today)
+    TODAY_CAL: 33.8, // "today" (Oct 2026): a milestone; the Near Future eras carry on from here
+    END_CAL: 42.8, // the calendar stops in Oct 2035, the end of the roadmap
+    YEAR_SECONDS: 420, // real seconds per in-game year while playing (~4 hours from 1993 to today, ~5 to 2035)
     OFFLINE_CAL_RATE: 0.05, // calendar speed while the shop is closed
     G: 1.28, // yearly tech improvement factor
     SALE_WINDOW: 6, // years a prebuilt can be re-ordered from distributors
@@ -31,6 +32,9 @@
     { from: 2015, name: 'RGB Everything', theme: 'rgb', blurb: 'Esports, tempered glass and glowing fans.' },
     { from: 2020, name: 'Pandemic & Beyond', theme: 'rgb', blurb: 'Remote work, chip shortages, custom silicon.' },
     { from: 2024, name: 'The AI Era', theme: 'rgb', blurb: 'Every PC is now an "AI PC".' },
+    // Near Future: everything from here on is speculation
+    { from: 2027, name: 'Spatial Shift', theme: 'holo', blurb: 'Smart glasses replace monitors, and everyone talks to their PC.' },
+    { from: 2031, name: 'Quantum Curious', theme: 'holo', blurb: 'Quantum co-processors, holo-desks and screens the size of a wall.' },
   ];
 
   /* ---------- Parts ---------- */
@@ -58,6 +62,9 @@
     ['cpu', 2017, 'Zephyr 3 1200|Zephyr 5 1600|Zephyr 7 1800X'],
     ['cpu', 2019, 'Zephyr 5 3600|Silicor Kern k7-9700K|Zephyr 9 3900X'],
     ['cpu', 2021, 'Silicor Kern k3-12100|Zephyr 5 5600X|Silicor Kern k9-12900K'],
+    ['cpu', 2027, 'Zephyr 5 11600|Silicor Kern k7-17700|Zephyr 9 11950X'],
+    ['cpu', 2030, 'Silicor Kern k5-21600 Neural|Zephyr 7 13800 NPU|Silicor Kern k9-21900 Neural'],
+    ['cpu', 2033, 'Zephyr Qubit Q3 Hybrid|Silicor Kern Q7 Hybrid|Aurum Entangle Q9'],
     ['cpu', 2023, 'Zephyr 5 7600|Silicor Kern k7-14700K|Zephyr 9 7950V'],
     ['cpu', 2025, 'Zephyr 5 9600X|Silicor Kern Ultra 7 265K|Zephyr 9 9950V'],
 
@@ -72,6 +79,8 @@
     ['ram', 2018, 'Stonekeep 8GB DDR4-3200|Foundry 16GB DDR4-3600|Cutlass 32GB RGB DDR4'],
     ['ram', 2021, 'Stonekeep 16GB DDR5|Foundry 32GB DDR5|Cutlass 64GB DDR5'],
     ['ram', 2024, 'Stonekeep 32GB DDR5-6000|Foundry 64GB DDR5-6400|Cutlass 96GB DDR5-7200'],
+    ['ram', 2027, 'Stonekeep 64GB DDR6|Foundry 128GB DDR6|Cutlass 192GB DDR6'],
+    ['ram', 2031, 'Stonekeep 128GB DDR6X|Foundry 256GB DDR6X|Cutlass 512GB Stacked'],
 
     ['storage', 1993, 'Albatross 120MB HDD|Albatross 340MB HDD|Orient Data 540MB HDD'],
     ['storage', 1996, 'Albatross 1.2GB HDD|Orient Data 2.5GB HDD|Quasar 4.3GB HDD'],
@@ -84,6 +93,8 @@
     ['storage', 2017, 'Sonata 250GB NVMe|Sonata 500GB NVMe|Sonata 1TB NVMe'],
     ['storage', 2020, 'Sonata 500GB Gen4|Sonata 1TB Gen4|Sonata 2TB Gen4'],
     ['storage', 2023, 'Sonata 1TB Gen4|Sonata 2TB Gen4|Sonata 4TB Gen5'],
+    ['storage', 2027, 'Sonata 4TB Gen6|Sonata 8TB Gen6|Sonata 16TB Gen6'],
+    ['storage', 2031, 'Sonata 16TB Crystal|Sonata 32TB Crystal|Sonata 64TB Glass Platter'],
 
     ['gpu', 1993, 'Trifold VGA 1MB|Sable Trio 64 2MB|Mastix Millennial 2MB'],
     ['gpu', 1996, 'Sable Vortex 3D|Tri-Pixel Wizard 1|Mastix Mirage 220'],
@@ -100,6 +111,9 @@
     ['gpu', 2021, 'Arcadia Prism R6 6600 X|Verdant Gale GR 3070|Verdant Gale GR 3090'],
     ['gpu', 2023, 'Verdant Gale GR 4060|Verdant Gale GR 4070 S|Verdant Gale GR 4090'],
     ['gpu', 2025, 'Arcadia Prism R9 9060 X|Verdant Gale GR 5070|Verdant Gale GR 5090'],
+    ['gpu', 2027, 'Arcadia Prism R9 11060|Verdant Gale GR 6070|Verdant Gale GR 6090'],
+    ['gpu', 2029, 'Verdant Gale GR 7060|Arcadia Prism R9 12800 XT|Verdant Gale GR 7090 Holo'],
+    ['gpu', 2032, 'Verdant Lumen L60|Arcadia Lightfield LX 70|Verdant Lumen L90 Holo'],
 
     ['case', 1993, 'Beige Mini-Tower|Beige Mid-Tower|Big Beige Full Tower'],
     ['case', 1999, 'Plain Black Mid-Tower|Translucent Blue Mid-Tower|Aluminum Full Tower'],
@@ -108,6 +122,8 @@
     ['case', 2012, 'Quiet Mid-Tower|Windowed Silent Tower|Full Tower w/ Fan Wall'],
     ['case', 2017, 'RGB Mesh Mid-Tower|Tempered Glass Mid-Tower|Dual-Chamber Showcase'],
     ['case', 2022, 'Airflow Mesh Mid-Tower|White Glass Mid-Tower|Fish Tank Mega-Case'],
+    ['case', 2028, 'Glass Cube Mini|Wood-Panel Silent Tower|Liquid Showcase Aquarium'],
+    ['case', 2033, 'Desk-Integrated Chassis|Holo-Frame Tower|Levitating Orb Chassis'],
 
     ['os', 1993, 'DOS-Lite 6.22 + Skylight 3.1|Skylight for Workgroups 3.11|Orbit/3 Hyperdrive'],
     ['os', 1995, 'Skylight 95 Lite|Skylight 95|Skylight 95 Plus!'],
@@ -117,6 +133,8 @@
     ['os', 2009, 'Skylight 7 Starter|Skylight 7 Home|Skylight 7 Ultimate'],
     ['os', 2015, 'Skylight 10 Home|Skylight 10 Pro|Skylight 10 Enterprise'],
     ['os', 2021, 'Skylight 11 Home|Skylight 11 Pro|Skylight 11 Pro for Workstations'],
+    ['os', 2028, 'Skylight 12 Home|Skylight 12 Pro|Skylight 12 Pro Spatial'],
+    ['os', 2033, 'Skylight Q Home|Skylight Q Pro|Skylight Q Studio'],
   ];
 
   const TIERS = [
@@ -219,6 +237,17 @@
     ['alien_r16', 'Outerworld', 'Dawn R16', 2024, 2499, 0.24, 1.5, '👽'],
     ['ample_neo', 'Quince', 'QuinceBook Neo', 2026, 699, 0.2, 1.0, '💻'],
     ['ms_lap8', 'Panewright', 'Skimmer Laptop 8', 2026, 1299, 0.16, 1.2, '💻'],
+    // Near Future
+    ['bw_halo', 'Bytewell', 'Presto Aura AI Desktop', 2027, 1299, 0.14, 1.1, '🖥️'],
+    ['qn_vision', 'Quince', 'QMac Vision Desk', 2027, 2499, 0.26, 1.6, '🖥️'],
+    ['nv_fold', 'Novaline', 'ThoughtPad Fold 2', 2028, 2199, 0.18, 1.3, '💻'],
+    ['ow_holo', 'Outerworld', 'Zone-X Holo Rig', 2029, 3299, 0.26, 1.8, '👽'],
+    ['pw_glass', 'Panewright', 'Skimmer Glass Studio', 2030, 1899, 0.17, 1.4, '💻'],
+    ['sl_spectra', 'Sabre Labs', 'Edge Spectra 16', 2031, 2799, 0.23, 1.6, '🐍'],
+    ['mx_puck', 'Maxxion', 'Puck Mini PC', 2031, 599, 0.12, 0.9, '📦'],
+    ['qn_quantum', 'Quince', 'QuinceBook Quantum', 2033, 2999, 0.25, 1.9, '💻'],
+    ['hp_cube', 'Hartwell-Pace', 'Augur Cube Q', 2033, 2299, 0.18, 1.5, '🎮'],
+    ['pk_wear', 'Peakline', 'Ascent Wearable PC', 2034, 999, 0.15, 1.1, '⌚'],
   ];
   CS.PRODUCTS = PRE.map(([id, brand, name, year, price, m, q, icon]) => ({ id, brand, name, year, price, m, q, icon }));
   CS.PRODUCT_BY_ID = {};
@@ -310,6 +339,10 @@
     { id: 'lockdown', from: 2020.2, to: 2021.3, name: 'Work-From-Home Boom', demand: 1.6, text: 'Everyone is working from home and needs a computer. Yesterday.' },
     { id: 'shortage', from: 2021.0, to: 2022.8, name: 'Global Chip Shortage', partCost: 1.4, preCost: 1.2, text: 'Chip shortage! Wholesale prices are through the roof.' },
     { id: 'ai', from: 2023.4, to: 2026.9, name: 'AI Gold Rush', gpuCost: 1.6, demand: 1.15, text: 'The AI boom is draining GPU stock — and boosting interest in new PCs.' },
+    { id: 'glasses', from: 2027.3, to: 2028.2, name: 'Smart-Glasses Craze', demand: 1.25, text: 'Everyone wants a PC that can drive their new smart glasses.' },
+    { id: 'aiwinter', from: 2029.2, to: 2029.9, name: 'AI Winter', demand: 0.88, text: 'The AI hype cools off. Shoppers decide last year\'s PC is fine after all.' },
+    { id: 'solar', from: 2030.6, to: 2031.1, name: 'Solar Storm Shortage', partCost: 1.3, gpuCost: 1.2, text: 'A solar storm knocks out two chip fabs. Parts are scarce and pricey.' },
+    { id: 'quantum', from: 2032.1, to: 2033.3, name: 'Quantum Hype Bubble', demand: 1.35, text: 'Quantum computing is on every magazine cover. Nobody knows what it does; everybody wants one.' },
   ];
 
   CS.HEADLINES = {
@@ -342,6 +375,14 @@
       'Cable management declared an art form',
       'Local shop owner still not sure what "the cloud" is',
     ],
+    holo: [
+      'Customer returns smart glasses: "kept seeing my inbox in the clouds"',
+      'Holo-desk owners report record levels of waving at nothing',
+      'Quantum PC finishes the task before you start it, mostly',
+      'Local grandparent asks the PC to "turn itself off and on again", PC complies',
+      'Storage now so cheap people have forgotten what deleting is',
+      'Retro collectors pay fortunes for beige 1990s towers',
+    ],
   };
 
   /* ---------- Achievements ---------- */
@@ -362,6 +403,8 @@
     { id: 'a_y2010', name: 'Flat Earth Society', desc: 'Reach 2010', ok: (s) => s.cal >= 17, p: (s) => s.cal / 17 },
     { id: 'a_y2020', name: 'Stay-At-Home', desc: 'Reach 2020', ok: (s) => s.cal >= 27, p: (s) => s.cal / 27 },
     { id: 'a_today', name: 'Back to the Present', desc: 'Reach today', ok: (s) => s.cal >= 33.79, p: (s) => s.cal / 33.79 },
+    { id: 'a_y2030', name: 'Future Proof', desc: 'Reach 2030', ok: (s) => s.cal >= 37, p: (s) => s.cal / 37 },
+    { id: 'a_end', name: 'End of the Roadmap', desc: 'Reach October 2035', ok: (s) => s.cal >= 42.79, p: (s) => s.cal / 42.79 },
     { id: 'a_b1', name: 'Home Brew', desc: 'Build your first PC', ok: (s) => s.stats.built >= 1, p: (s) => s.stats.built / 1 },
     { id: 'a_b100', name: 'Screwdriver Wizard', desc: 'Build 100 PCs', ok: (s) => s.stats.built >= 100, p: (s) => s.stats.built / 100 },
     { id: 'a_b3', name: 'Product Line', desc: 'Have 3 blueprints at once', ok: (s) => s.bps.length >= 3, p: (s) => s.bps.length / 3 },

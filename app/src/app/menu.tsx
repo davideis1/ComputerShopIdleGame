@@ -130,7 +130,7 @@ export default function Menu() {
 
       <Panel title="About" icon="ℹ️" right={APP_VERSION ? 'v' + APP_VERSION : undefined}>
         <Text style={styles.body}>
-          Idle computer shop, 1993 → today. Every brand and product name is a made-up parody; this game is not affiliated with or endorsed by any real company. Offline progress is capped by your shop's Night Lock-Up, and Franchise Tokens, HQ upgrades and trophies carry over when you open a new franchise.
+          Idle computer shop, 1993 → 2035 (the last decade is pure speculation). Every brand and product name is a made-up parody; this game is not affiliated with or endorsed by any real company. Offline progress is capped by your shop's Night Lock-Up, and Franchise Tokens, HQ upgrades and trophies carry over when you open a new franchise.
         </Text>
         <View style={styles.linkRow}>
           <Pressable onPress={() => Linking.openURL(PRIVACY_URL)} hitSlop={8}><Text style={styles.link}>Privacy policy</Text></Pressable>

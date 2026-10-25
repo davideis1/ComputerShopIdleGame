@@ -52,6 +52,8 @@
     ps4: ["Nimbus Four", "Nimbus Systems"], xone: ["Obelisk Cairn", "Obelisk Digital"], swatch: ["Hanami Hybrid", "Hanami Toys"],
     ps5: ["Nimbus Five", "Nimbus Systems"], xsx: ["Obelisk Cairn Max", "Obelisk Digital"], xss: ["Obelisk Cairn Mini", "Obelisk Digital"],
     swatch2: ["Hanami Hybrid 2", "Hanami Toys"],
+    // Near Future: already original in consoles.js
+    xspire: ["Obelisk Spire", "Obelisk Digital"], ps6: ["Nimbus Six", "Nimbus Systems"], visor: ["Orbitron Ring Visor", "Orbitron"], hybrid3: ["Hanami Hybrid 3", "Hanami Toys"],
   };
   // console revisions whose old name does not start with a platform name
   const REVISIONS = { "Game Boi Advanced SP": "Hanami Pocket Advance Flip", "Nintendough DS Lite": "Hanami Twin Lite" };

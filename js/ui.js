@@ -356,7 +356,7 @@
     const era = E.eraAt(d.y);
     let t = `<div><b>${esc(era.name)}</b> <small>(${era.from}+)</small></div><div>${esc(era.blurb)}</div>`;
     d.ev.list.forEach((e) => (t += `<div class="warn">📣 <b>${esc(e.name)}</b> — ${esc(e.text)}</div>`));
-    if (S.cal >= C.END_CAL) t += '<div class="good">🎉 You made it to <b>today</b>! The calendar stops here — keep growing your empire.</div>';
+    if (S.cal >= C.END_CAL) t += '<div class="good">🏁 You reached <b>October 2035</b>, the end of the roadmap! The calendar stops here — keep growing your empire, or open a new franchise.</div>';
     setHtml($('#times'), t);
   }
 
@@ -1040,7 +1040,7 @@
   function buildFranchise() {
     $('#tab-franchise').innerHTML = `
       <div class="panel"><div class="title"><span>Franchise HQ</span><span id="fTokens" class="num"></span></div><div class="pbody">
-        <small>Once your shop is a big business it earns <b>Franchise Tokens</b> from its lifetime sales. Cash them in by selling up and opening a brand-new franchise back in 1993. Tokens buy permanent HQ upgrades below.</small>
+        <small>Once your shop is a big business it earns <b>Franchise Tokens</b> from its lifetime sales. Cash them in by selling up and opening a brand-new franchise back in 1993 (or later, with Head Start). Tokens buy permanent HQ upgrades below.</small>
         <div class="grid" id="fStats"></div>
         <div class="bar"><i id="fBar"></i></div><small id="fNext"></small>
         <button class="primary" data-act="claim" id="fClaim"></button>
@@ -1166,7 +1166,7 @@
       <div class="panel"><div class="title">Shop Settings</div><div class="pbody">
         <div class="field"><label><span>Shop name</span></label><input type="text" id="nameIn" maxlength="30"></div>
         <div class="field"><label><span>Visual theme</span></label>
-          <select id="themeSel"><option value="auto">Automatic (follows the era)</option><option value="win95">Windoze 95 (1993–99)</option><option value="xp">Bliss (2000–08)</option><option value="flat">Flat (2009–16)</option><option value="rgb">RGB (2017+)</option></select></div>
+          <select id="themeSel"><option value="auto">Automatic (follows the era)</option><option value="win95">Windoze 95 (1993–99)</option><option value="xp">Bliss (2000–08)</option><option value="flat">Flat (2009–16)</option><option value="rgb">RGB (2015–26)</option><option value="holo">Holo (2027+)</option></select></div>
         <label class="check"><input type="checkbox" id="optTicker"> Show the news ticker</label>
         <label class="check"><input type="checkbox" id="optWalkers"> Animate customers walking past</label>
       </div></div>
@@ -1183,7 +1183,7 @@
         </div></div></div>
       <div class="panel"><div class="title">Statistics</div><div class="pbody" id="statsBody"></div></div>
       <div class="panel"><div class="title"><span>Trophies</span><span id="achCount"></span></div><div class="pbody"><div id="troTools">${chipRow('tro.f', [['all', 'All'], ['earned', 'Earned'], ['locked', 'Locked']])}</div><div id="achBody"></div></div></div>
-      <div class="panel"><div class="title"><span>About</span><span class="num" id="verLbl"></span></div><div class="pbody"><div class="menu-btns"><button data-act="changelog">📰 What's new</button></div><small>Idle computer shop, 1993 → today. Every brand and product name is a made-up parody; this game is not affiliated with or endorsed by any real company. Offline progress is capped by your shop's Night Lock-Up, and the calendar crawls at 1/20 speed while you are away.</small></div></div>`;
+      <div class="panel"><div class="title"><span>About</span><span class="num" id="verLbl"></span></div><div class="pbody"><div class="menu-btns"><button data-act="changelog">📰 What's new</button></div><small>Idle computer shop, 1993 → 2035 (the last decade is pure speculation). Every brand and product name is a made-up parody; this game is not affiliated with or endorsed by any real company. Offline progress is capped by your shop's Night Lock-Up, and the calendar crawls at 1/20 speed while you are away.</small></div></div>`;
     setText($('#verLbl'), 'v' + verStr());
     $('#nameIn').addEventListener('input', (e) => { S.name = e.target.value.slice(0, 30) || 'Mega Byte Computers'; });
     $('#themeSel').addEventListener('change', (e) => { saveSettings({ theme: e.target.value }); applyTheme(true); });
