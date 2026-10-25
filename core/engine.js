@@ -528,11 +528,13 @@
   }
   /** What a phone should remind the player about if they leave now: [{ id, seconds (from now), title, body }].
       Used by the app's local notifications (app/src/notify.ts). */
-  function remindersAt(s) {
+  function remindersAt(s, opt) {
     const d = derive(s);
     const out = [];
     const cap = d.offlineCap;
-    out.push({ id: 'night', seconds: cap, title: '🌙 The night shift has clocked off', body: s.name + ' traded for ' + Math.round(cap / 360) / 10 + ' hours without you. Come back to collect the takings and restock.' });
+    opt = opt || {};
+    const lead = Math.max(0, Math.min(180, (opt.leadMin || 0))) * 60; // remind this long before earning stops
+    out.push({ id: 'night', seconds: cap - lead, title: '🌙 The night shift has clocked off', body: s.name + ' traded for ' + Math.round(cap / 360) / 10 + ' hours without you. Come back to collect the takings and restock.' });
     // nobody restocks (no clerk, no buyers): when do the PCs on the shelf run out? (~half of served shoppers buy one)
     if (!d.restock && !(d.mgr && d.mgr.count)) {
       const pcs = getItems(s, d).filter((i) => (i.kind === 'pre' || i.kind === 'bp') && i.stock > 0).reduce((a, i) => a + i.stock, 0);
@@ -544,7 +546,18 @@
     const perSec = (C.OFFLINE_CAL_RATE * calSpeed(s)) / C.YEAR_SECONDS;
     const next = d.aisleConsole && CS.PLATFORMS ? CS.PLATFORMS.filter((p) => p.year > d.y && (p.year - d.y) / perSec < cap).sort((a, b) => a.year - b.year)[0] : null;
     if (next) out.push({ id: 'launch', seconds: (next.year - d.y) / perSec, title: '🎮 ' + next.name + ' launches today', body: 'Queues round the block and stock is limited. Get your allocation in.' });
-    return out.filter((r) => r.seconds >= 60);
+    // a Franchise Token becomes claimable while away (revenue at today's rate reaches the next token)
+    const rev = Math.max(0, s.rate.rev);
+    if (rev > 0 && s.stats.revenue >= 0) {
+      const secs = (nextTokenAt(s) - s.stats.revenue) / rev;
+      if (pendingTokens(s) < 1 && secs > 60 && secs < cap) out.push({ id: 'tokens', seconds: secs, title: '🎫 A Franchise Token is ready', body: 'Your shop has made enough to cash in. Open the HQ tab to claim it.' });
+    }
+    // a Service Desk that turns jobs away all night, with nobody managing it
+    if (d.service && d.svcDemand > d.svcCap * 1.2 && !(s.mgr && s.mgr.svc)) {
+      out.push({ id: 'service', seconds: Math.min(cap, 3600), title: '🛎️ Your Service Desk is turning jobs away', body: 'More repair jobs are walking in than the desk can handle. Hire technicians (or a Service manager).' });
+    }
+    const kinds = opt.kinds || {};
+    return out.filter((r) => r.seconds >= 60 && kinds[r.id] !== false);
   }
   /** Warranty claims trickle in over time; returns what was paid this step. */
   function payClaims(s, dt) {

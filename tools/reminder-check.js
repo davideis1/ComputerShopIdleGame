@@ -27,5 +27,27 @@ c.up.aisle_console = 0;
 ok(!ids(c).includes('launch'), 'no launch reminder without Console Corner');
 ok(E.remindersAt(c).every((r) => r.seconds >= 60 && r.title && r.body), 'every reminder has text and is at least a minute away');
 
+// player settings: kinds can be switched off, and the night-shift reminder can come early
+const o = E.newState();
+ok(E.remindersAt(o, { kinds: { night: false } }).every((r) => r.id !== 'night'), 'a switched-off kind is not scheduled');
+const base = E.remindersAt(o).find((r) => r.id === 'night').seconds;
+ok(E.remindersAt(o, { leadMin: 30 }).find((r) => r.id === 'night').seconds === base - 1800, 'the night-shift reminder can come 30 minutes early');
+ok(E.remindersAt(o, { leadMin: 9999 }).find((r) => r.id === 'night').seconds >= 60, 'an absurd lead time still leaves a valid reminder');
+
+// a Franchise Token that becomes claimable while away
+const k = E.newState();
+k.stats.revenue = 0.9 * CS.C.TOKEN_R0;
+k.rate.rev = 1e4;
+const tok = E.remindersAt(k).find((r) => r.id === 'tokens');
+ok(tok && Math.abs(tok.seconds - (E.nextTokenAt(k) - k.stats.revenue) / 1e4) < 1, 'a Franchise Token reminder arrives when revenue will reach it (' + (tok && Math.round(tok.seconds)) + ' s)');
+k.stats.revenue = 2 * CS.C.TOKEN_R0;
+ok(!ids(k).includes('tokens'), 'no token reminder when one is already claimable');
+
+// a Service Desk drowning in jobs with nobody managing it
+const v = E.newState();
+v.cal = 2005 - 1993; v.cash = 1e6; v.up.ads_news = 30; v.up.sales = 20; v.up.svc_desk = 1;
+ok(ids(v).includes('service'), 'an overloaded Service Desk gets a reminder');
+ok(!E.remindersAt(v, { kinds: { service: false } }).some((r) => r.id === 'service'), '...unless the player switched it off');
+
 console.log(fails ? `\n${fails} check(s) failed` : '\nall reminder checks passed');
 process.exit(fails ? 1 : 0);

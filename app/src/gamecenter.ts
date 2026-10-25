@@ -57,14 +57,24 @@ export async function gcReport(s: GameState) {
 }
 
 /** A signed proof of the Game Center player for the server (Sign in with Game Center), or { error }. */
-export async function gcProof(): Promise<{ proof: GcProofData; name: string } | { error: string }> {
-  if (!GC || !player.authenticated) return { error: 'gc_unavailable' };
+export async function gcProof(): Promise<{ proof: GcProofData; name: string } | { error: string; message?: string }> {
+  if (!GC) return { error: 'gc_unavailable' };
   try {
+    // Ask the OS, not our memory of the launch sign-in: it is the one that has to hand over the proof.
+    if (!GC.isAuthenticated()) {
+      const st = await GC.authenticate();
+      if (!st.authenticated) return { error: 'gc_unavailable' };
+    }
     const p = await GC.identityProof();
-    if ('error' in p) return { error: 'gc_unavailable' };
+    if ('error' in p) {
+      // signed in, but Apple would not sign our identity request (e.g. the app is not set up for Game Center yet)
+      return p.error === 'not_signed_in' ? { error: 'gc_unavailable' } : { error: 'gc_failed', message: "Game Center couldn't confirm who you are (" + p.error + ')' };
+    }
     const { name, ...proof } = p;
     return { proof, name };
-  } catch { return { error: 'gc_unavailable' }; }
+  } catch (e: any) {
+    return { error: 'gc_failed', message: "Game Center couldn't confirm who you are (" + (e?.message || 'unknown error') + ')' };
+  }
 }
 
 /** Open Game Center's achievements screen. False if the player isn't signed in. */

@@ -64,7 +64,8 @@ export function errorText(code: string): string {
     case 'email_taken': return 'That email address is already used by another account.';
     case 'bad_confirm': return 'Type DELETE to confirm.';
     case 'bad_token': return 'Your session has expired. Please sign in again.';
-    case 'gc_unavailable': return 'Sign in to Game Center in the Settings app first, then try again.';
+    case 'gc_unavailable': return 'Game Center is not signed in on this phone. Sign in under Settings → Game Center, then try again.';
+    case 'gc_failed': return "Game Center couldn't confirm who you are. Please try again.";
     case 'gc_bad_proof': case 'gc_bad_key': case 'gc_replay': case 'gc_expired': return "Game Center couldn't confirm who you are. Please try again.";
     case 'gc_taken': return 'That Game Center player is already linked to another account.';
     case 'needs_password': return 'Set a password first, or you could no longer sign in to this account.';

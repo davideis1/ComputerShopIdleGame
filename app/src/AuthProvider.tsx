@@ -122,7 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInGameCenter = useCallback(async () => {
     const g = await gcProof();
-    if ('error' in g) return fail(g.error);
+    if ('error' in g) return g.message ? { ok: false, message: g.message } : fail(g.error);
     const r = await api.gcSignIn(g.proof, g.name, label());
     if (!r.ok) return fail(r.error);
     await adopt(r.data.token, r.data.user);
@@ -133,7 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const t = tokenRef.current;
     if (!t) return fail('bad_token');
     const g = await gcProof();
-    if ('error' in g) return fail(g.error);
+    if ('error' in g) return g.message ? { ok: false, message: g.message } : fail(g.error);
     const r = await api.gcLink(t, g.proof);
     if (!r.ok) return fail(r.error);
     keepUser(r.data.user);
@@ -164,7 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let proof: api.GcProofData | undefined;
     if (password === null) {
       const g = await gcProof();
-      if ('error' in g) return fail(g.error);
+      if ('error' in g) return g.message ? { ok: false, message: g.message } : fail(g.error);
       proof = g.proof;
     }
     const r = await api.deleteAccount(t, password ?? '', proof);

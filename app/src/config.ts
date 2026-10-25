@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import { VERSION } from './release';
 
 /**
  * Where the PHP backend lives (no trailing slash). `EXPO_PUBLIC_API_BASE` overrides it for local testing:
@@ -12,6 +13,6 @@ export const API_BASE = String(process.env.EXPO_PUBLIC_API_BASE || extra.apiBase
 export const PRIVACY_URL = API_BASE + '/privacy.php';
 export const SUPPORT_URL = API_BASE + '/support.php';
 
-/** "1.0.0 (3)": marketing version plus the native build number. */
+/** The same number the website shows ("1.1.24"), plus the native build number when there is one: "1.1.24 (3)". */
 const build = Constants.nativeBuildVersion;
-export const APP_VERSION = (Constants.expoConfig?.version ?? '') + (build ? ' (' + build + ')' : '');
+export const APP_VERSION = VERSION + (build ? ' (' + build + ')' : '');

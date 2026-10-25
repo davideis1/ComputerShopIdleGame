@@ -11,6 +11,8 @@ import { SyncConflictModal } from '@/components/SyncConflictModal';
 import { Ticker } from '@/components/Ticker';
 import { ToastBanner } from '@/components/ToastBanner';
 import { CatchUpOverlay } from '@/components/CatchUpOverlay';
+import { WhatsNewGate } from '@/components/WhatsNewGate';
+import { CashChip } from '@/components/CashChip';
 import { buyersVisible, hqVisible } from '@/franchise';
 import { E } from '@/game';
 import { applyTheme, colors, LIGHT, theme, THEME_IDS, ThemeId } from '@/theme';
@@ -66,6 +68,7 @@ function AppTabs() {
           headerTintColor: theme.id === 'win95' || theme.id === 'xp' ? '#ffffff' : colors.text,
           headerTitleStyle: { fontFamily: theme.titleFont, fontWeight: '700' },
           headerShadowVisible: false,
+          headerRight: () => <CashChip />, // money on every screen
           tabBarStyle: theme.id === 'win95'
             ? { backgroundColor: colors.card, borderTopWidth: 2, borderTopColor: '#ffffff' }
             : { backgroundColor: theme.id === 'rgb' ? '#0d0f1d' : colors.card, borderTopColor: theme.id === 'rgb' ? '#2d3566' : colors.edge },
@@ -80,13 +83,14 @@ function AppTabs() {
         <Tabs.Screen name="stock" options={{ tabBarIcon: icon('📦'), title: 'Stock' }} />
         <Tabs.Screen name="upgrades" options={{ tabBarIcon: icon('⬆️'), title: 'Upgrades' }} />
         <Tabs.Screen name="workshop" options={{ tabBarIcon: icon('🔧'), title: 'Workshop' }} />
-        <Tabs.Screen name="buyers" options={{ tabBarIcon: icon('👔'), title: 'Buyers', ...(showBuyers ? {} : { href: null }) }} />
+        <Tabs.Screen name="buyers" options={{ tabBarIcon: icon('👔'), title: 'Managers', ...(showBuyers ? {} : { href: null }) }} />
         <Tabs.Screen name="franchise" options={{ tabBarIcon: icon('🏢'), title: 'HQ', ...(showHQ ? {} : { href: null }) }} />
         <Tabs.Screen name="menu" options={{ tabBarIcon: icon('⚙️'), title: 'Menu' }} />
       </Tabs>
       <ToastBanner />
       <CatchUpOverlay />
       <SyncConflictModal />
+      <WhatsNewGate />
     </View>
   );
 }

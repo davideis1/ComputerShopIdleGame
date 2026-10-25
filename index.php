@@ -68,7 +68,7 @@ $v = static function (string $f): string { return (string) @filemtime(__DIR__ . 
   <nav id="nav">
     <button data-tab="shop" class="on"><i>🏪</i><span>Shop</span></button>
     <button data-tab="catalog"><i>📦</i><span>Stock</span><em id="badge-catalog" hidden>!</em></button>
-    <button data-tab="buyers" id="nav-buyers" hidden><i>👔</i><span>Buyers</span><em id="badge-buyers" hidden>!</em></button>
+    <button data-tab="buyers" id="nav-buyers" hidden><i>👔</i><span>Managers</span><em id="badge-buyers" hidden>!</em></button>
     <button data-tab="workshop"><i>🛠️</i><span>Workshop</span></button>
     <button data-tab="upgrades"><i>📈</i><span>Upgrades</span><em id="badge-upgrades" hidden>!</em></button>
     <button data-tab="franchise" id="nav-franchise" hidden><i>🎫</i><span>HQ</span><em id="badge-franchise" hidden>!</em></button>

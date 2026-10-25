@@ -13,6 +13,19 @@ Notifications.setNotificationHandler({
 
 export type Reminder = { id: string; seconds: number; title: string; body: string };
 
+/** The reminder kinds the player can switch on and off (ids match E.remindersAt). */
+export const REMINDER_KINDS: { id: string; label: string; hint: string }[] = [
+  { id: 'night', label: 'Night shift is over', hint: 'When offline earning stops' },
+  { id: 'empty', label: 'Shelves are empty', hint: 'Only if nothing restocks for you' },
+  { id: 'tokens', label: 'A Franchise Token is ready', hint: 'When the shop has made enough to cash in' },
+  { id: 'launch', label: 'A console launches', hint: 'Needs Console Corner' },
+  { id: 'service', label: 'Service Desk is overloaded', hint: 'Jobs are being turned away' },
+];
+export const LEAD_CHOICES = [{ min: 0, label: 'When it ends' }, { min: 15, label: '15 min before' }, { min: 30, label: '30 min before' }, { min: 60, label: '1 h before' }];
+
+/** What E.remindersAt needs from the player's settings. */
+export const reminderOptions = (s: GameState) => ({ kinds: s.settings?.notifyKinds ?? {}, leadMin: s.settings?.notifyLead ?? 0 });
+
 let asked: boolean | null = null;
 /** Ask the OS (once per launch at most). Returns whether reminders may be shown. */
 export async function enable(): Promise<boolean> {
@@ -33,7 +46,7 @@ export async function scheduleFor(s: GameState) {
     if (asked === null) asked = (await Notifications.getPermissionsAsync()).granted;
     if (!asked) return;
     await Notifications.cancelAllScheduledNotificationsAsync();
-    for (const r of E.remindersAt(s) as Reminder[]) {
+    for (const r of E.remindersAt(s, reminderOptions(s)) as Reminder[]) {
       await Notifications.scheduleNotificationAsync({
         content: { title: r.title, body: r.body },
         trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: Math.round(r.seconds) },

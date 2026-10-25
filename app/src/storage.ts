@@ -47,3 +47,16 @@ export async function deviceId(): Promise<string> {
   try { await AsyncStorage.setItem(DEVICE_KEY, id); } catch { /* the id just won't persist */ }
   return id;
 }
+
+/* ---------- What's new: the newest release the player has been shown ---------- */
+const SEEN_KEY = 'csig-seen-build';
+export async function loadSeenBuild(): Promise<number | null> {
+  try {
+    const raw = await AsyncStorage.getItem(SEEN_KEY);
+    const n = raw == null ? NaN : parseInt(raw, 10);
+    return Number.isFinite(n) ? n : null;
+  } catch {
+    return null;
+  }
+}
+export const saveSeenBuild = (n: number) => AsyncStorage.setItem(SEEN_KEY, String(n)).catch(() => {});
