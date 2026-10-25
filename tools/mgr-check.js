@@ -42,10 +42,13 @@ for (const withMgr of [false, true]) {
     });
     const bad = Object.keys(s.stock).filter((k) => s.stock[k] < 0);
     console.log('negative stock keys:', bad.length, '| cash >= 0:', s.cash >= 0);
+    if (bad.length || !(s.cash >= 0)) process.exitCode = 1;
     // save/load roundtrip keeps the managers
     const r = E.deserialize(E.serialize(s));
     console.log('roundtrip managers:', Object.values(r.mgr).filter(Boolean).length, 'cfg keys', Object.keys(r.mgrCfg).length);
+    if (Object.values(r.mgr).filter(Boolean).length !== Object.values(s.mgr).filter(Boolean).length) process.exitCode = 1;
     const o = E.deserialize(E.serialize(s)); const rr = E.offline(o, 3600);
     console.log('offline 1h: units', fmt(rr.units), 'revenue', fmt(rr.revenue), 'spent', fmt(rr.spent));
+    if (!Number.isFinite(o.cash) || !(rr.revenue > 0)) process.exitCode = 1;
   }
 }

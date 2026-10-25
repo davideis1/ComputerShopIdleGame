@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Smoke-test the game logic
-        run: node tools/sim.js 5 > /dev/null
+        run: node tools/sim.js 5 --quiet
 
       - name: Stage files
         run: |
